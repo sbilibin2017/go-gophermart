@@ -55,9 +55,9 @@ func TestGetTokenHeader(t *testing.T) {
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
-	config := &configs.JWTConfig{
-		SecretKey: "secret",
-		Exp:       time.Hour,
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "secret",
+		JWTExp:       time.Hour,
 	}
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		login := r.Context().Value(userLoginKey).(string)
@@ -73,9 +73,9 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_MissingAuthorizationHeader(t *testing.T) {
-	config := &configs.JWTConfig{
-		SecretKey: "secret",
-		Exp:       time.Hour,
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "secret",
+		JWTExp:       time.Hour,
 	}
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called when token is missing")
@@ -89,9 +89,9 @@ func TestAuthMiddleware_MissingAuthorizationHeader(t *testing.T) {
 }
 
 func TestAuthMiddleware_TokenValidationFailure(t *testing.T) {
-	config := &configs.JWTConfig{
-		SecretKey: "secret",
-		Exp:       time.Hour,
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "secret",
+		JWTExp:       time.Hour,
 	}
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Handler should not be called when token is invalid")
@@ -106,9 +106,9 @@ func TestAuthMiddleware_TokenValidationFailure(t *testing.T) {
 }
 
 func TestAuthMiddleware_ContextWithLogin(t *testing.T) {
-	config := &configs.JWTConfig{
-		SecretKey: "secret",
-		Exp:       3600,
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "secret",
+		JWTExp:       3600,
 	}
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		login, ok := r.Context().Value(userLoginKey).(string)
@@ -123,7 +123,7 @@ func TestAuthMiddleware_ContextWithLogin(t *testing.T) {
 		"exp":   time.Now().Add(time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(config.SecretKey))
+	tokenString, err := token.SignedString([]byte(config.JWTSecretKey))
 	if err != nil {
 		t.Fatal("Error signing token:", err)
 	}

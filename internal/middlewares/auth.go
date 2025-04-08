@@ -15,7 +15,7 @@ type contextKey string
 
 const userLoginKey contextKey = "userLogin"
 
-func AuthMiddleware(config *configs.JWTConfig) func(http.Handler) http.Handler {
+func AuthMiddleware(config *configs.GophermartConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString, err := getTokenHeader(r)
@@ -52,14 +52,14 @@ func getTokenHeader(r *http.Request) (string, error) {
 	return parts[1], nil
 }
 
-func getUserLogin(config *configs.JWTConfig, tokenString string) (string, error) {
+func getUserLogin(config *configs.GophermartConfig, tokenString string) (string, error) {
 	log.Info("Parsing JWT token", "token", tokenString)
 	claims := struct {
 		jwt.RegisteredClaims
 		Login string `json:"login"`
 	}{}
 	_, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (any, error) {
-		return []byte(config.SecretKey), nil
+		return []byte(config.JWTSecretKey), nil
 	})
 	if err != nil {
 		log.Error("Failed to parse JWT token", "token", tokenString, "error", err)

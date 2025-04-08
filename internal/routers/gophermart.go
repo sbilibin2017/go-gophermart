@@ -9,7 +9,7 @@ import (
 )
 
 func NewGophermartRouter(
-	config *configs.JWTConfig,
+	config *configs.GophermartConfig,
 	registerHandler http.HandlerFunc,
 	loginHandler http.HandlerFunc,
 	uploadOrderHandler http.HandlerFunc,

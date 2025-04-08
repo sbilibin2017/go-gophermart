@@ -19,9 +19,9 @@ func mockGophermartHandler(name string) http.HandlerFunc {
 }
 
 func TestNewGophermartRouter(t *testing.T) {
-	config := &configs.JWTConfig{
-		SecretKey: "test-secret",
-		Exp:       time.Hour,
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "test-secret",
+		JWTExp:       time.Hour,
 	}
 
 	router := NewGophermartRouter(
