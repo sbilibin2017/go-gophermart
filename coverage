@@ -1,0 +1,13 @@
+github.com/sbilibin2017/go-gophermart/cmd/accrual/app/flags.go:29:	ParseFlags	100.0%
+github.com/sbilibin2017/go-gophermart/cmd/accrual/app/run.go:13:	Run		100.0%
+github.com/sbilibin2017/go-gophermart/cmd/accrual/main.go:8:		main		100.0%
+github.com/sbilibin2017/go-gophermart/cmd/gophermart/app/flags.go:34:	ParseFlags	100.0%
+github.com/sbilibin2017/go-gophermart/cmd/gophermart/app/run.go:13:	Run		100.0%
+github.com/sbilibin2017/go-gophermart/cmd/gophermart/main.go:8:		main		100.0%
+github.com/sbilibin2017/go-gophermart/internal/cli/run.go:3:		Run		100.0%
+github.com/sbilibin2017/go-gophermart/internal/log/log.go:19:		Init		100.0%
+github.com/sbilibin2017/go-gophermart/internal/log/log.go:37:		Info		100.0%
+github.com/sbilibin2017/go-gophermart/internal/log/log.go:45:		Error		100.0%
+github.com/sbilibin2017/go-gophermart/internal/log/log.go:53:		Sync		100.0%
+github.com/sbilibin2017/go-gophermart/internal/server/run.go:16:	Run		100.0%
+total:									(statements)	100.0%
