@@ -18,10 +18,16 @@ func NewAccrualRouter(
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/orders", func(r chi.Router) {
-			r.Get("/{number}", getOrderAccrualHandler)
-			r.Post("/", registerOrderHandler)
+			if getOrderAccrualHandler != nil {
+				r.Get("/{number}", getOrderAccrualHandler)
+			}
+			if registerOrderHandler != nil {
+				r.Post("/", registerOrderHandler)
+			}
 		})
-		r.Post("/goods", registerGoodsHandler)
+		if registerGoodsHandler != nil {
+			r.Post("/goods", registerGoodsHandler)
+		}
 	})
 
 	return r
