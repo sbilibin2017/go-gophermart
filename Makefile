@@ -1,12 +1,13 @@
 .PHONY: test test-cov migrate lint mockgen
 
 test:
-	go test ./...
+	go test ./...	
 
 test-cov:
-	go test -coverprofile=coverage.out -covermode=count ./...		
-	go tool cover -func=coverage.out	
-
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | grep -v '_mock' > coverage.txt
+	rm coverage.out
+	
 lint:
 	staticcheck ./...
 
