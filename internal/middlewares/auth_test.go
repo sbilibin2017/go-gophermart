@@ -84,7 +84,7 @@ func TestAuthMiddleware_MissingAuthorizationHeader(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	authMiddleware.ServeHTTP(rr, req)
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	assert.Equal(t, "Invalid token header\n", rr.Body.String())
 }
 
