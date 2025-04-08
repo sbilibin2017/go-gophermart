@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func mockHandler(name string) http.HandlerFunc {
+func mockGophermartHandler(name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(name))
@@ -26,13 +26,13 @@ func TestNewGophermartRouter(t *testing.T) {
 
 	router := NewGophermartRouter(
 		config,
-		mockHandler("register"),
-		mockHandler("login"),
-		mockHandler("uploadOrder"),
-		mockHandler("getOrders"),
-		mockHandler("getBalance"),
-		mockHandler("withdraw"),
-		mockHandler("getWithdrawals"),
+		mockGophermartHandler("register"),
+		mockGophermartHandler("login"),
+		mockGophermartHandler("uploadOrder"),
+		mockGophermartHandler("getOrders"),
+		mockGophermartHandler("getBalance"),
+		mockGophermartHandler("withdraw"),
+		mockGophermartHandler("getWithdrawals"),
 	)
 
 	tests := []struct {
