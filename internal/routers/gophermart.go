@@ -21,16 +21,32 @@ func NewGophermartRouter(
 	r := chi.NewRouter()
 	r.Use(middlewares.LoggingMiddleware)
 	r.Use(middlewares.GzipMiddleware)
+
 	r.Route("/api/user", func(r chi.Router) {
-		r.Post("/register", registerHandler)
-		r.Post("/login", loginHandler)
+		if registerHandler != nil {
+			r.Post("/register", registerHandler)
+		}
+		if loginHandler != nil {
+			r.Post("/login", loginHandler)
+		}
+
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.AuthMiddleware(config))
-			r.Post("/orders", uploadOrderHandler)
-			r.Get("/orders", getOrdersHandler)
-			r.Get("/balance", getBalanceHandler)
-			r.Post("/balance/withdraw", withdrawHandler)
-			r.Get("/withdrawals", getWithdrawalsHandler)
+			if uploadOrderHandler != nil {
+				r.Post("/orders", uploadOrderHandler)
+			}
+			if getOrdersHandler != nil {
+				r.Get("/orders", getOrdersHandler)
+			}
+			if getBalanceHandler != nil {
+				r.Get("/balance", getBalanceHandler)
+			}
+			if withdrawHandler != nil {
+				r.Post("/balance/withdraw", withdrawHandler)
+			}
+			if getWithdrawalsHandler != nil {
+				r.Get("/withdrawals", getWithdrawalsHandler)
+			}
 		})
 	})
 	return r
