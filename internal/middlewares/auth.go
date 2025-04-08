@@ -21,7 +21,7 @@ func AuthMiddleware(config *configs.JWTConfig) func(http.Handler) http.Handler {
 			tokenString, err := getTokenHeader(r)
 			if err != nil {
 				log.Error("Failed to get token header", "error", err)
-				http.Error(w, "Invalid token header", http.StatusBadRequest)
+				http.Error(w, "Invalid token header", http.StatusUnauthorized)
 				return
 			}
 			login, err := getUserLogin(config, tokenString)
