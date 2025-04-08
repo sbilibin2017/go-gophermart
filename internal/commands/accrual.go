@@ -25,17 +25,18 @@ const (
 	DescriptionAccrualDatabaseURI = "URI to connect to the database"
 )
 
-type AccrualApp interface {
-	Start(ctx context.Context) error
-}
-
-func NewAccrualCommand(ctx context.Context, app AccrualApp) *cobra.Command {
+func NewAccrualCommand(
+	ctxer func() (context.Context, context.CancelFunc),
+	runner func(ctx context.Context) error,
+) *cobra.Command {
 	viper.AutomaticEnv()
 	cmd := &cobra.Command{
 		Use:   "Accrual",
 		Short: "Accrual Service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return app.Start(ctx)
+			ctx, cancel := ctxer()
+			defer cancel()
+			return runner(ctx)
 		},
 	}
 	cmd.PersistentFlags().StringP(

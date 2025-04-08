@@ -1,44 +1,45 @@
 package commands
 
 import (
-	"bytes"
 	"context"
+	"os"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAccrualCommand_Run_CallsStart(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockApp := NewMockAccrualApp(ctrl)
-	ctx := context.Background()
-	mockApp.EXPECT().Start(ctx).Return(nil).Times(1)
-	cmd := NewAccrualCommand(ctx, mockApp)
-	cmd.SetArgs([]string{})
-	err := cmd.Execute()
-	assert.NoError(t, err)
+func dummyAccrualRunner(ctx context.Context) error {
+	return nil
 }
 
-func TestNewAccrualCommand_FlagsAndEnv(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockApp := NewMockAccrualApp(ctrl)
-	ctx := context.Background()
-	mockApp.EXPECT().Start(ctx).Return(nil).Times(1)
-	cmd := NewAccrualCommand(ctx, mockApp)
-	runAddr := "127.0.0.1:9090"
-	dbURI := "postgres://user:pass@localhost:5432/accrualdb"
-	cmd.SetArgs([]string{
-		"-a", runAddr,
-		"-d", dbURI,
+func dummyAccrualCtxer() (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	return ctx, cancel
+}
+
+func TestNewAccrualCommand(t *testing.T) {
+	cmd := NewAccrualCommand(dummyAccrualCtxer, dummyAccrualRunner)
+	assert.NotNil(t, cmd)
+	assert.Equal(t, "Accrual", cmd.Use)
+	assert.Equal(t, "Accrual Service", cmd.Short)
+	runAddressFlag := cmd.PersistentFlags().Lookup(FlagAccrualRunAddress)
+	assert.NotNil(t, runAddressFlag)
+	assert.Equal(t, "localhost:8081", runAddressFlag.Value.String())
+	databaseURIFlag := cmd.PersistentFlags().Lookup(FlagAccrualDatabaseURI)
+	assert.NotNil(t, databaseURIFlag)
+	assert.Equal(t, "", databaseURIFlag.Value.String())
+	os.Setenv(EnvAccrualRunAddress, "env-address")
+	os.Setenv(EnvAccrualDatabaseURI, "env-database-uri")
+	viper.AutomaticEnv()
+	assert.Equal(t, "env-address", viper.GetString(EnvAccrualRunAddress))
+	assert.Equal(t, "env-database-uri", viper.GetString(EnvAccrualDatabaseURI))
+	cmd.PersistentFlags().Parse([]string{
+		"--run-address", "cmd-address",
+		"--database-uri", "cmd-database-uri",
 	})
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	err := cmd.Execute()
+	assert.Equal(t, "cmd-address", runAddressFlag.Value.String())
+	assert.Equal(t, "cmd-database-uri", databaseURIFlag.Value.String())
+	err := cmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
-	assert.Equal(t, runAddr, viper.GetString(EnvAccrualRunAddress))
-	assert.Equal(t, dbURI, viper.GetString(EnvAccrualDatabaseURI))
 }

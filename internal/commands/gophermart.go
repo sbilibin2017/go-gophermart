@@ -29,19 +29,21 @@ const (
 	DescriptionGophermartAccrualSystemAddr = "Address of the accrual calculation system"
 )
 
-type GophermartApp interface {
-	Start(ctx context.Context) error
-}
-
-func NewGophermartCommand(ctx context.Context, app GophermartApp) *cobra.Command {
+func NewGophermartCommand(
+	ctxer func() (context.Context, context.CancelFunc),
+	runner func(ctx context.Context) error,
+) *cobra.Command {
 	viper.AutomaticEnv()
 	cmd := &cobra.Command{
 		Use:   "Gophermart",
 		Short: "Gophermart Service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return app.Start(ctx)
+			ctx, cancel := ctxer()
+			defer cancel()
+			return runner(ctx)
 		},
 	}
+
 	cmd.PersistentFlags().StringP(
 		FlagGophermartRunAddress,
 		ShortFlagGophermartRunAddress,
@@ -60,17 +62,19 @@ func NewGophermartCommand(ctx context.Context, app GophermartApp) *cobra.Command
 		DefaultGophermartAccrualSystemAddr,
 		DescriptionGophermartAccrualSystemAddr,
 	)
-	viper.BindPFlag(
+
+	_ = viper.BindPFlag(
 		EnvGophermartRunAddress,
 		cmd.PersistentFlags().Lookup(FlagGophermartRunAddress),
 	)
-	viper.BindPFlag(
+	_ = viper.BindPFlag(
 		EnvGophermartDatabaseURI,
 		cmd.PersistentFlags().Lookup(FlagGophermartDatabaseURI),
 	)
-	viper.BindPFlag(
+	_ = viper.BindPFlag(
 		EnvGophermartAccrualSystemAddress,
 		cmd.PersistentFlags().Lookup(FlagGophermartAccrualSystemAddress),
 	)
+
 	return cmd
 }

@@ -1,47 +1,52 @@
 package commands
 
 import (
-	"bytes"
 	"context"
+	"os"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewGophermartCommand_Run_CallsStart(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockApp := NewMockGophermartApp(ctrl)
-	ctx := context.Background()
-	mockApp.EXPECT().Start(ctx).Return(nil).Times(1)
-	cmd := NewGophermartCommand(ctx, mockApp)
-	cmd.SetArgs([]string{})
-	err := cmd.Execute()
-	assert.NoError(t, err)
+func dummyGophermartRunner(ctx context.Context) error {
+	return nil
 }
 
-func TestNewGophermartCommand_FlagsAndEnv(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockApp := NewMockGophermartApp(ctrl)
-	ctx := context.Background()
-	mockApp.EXPECT().Start(ctx).Return(nil).Times(1)
-	cmd := NewGophermartCommand(ctx, mockApp)
-	runAddr := "127.0.0.1:9000"
-	dbURI := "postgres://user:pass@localhost:5432/db"
-	accrualAddr := "http://accrual:8081"
-	cmd.SetArgs([]string{
-		"-a", runAddr,
-		"-d", dbURI,
-		"-r", accrualAddr,
+func dummyGophermartCtxer() (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	return ctx, cancel
+}
+
+func TestNewGophermartCommand(t *testing.T) {
+	cmd := NewGophermartCommand(dummyGophermartCtxer, dummyGophermartRunner)
+	assert.NotNil(t, cmd)
+	assert.Equal(t, "Gophermart", cmd.Use)
+	assert.Equal(t, "Gophermart Service", cmd.Short)
+	runAddressFlag := cmd.PersistentFlags().Lookup(FlagGophermartRunAddress)
+	assert.NotNil(t, runAddressFlag)
+	assert.Equal(t, "localhost:8080", runAddressFlag.Value.String())
+	databaseURIFlag := cmd.PersistentFlags().Lookup(FlagGophermartDatabaseURI)
+	assert.NotNil(t, databaseURIFlag)
+	assert.Equal(t, "", databaseURIFlag.Value.String())
+	accrualSystemFlag := cmd.PersistentFlags().Lookup(FlagGophermartAccrualSystemAddress)
+	assert.NotNil(t, accrualSystemFlag)
+	assert.Equal(t, "", accrualSystemFlag.Value.String())
+	os.Setenv(EnvGophermartRunAddress, "env-address")
+	os.Setenv(EnvGophermartDatabaseURI, "env-database-uri")
+	os.Setenv(EnvGophermartAccrualSystemAddress, "env-accrual-system-address")
+	viper.AutomaticEnv()
+	assert.Equal(t, "env-address", viper.GetString(EnvGophermartRunAddress))
+	assert.Equal(t, "env-database-uri", viper.GetString(EnvGophermartDatabaseURI))
+	assert.Equal(t, "env-accrual-system-address", viper.GetString(EnvGophermartAccrualSystemAddress))
+	cmd.PersistentFlags().Parse([]string{
+		"--run-address", "cmd-address",
+		"--database-uri", "cmd-database-uri",
+		"--accrual-system-address", "cmd-accrual-system-address",
 	})
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	err := cmd.Execute()
+	assert.Equal(t, "cmd-address", runAddressFlag.Value.String())
+	assert.Equal(t, "cmd-database-uri", databaseURIFlag.Value.String())
+	assert.Equal(t, "cmd-accrual-system-address", accrualSystemFlag.Value.String())
+	err := cmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
-	assert.Equal(t, runAddr, viper.GetString(EnvGophermartRunAddress))
-	assert.Equal(t, dbURI, viper.GetString(EnvGophermartDatabaseURI))
-	assert.Equal(t, accrualAddr, viper.GetString(EnvGophermartAccrualSystemAddress))
 }
