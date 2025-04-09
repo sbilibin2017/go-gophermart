@@ -16,15 +16,3 @@ func NewGophermartConfig() *GophermartConfig {
 		JWTExp:       365 * 24 * time.Hour,
 	}
 }
-
-func (g *GophermartConfig) GetRunAddress() string {
-	return g.RunAddress
-}
-
-func (g *GophermartConfig) GetJWTSecretKey() string {
-	return g.JWTSecretKey
-}
-
-func (g *GophermartConfig) GetJWTExp() time.Duration {
-	return g.JWTExp
-}

@@ -2,28 +2,29 @@ package jwt
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDecode_ValidToken(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockConfig := NewMockDecodeConfig(ctrl)
-	secretKey := "test-secret-key"
-	mockConfig.EXPECT().GetJWTSecretKey().Return(secretKey).Times(1)
-	claims := jwt.MapClaims{
-		"sub": "user123",
+func TestDecode(t *testing.T) {
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "secretkey",
+	}
+	claims := &Claims{
+		Login: "testuser",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		t.Fatalf("Failed to create token string: %v", err)
-	}
-	decodedClaims, err := Decode(tokenString, mockConfig)
-	assert.NoError(t, err)
-	assert.NotNil(t, decodedClaims)
-	assert.IsType(t, &Claims{}, decodedClaims)
+	signedToken, err := token.SignedString([]byte(config.JWTSecretKey))
+	assert.NoError(t, err, "Failed to sign token")
+	decodedClaims, err := Decode(signedToken, config)
+	assert.NoError(t, err, "Failed to decode token")
+	assert.Equal(t, claims.Login, decodedClaims.Login)
+	assert.NotNil(t, decodedClaims.RegisteredClaims)
+	assert.True(t, decodedClaims.RegisteredClaims.ExpiresAt.Time.After(time.Now()))
 }

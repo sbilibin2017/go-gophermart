@@ -4,21 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEncode(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockConfig := NewMockEncodeConfig(ctrl)
-	secretKey := "mySecretKey"
-	expiration := 1 * time.Hour
+	config := &configs.GophermartConfig{
+		JWTExp:       time.Hour * 24,
+		JWTSecretKey: "secretkey",
+	}
 	login := "testuser"
-	mockConfig.EXPECT().GetJWTSecretKey().Return(secretKey).Times(1)
-	mockConfig.EXPECT().GetJWTExp().Return(expiration).Times(1)
-	token, err := Encode(mockConfig, login)
-	assert.NoError(t, err)
-	assert.True(t, len(token) > 0)
-	assert.True(t, token[:3] == "eyJ")
+	token, err := Encode(config, login)
+	assert.NoError(t, err, "Token should be signed without error")
+	assert.NotEmpty(t, token, "Token should not be empty")
+	assert.Contains(t, token, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "Token should start with the expected JWT header")
 }
