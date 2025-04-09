@@ -4,17 +4,17 @@ import (
 	"regexp"
 	"unicode"
 
-	"github.com/sbilibin2017/go-gophermart/internal/errors"
+	"github.com/go-playground/validator/v10"
 )
 
-func ValidateUserLogin(login string) error {
-	if !regexp.MustCompile("^[a-zA-Z0-9]{3,}$").MatchString(login) {
-		return errors.ErrInvalidLogin
-	}
-	return nil
+func ValidateLogin(fl validator.FieldLevel) bool {
+	login := fl.Field().String()
+	match := regexp.MustCompile(`^[a-zA-Z0-9]{3,}$`)
+	return match.MatchString(login)
 }
 
-func ValidateUserPassword(password string) error {
+func ValidatePassword(fl validator.FieldLevel) bool {
+	password := fl.Field().String()
 	flags := []bool{false, false, false, false}
 	if len(password) >= 8 {
 		flags[0] = true
@@ -31,8 +31,8 @@ func ValidateUserPassword(password string) error {
 	}
 	for _, ok := range flags {
 		if !ok {
-			return errors.ErrInvalidPassword
+			return false
 		}
 	}
-	return nil
+	return true
 }

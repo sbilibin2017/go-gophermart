@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/domain"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -25,9 +25,9 @@ func NewUserGetByParamRepository(db *sql.DB) *UserGetByParamRepository {
 }
 
 func (r *UserGetByParamRepository) GetByParam(
-	ctx context.Context, p *types.UserGetParam,
-) (*types.User, error) {
-	var user types.User
+	ctx context.Context, p *domain.UserGetParam,
+) (*domain.User, error) {
+	var user domain.User
 	err := r.db.QueryRowContext(
 		ctx,
 		userGetByParamQuery,

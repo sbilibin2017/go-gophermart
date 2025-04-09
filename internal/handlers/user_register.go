@@ -7,22 +7,23 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/errors"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/requests"
+	"github.com/sbilibin2017/go-gophermart/internal/responses"
 )
 
-type UserService interface {
-	Register(ctx context.Context, u *types.User) (*types.Token, error)
+type UserRegisterUsecase interface {
+	Execute(ctx context.Context, req *requests.UserRegisterRequest) (*responses.UserRegisterResponse, error)
 }
 
 func UserRegisterHandler(
-	config *configs.GophermartConfig, svc UserService,
+	config *configs.GophermartConfig, uc UserRegisterUsecase,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user types.User
-		if !utils.DecodeJSON(w, r, &user) {
+		var req requests.UserRegisterRequest
+		if !utils.DecodeJSON(w, r, &req) {
 			return
 		}
-		token, err := svc.Register(r.Context(), &user)
+		resp, err := uc.Execute(r.Context(), &req)
 		if err != nil {
 			switch err {
 			case errors.ErrInvalidLogin:
@@ -38,7 +39,7 @@ func UserRegisterHandler(
 		}
 		utils.SetJSONResponseHeader(w)
 		utils.SetStatusOKResponseHeader(w)
-		if !utils.EncodeJSON(w, token) {
+		if !utils.EncodeJSON(w, resp.AccessToken) {
 			return
 		}
 	}

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 )
 
@@ -19,7 +18,11 @@ var (
 	ErrInvalidAuthHeaderFormat = errors.New("invalid authorization header format")
 )
 
-func AuthMiddleware(config *configs.GophermartConfig) func(next http.Handler) http.Handler {
+type JWTDecoder interface {
+	Decode(tokenStr string) (*jwt.Claims, error)
+}
+
+func AuthMiddleware(jwtDecoder JWTDecoder) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString, err := getTokenFromRequestHeader(r)
@@ -27,7 +30,7 @@ func AuthMiddleware(config *configs.GophermartConfig) func(next http.Handler) ht
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-			claims, err := jwt.Decode(tokenString, config.JWTSecretKey)
+			claims, err := jwtDecoder.Decode(tokenString)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
