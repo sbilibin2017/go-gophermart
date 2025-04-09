@@ -21,7 +21,7 @@ github.com/sbilibin2017/go-gophermart/internal/middlewares/gzip.go:41:			Write		
 github.com/sbilibin2017/go-gophermart/internal/middlewares/logging.go:10:		LoggingMiddleware		100.0%
 github.com/sbilibin2017/go-gophermart/internal/middlewares/logging.go:34:		WriteHeader			100.0%
 github.com/sbilibin2017/go-gophermart/internal/middlewares/logging.go:39:		Write				100.0%
-github.com/sbilibin2017/go-gophermart/internal/routers/accrual.go:12:			NewAccrualRouter		100.0%
+github.com/sbilibin2017/go-gophermart/internal/routers/accrual.go:10:			NewAccrualRouter		100.0%
 github.com/sbilibin2017/go-gophermart/internal/routers/gophermart.go:11:		NewGophermartRouter		100.0%
 github.com/sbilibin2017/go-gophermart/internal/server/server.go:13:			NewServer			100.0%
 github.com/sbilibin2017/go-gophermart/internal/server/server.go:17:			SetHandler			100.0%
@@ -31,4 +31,4 @@ github.com/sbilibin2017/go-gophermart/internal/server/server_with_router.go:30:	
 github.com/sbilibin2017/go-gophermart/internal/server/server_with_router.go:35:		Run				100.0%
 github.com/sbilibin2017/go-gophermart/internal/server/server_with_router.go:41:		start				100.0%
 github.com/sbilibin2017/go-gophermart/internal/server/server_with_router.go:50:		stop				100.0%
-total:											(statements)			92.3%
+total:											(statements)			92.4%
