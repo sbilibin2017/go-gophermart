@@ -21,12 +21,14 @@ func NewGophermartRouter(
 	r := chi.NewRouter()
 	r.Use(middlewares.LoggingMiddleware)
 	r.Use(middlewares.GzipMiddleware)
-	r.With(middlewares.AuthMiddleware(config)).Post("/register", registerHandler)
-	r.With(middlewares.AuthMiddleware(config)).Post("/login", loginHandler)
-	r.With(middlewares.AuthMiddleware(config)).Post("/orders", uploadOrderHandler)
-	r.With(middlewares.AuthMiddleware(config)).Get("/orders", getOrderHandler)
-	r.With(middlewares.AuthMiddleware(config)).Get("/balance", getBalanceHandler)
-	r.With(middlewares.AuthMiddleware(config)).Post("/balance/withdraw", withdrawBalanceHandler)
-	r.With(middlewares.AuthMiddleware(config)).Get("/withdrawals", withdrawalsHandler)
+	r.Route("/api/user", func(r chi.Router) {
+		r.With(middlewares.AuthMiddleware(config)).Post("/register", registerHandler)
+		r.With(middlewares.AuthMiddleware(config)).Post("/login", loginHandler)
+		r.With(middlewares.AuthMiddleware(config)).Post("/orders", uploadOrderHandler)
+		r.With(middlewares.AuthMiddleware(config)).Get("/orders", getOrderHandler)
+		r.With(middlewares.AuthMiddleware(config)).Get("/balance", getBalanceHandler)
+		r.With(middlewares.AuthMiddleware(config)).Post("/balance/withdraw", withdrawBalanceHandler)
+		r.With(middlewares.AuthMiddleware(config)).Get("/withdrawals", withdrawalsHandler)
+	})
 	return r
 }

@@ -27,20 +27,20 @@ func TestNewAccrualRouter(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:               "Test GET /orders/{number}",
-			url:                "/orders/123",
+			name:               "Test GET /api/orders/{number}",
+			url:                "/api/orders/123",
 			method:             http.MethodGet,
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:               "Test POST /orders",
-			url:                "/orders",
+			name:               "Test POST /api/orders",
+			url:                "/api/orders",
 			method:             http.MethodPost,
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
-			name:               "Test POST /goods",
-			url:                "/goods",
+			name:               "Test POST /api/goods",
+			url:                "/api/goods",
 			method:             http.MethodPost,
 			expectedStatusCode: http.StatusCreated,
 		},
