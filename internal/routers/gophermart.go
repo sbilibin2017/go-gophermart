@@ -4,14 +4,18 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 )
 
+type JWTDecoder interface {
+	Decode(tokenStr string) (*jwt.Claims, error)
+}
+
 func NewGophermartRouter(
-	config *configs.GophermartConfig,
 	loggingMiddleware func(next http.Handler) http.Handler,
 	gzipMiddleware func(next http.Handler) http.Handler,
-	authMiddleware func(secretKey string) func(next http.Handler) http.Handler,
+	authMiddleware func(jwtDecoder JWTDecoder) func(next http.Handler) http.Handler,
+	jwtDecoder JWTDecoder,
 	registerHandler http.HandlerFunc,
 	loginHandler http.HandlerFunc,
 	uploadOrderHandler http.HandlerFunc,
@@ -24,13 +28,13 @@ func NewGophermartRouter(
 	r.Use(loggingMiddleware)
 	r.Use(gzipMiddleware)
 	r.Route("/api/user", func(r chi.Router) {
-		r.With(authMiddleware(config.JWTSecretKey)).Post("/register", registerHandler)
-		r.With(authMiddleware(config.JWTSecretKey)).Post("/login", loginHandler)
-		r.With(authMiddleware(config.JWTSecretKey)).Post("/orders", uploadOrderHandler)
-		r.With(authMiddleware(config.JWTSecretKey)).Get("/orders", getOrderHandler)
-		r.With(authMiddleware(config.JWTSecretKey)).Get("/balance", getBalanceHandler)
-		r.With(authMiddleware(config.JWTSecretKey)).Post("/balance/withdraw", withdrawBalanceHandler)
-		r.With(authMiddleware(config.JWTSecretKey)).Get("/withdrawals", withdrawalsHandler)
+		r.Post("/register", registerHandler)
+		r.Post("/login", loginHandler)
+		r.With(authMiddleware(jwtDecoder)).Post("/orders", uploadOrderHandler)
+		r.With(authMiddleware(jwtDecoder)).Get("/orders", getOrderHandler)
+		r.With(authMiddleware(jwtDecoder)).Get("/balance", getBalanceHandler)
+		r.With(authMiddleware(jwtDecoder)).Post("/balance/withdraw", withdrawBalanceHandler)
+		r.With(authMiddleware(jwtDecoder)).Get("/withdrawals", withdrawalsHandler)
 	})
 	return r
 }

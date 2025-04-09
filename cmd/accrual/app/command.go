@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	c "github.com/sbilibin2017/go-gophermart/internal/context"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 
@@ -33,7 +32,7 @@ const (
 
 func NewCommand() *cobra.Command {
 	viper.AutomaticEnv()
-	config := configs.NewAccrualConfig()
+	config := NewConfig()
 	cmd := &cobra.Command{
 		Use:   Use,
 		Short: Short,
@@ -53,7 +52,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, config *configs.AccrualConfig) error {
+func run(ctx context.Context, config *Config) error {
 	srv := server.NewServerConfigured(config.RunAddress)
 	return srv.Run(ctx)
 }

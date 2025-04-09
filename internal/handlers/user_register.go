@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/errors"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
 	"github.com/sbilibin2017/go-gophermart/internal/requests"
@@ -15,9 +14,7 @@ type UserRegisterUsecase interface {
 	Execute(ctx context.Context, req *requests.UserRegisterRequest) (*responses.UserRegisterResponse, error)
 }
 
-func UserRegisterHandler(
-	config *configs.GophermartConfig, uc UserRegisterUsecase,
-) http.HandlerFunc {
+func UserRegisterHandler(uc UserRegisterUsecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req requests.UserRegisterRequest
 		if !utils.DecodeJSON(w, r, &req) {
