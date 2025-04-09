@@ -1,76 +1,86 @@
 package middlewares
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAuthMiddleware_Success(t *testing.T) {
+// Function to generate a valid JWT token
+func generateTestToken(secretKey string) (string, error) {
+	// Create the claims
+	claims := jwt.MapClaims{
+		"login": "testUser",
+		"exp":   time.Now().Add(time.Hour * 1).Unix(), // token expires in 1 hour
+	}
+	// Create the token using HS256 signing method
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secretKey))
+}
+
+func TestAuthMiddleware(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockConfig := NewMockJWTConfig(ctrl)
-	mockClaims := NewMockClaims(ctrl)
-	mockConfig.EXPECT().GetJWTSecretKey().Return("secret-key").AnyTimes()
-	mockClaims.EXPECT().GetLogin().Return("user123").AnyTimes()
-	decoder := func(tokenStr string, config JWTConfig) (Claims, error) {
-		if tokenStr == "valid-token" {
-			return mockClaims, nil
-		}
-		return nil, errors.New("invalid token")
-	}
-	req := httptest.NewRequest(http.MethodGet, "/some-path", nil)
-	req.Header.Set("Authorization", "Bearer valid-token")
-	authMiddleware := AuthMiddleware(mockConfig, decoder)
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockJWTConfig := NewMockJWTConfig(ctrl)
+	mockJWTConfig.EXPECT().GetJWTSecretKey().Return("mockSecretKey").AnyTimes()
+	middleware := AuthMiddleware(mockJWTConfig)
+	tokenString, err := generateTestToken("mockSecretKey")
+	assert.NoError(t, err)
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		login, ok := r.Context().Value(loginKey).(string)
-		assert.True(t, ok, "expected login in context")
-		assert.Equal(t, "user123", login)
+		assert.True(t, ok, "Login should be in the context")
+		assert.Equal(t, "testUser", login, "Expected login to be 'testUser'")
 		w.WriteHeader(http.StatusOK)
 	})
-	handler := authMiddleware(next)
+	handler := middleware(testHandler)
+	req, err := http.NewRequest("GET", "/test", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
+	t.Log("Response status:", rr.Code)
+	t.Log("Response body:", rr.Body.String())
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestAuthMiddleware_MissingAuthHeader(t *testing.T) {
+func TestAuthMiddleware_MissingAuthorizationHeader(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockConfig := NewMockJWTConfig(ctrl)
-	decoder := func(tokenStr string, config JWTConfig) (Claims, error) {
-		return nil, errors.New("invalid token")
-	}
-	req := httptest.NewRequest(http.MethodGet, "/some-path", nil)
-	authMiddleware := AuthMiddleware(mockConfig, decoder)
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockJWTConfig := NewMockJWTConfig(ctrl)
+	mockJWTConfig.EXPECT().GetJWTSecretKey().Return("mockSecretKey").AnyTimes()
+	middleware := AuthMiddleware(mockJWTConfig)
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	handler := authMiddleware(next)
+	handler := middleware(testHandler)
+	req, err := http.NewRequest("GET", "/test", nil)
+	assert.NoError(t, err)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Contains(t, rr.Body.String(), ErrAuthHeaderMissing.Error())
 }
 
-func TestAuthMiddleware_InvalidAuthHeaderFormat(t *testing.T) {
+func TestAuthMiddleware_InvalidAuthorizationHeaderFormat(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockConfig := NewMockJWTConfig(ctrl)
-	decoder := func(tokenStr string, config JWTConfig) (Claims, error) {
-		return nil, errors.New("invalid token")
-	}
-	req := httptest.NewRequest(http.MethodGet, "/some-path", nil)
-	req.Header.Set("Authorization", "InvalidHeaderFormat")
-	authMiddleware := AuthMiddleware(mockConfig, decoder)
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockJWTConfig := NewMockJWTConfig(ctrl)
+	mockJWTConfig.EXPECT().GetJWTSecretKey().Return("mockSecretKey").AnyTimes()
+	middleware := AuthMiddleware(mockJWTConfig)
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	handler := authMiddleware(next)
+	handler := middleware(testHandler)
+	req, err := http.NewRequest("GET", "/test", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "InvalidFormat token")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Contains(t, rr.Body.String(), ErrInvalidAuthHeaderFormat.Error())
 }

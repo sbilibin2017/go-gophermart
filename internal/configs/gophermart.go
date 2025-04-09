@@ -20,3 +20,11 @@ func NewGophermartConfig() *GophermartConfig {
 func (g *GophermartConfig) GetRunAddress() string {
 	return g.RunAddress
 }
+
+func (g *GophermartConfig) GetJWTSecretKey() string {
+	return g.JWTSecretKey
+}
+
+func (g *GophermartConfig) GetJWTExp() time.Duration {
+	return g.JWTExp
+}

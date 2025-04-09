@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 )
 
 type contextKey string
@@ -20,27 +22,21 @@ type JWTConfig interface {
 	GetJWTSecretKey() string
 }
 
-type Claims interface {
-	GetLogin() string
-}
-
-func AuthMiddleware(
-	config JWTConfig,
-	decoder func(tokenStr string, config JWTConfig) (Claims, error),
-) func(next http.Handler) http.Handler {
+func AuthMiddleware(config JWTConfig) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString, err := getTokenFromRequestHeader(r)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
 			}
-			claims, err := decoder(tokenString, config)
+			claims, err := jwt.Decode(tokenString, config)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, loginKey, claims.GetLogin())
+			ctx = context.WithValue(ctx, loginKey, claims.Login)
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})
