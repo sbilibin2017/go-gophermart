@@ -4,17 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
-
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
-
-const userGetByParamQuery = `
-	SELECT login, password
-	FROM users
-	WHERE login = $1
-	LIMIT 1
-`
 
 type UserGetByParamRepository struct {
 	db *sql.DB
@@ -24,10 +15,26 @@ func NewUserGetByParamRepository(db *sql.DB) *UserGetByParamRepository {
 	return &UserGetByParamRepository{db: db}
 }
 
+const userGetByParamQuery = `
+	SELECT login, password
+	FROM users
+	WHERE login = $1
+	LIMIT 1
+`
+
+type UserGetParam struct {
+	Login string
+}
+
+type UserGet struct {
+	Login    string
+	Password string
+}
+
 func (r *UserGetByParamRepository) GetByParam(
-	ctx context.Context, p *domain.UserGetParam,
-) (*domain.User, error) {
-	var user domain.User
+	ctx context.Context, p *UserGetParam,
+) (*UserGet, error) {
+	var user UserGet
 	err := r.db.QueryRowContext(
 		ctx,
 		userGetByParamQuery,

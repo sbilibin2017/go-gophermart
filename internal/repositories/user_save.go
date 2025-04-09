@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
-
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -22,7 +20,12 @@ const userSaveQuery = `
 	VALUES ($1, $2);	
 `
 
-func (r *UserSaveRepository) Save(ctx context.Context, u *domain.User) error {
+type UserSave struct {
+	Login    string
+	Password string
+}
+
+func (r *UserSaveRepository) Save(ctx context.Context, u *UserSave) error {
 	_, err := r.db.ExecContext(
 		ctx,
 		userSaveQuery,
