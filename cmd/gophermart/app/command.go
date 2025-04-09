@@ -61,6 +61,6 @@ func NewCommand() *cobra.Command {
 }
 
 func run(ctx context.Context, config *configs.GophermartConfig) error {
-	srv := server.NewServerConfigured(config)
+	srv := server.NewServerConfigured(config.RunAddress)
 	return srv.Run(ctx)
 }
