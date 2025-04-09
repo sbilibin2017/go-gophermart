@@ -1,36 +1,37 @@
 package cli
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRun(t *testing.T) {
-	tests := []struct {
-		name         string
-		f            func() error
-		expectedExit int
-	}{
-		{
-			name: "Function returns no error",
-			f: func() error {
-				return nil
-			},
-			expectedExit: 0,
-		},
-		{
-			name: "Function returns an error",
-			f: func() error {
-				return assert.AnError
-			},
-			expectedExit: 1,
+func mockCommandSuccess() *cobra.Command {
+	return &cobra.Command{
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			exitCode := Run(tt.f)
-			assert.Equal(t, tt.expectedExit, exitCode)
-		})
+}
+
+func mockCommandError() *cobra.Command {
+	return &cobra.Command{
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return errors.New("execution failed")
+		},
 	}
+}
+
+func TestRun_Success(t *testing.T) {
+	cmd := mockCommandSuccess()
+	code := Run(cmd)
+	assert.Equal(t, 0, code, "Run should return 0 on success")
+}
+
+func TestRun_Error(t *testing.T) {
+	cmd := mockCommandError()
+	code := Run(cmd)
+	assert.Equal(t, 1, code, "Run should return 1 on error")
 }
