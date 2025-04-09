@@ -8,7 +8,3 @@ type AccrualConfig struct {
 func NewAccrualConfig() *AccrualConfig {
 	return &AccrualConfig{}
 }
-
-func (a *AccrualConfig) GetRunAddress() string {
-	return a.RunAddress
-}
