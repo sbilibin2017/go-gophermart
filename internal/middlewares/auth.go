@@ -27,7 +27,7 @@ func AuthMiddleware(config *configs.GophermartConfig) func(next http.Handler) ht
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-			claims, err := jwt.Decode(tokenString, config)
+			claims, err := jwt.Decode(tokenString, config.JWTSecretKey)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return

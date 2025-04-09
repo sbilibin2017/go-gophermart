@@ -5,22 +5,21 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 )
 
 var (
 	ErrTokenIsNotSigned = errors.New("token is not signed")
 )
 
-func Encode(config *configs.GophermartConfig, login string) (string, error) {
+func Encode(secretKey string, exp time.Duration, login string) (string, error) {
 	claims := &Claims{
 		Login: login,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.JWTExp)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(exp)),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(config.JWTSecretKey))
+	signedToken, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", ErrTokenIsNotSigned
 	}

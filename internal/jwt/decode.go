@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 )
 
 var (
@@ -13,12 +12,12 @@ var (
 	ErrInvalidTokenClaims      = errors.New("invalid token claims")
 )
 
-func Decode(tokenStr string, config *configs.GophermartConfig) (*Claims, error) {
+func Decode(tokenStr string, secretKey string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrUnexpectedSigningMethod
 		}
-		return []byte(config.JWTSecretKey), nil
+		return []byte(secretKey), nil
 	})
 	if err != nil {
 		return nil, ErrTokenIsNotParsed
