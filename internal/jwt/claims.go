@@ -6,3 +6,7 @@ type Claims struct {
 	Login string `json:"login"`
 	jwt.RegisteredClaims
 }
+
+func (c *Claims) GetLogin() string {
+	return c.Login
+}
