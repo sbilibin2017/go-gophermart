@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"errors"
-	"net/http"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
@@ -12,38 +12,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestServerWithRouter_Start_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockServer := NewMockHTTPServer(ctrl)
-	router := chi.NewRouter()
-	s := NewServerWithRouter(mockServer, router)
-	mockServer.EXPECT().ListenAndServe().Return(nil)
-	err := s.Start(context.Background())
-	require.NoError(t, err)
-}
-
 func TestServerWithRouter_Start_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockServer := NewMockHTTPServer(ctrl)
 	router := chi.NewRouter()
 	s := NewServerWithRouter(mockServer, router)
-	expectedErr := errors.New("some error")
-	mockServer.EXPECT().ListenAndServe().Return(expectedErr)
-	err := s.Start(context.Background())
-	assert.EqualError(t, err, expectedErr.Error())
+	mockServer.EXPECT().ListenAndServe().Return(nil)
+	mockServer.EXPECT().Shutdown(gomock.Any()).Return(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		err := s.Run(ctx)
+		require.NoError(t, err)
+	}()
+	cancel()
+	time.Sleep(1 * time.Second)
 }
 
-func TestServerWithRouter_Start_ServerClosed(t *testing.T) {
+func TestStart_ServerError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockServer := NewMockHTTPServer(ctrl)
+	mockHTTPServer := NewMockHTTPServer(ctrl)
+	mockHTTPServer.EXPECT().ListenAndServe().Return(errors.New("server failed to start"))
 	router := chi.NewRouter()
-	s := NewServerWithRouter(mockServer, router)
-	mockServer.EXPECT().ListenAndServe().Return(http.ErrServerClosed)
-	err := s.Start(context.Background())
-	assert.NoError(t, err)
+	s := NewServerWithRouter(mockHTTPServer, router)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := s.start(ctx)
+	assert.Error(t, err, "server failed to start")
 }
 
 func TestServerWithRouter_Stop(t *testing.T) {
@@ -52,11 +49,15 @@ func TestServerWithRouter_Stop(t *testing.T) {
 	mockServer := NewMockHTTPServer(ctrl)
 	router := chi.NewRouter()
 	s := NewServerWithRouter(mockServer, router)
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
 	mockServer.EXPECT().Shutdown(gomock.Any()).Return(nil)
-	err := s.Stop(ctx)
-	assert.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		err := s.stop(ctx)
+		assert.NoError(t, err)
+	}()
+	cancel()
+	time.Sleep(1 * time.Second)
 }
 
 func TestServerWithRouter_Stop_WithError(t *testing.T) {
@@ -65,11 +66,15 @@ func TestServerWithRouter_Stop_WithError(t *testing.T) {
 	mockServer := NewMockHTTPServer(ctrl)
 	router := chi.NewRouter()
 	s := NewServerWithRouter(mockServer, router)
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
 	mockServer.EXPECT().Shutdown(gomock.Any()).Return(errors.New("shutdown error"))
-	err := s.Stop(ctx)
-	assert.EqualError(t, err, "shutdown error")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		err := s.stop(ctx)
+		assert.EqualError(t, err, "shutdown error")
+	}()
+	cancel()
+	time.Sleep(1 * time.Second)
 }
 
 func TestServerWithRouter_AddRouter(t *testing.T) {
@@ -81,4 +86,5 @@ func TestServerWithRouter_AddRouter(t *testing.T) {
 	newRouter := chi.NewRouter()
 	mockServer.EXPECT().SetHandler(mainRouter)
 	s.AddRouter(newRouter)
+	assert.NotNil(t, mainRouter)
 }

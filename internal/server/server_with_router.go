@@ -32,7 +32,13 @@ func (s *ServerWithRouter) AddRouter(router chi.Router) {
 	s.server.SetHandler(s.router)
 }
 
-func (s *ServerWithRouter) Start(ctx context.Context) error {
+func (s *ServerWithRouter) Run(ctx context.Context) error {
+	s.start(ctx)
+	<-ctx.Done()
+	return s.stop(ctx)
+}
+
+func (s *ServerWithRouter) start(ctx context.Context) error {
 	log.Info("Starting server...")
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Error("Server started with error", "error", err)
@@ -41,8 +47,7 @@ func (s *ServerWithRouter) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *ServerWithRouter) Stop(ctx context.Context) error {
-	<-ctx.Done()
+func (s *ServerWithRouter) stop(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err := s.server.Shutdown(ctx)
