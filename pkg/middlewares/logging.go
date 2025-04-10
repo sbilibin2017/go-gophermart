@@ -7,9 +7,7 @@ import (
 	"github.com/sbilibin2017/go-gophermart/pkg/log"
 )
 
-type LoggingMiddleware struct{}
-
-func (lm *LoggingMiddleware) Apply(next http.Handler) http.Handler {
+func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 		ww := &ResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}

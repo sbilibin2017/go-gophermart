@@ -22,26 +22,24 @@ type JWTDecoder interface {
 	Decode(tokenStr string) (*jwt.Claims, error)
 }
 
-type AuthMiddleware struct {
-	Decoder JWTDecoder
-}
-
-func (am *AuthMiddleware) Apply(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString, err := getTokenFromRequestHeader(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		claims, err := am.Decoder.Decode(tokenString)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		ctx := context.WithValue(r.Context(), loginKey, claims.Login)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
+func AuthMiddleware(decoder JWTDecoder) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tokenString, err := getTokenFromRequestHeader(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			claims, err := decoder.Decode(tokenString)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			ctx := context.WithValue(r.Context(), loginKey, claims.Login)
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func getTokenFromRequestHeader(r *http.Request) (string, error) {
