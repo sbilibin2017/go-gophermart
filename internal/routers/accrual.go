@@ -13,13 +13,12 @@ func NewAccrualRouter(
 	registerOrderHandler http.HandlerFunc,
 	registerGoodsHandler http.HandlerFunc,
 ) *chi.Mux {
-	r := chi.NewRouter()
-	r.Use(loggingMiddleware)
-	r.Use(gzipMiddleware)
-	r.Route("/api", func(r chi.Router) {
+	router := chi.NewRouter()
+	router.Use(loggingMiddleware, gzipMiddleware)
+	router.Route("/api", func(r chi.Router) {
 		r.Get("/orders/{number}", accrualHandler)
 		r.Post("/orders", registerOrderHandler)
 		r.Post("/goods", registerGoodsHandler)
 	})
-	return r
+	return router
 }
