@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 
-	c "github.com/sbilibin2017/go-gophermart/internal/context"
-	"github.com/sbilibin2017/go-gophermart/internal/server"
+	c "github.com/sbilibin2017/go-gophermart/pkg/context"
+	"github.com/sbilibin2017/go-gophermart/pkg/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -60,6 +60,6 @@ func NewCommand() *cobra.Command {
 }
 
 func run(ctx context.Context, config *Config) error {
-	srv := server.NewServerConfigured(config.RunAddress)
+	srv := server.NewServerConfigured(config)
 	return srv.Run(ctx)
 }

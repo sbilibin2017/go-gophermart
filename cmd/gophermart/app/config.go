@@ -16,3 +16,15 @@ func NewConfig() *Config {
 		JWTExp:       365 * 24 * time.Hour,
 	}
 }
+
+func (c *Config) GetRunAddress() string {
+	return c.RunAddress
+}
+
+func (c *Config) GetJWTSecretKey() string {
+	return c.JWTSecretKey
+}
+
+func (c *Config) GetJWTExp() time.Duration {
+	return c.JWTExp
+}
