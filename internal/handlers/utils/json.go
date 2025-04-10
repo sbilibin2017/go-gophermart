@@ -1,4 +1,3 @@
-// utils/json.go
 package utils
 
 import (
@@ -6,18 +5,21 @@ import (
 	"net/http"
 )
 
-func DecodeJSON(w http.ResponseWriter, r *http.Request, v interface{}) bool {
-	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return false
+func DecodeJSON[T any](w http.ResponseWriter, r *http.Request, v *T) error {
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(v); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return err
 	}
-	return true
+	return nil
 }
 
-func EncodeJSON(w http.ResponseWriter, v interface{}) bool {
+func EncodeJSON[T any](w http.ResponseWriter, statusCode int, v T) error {
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return false
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return err
 	}
-	return true
+	w.WriteHeader(statusCode)
+	return nil
 }
