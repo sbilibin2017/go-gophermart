@@ -3,167 +3,189 @@ package services
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserService_Register(t *testing.T) {
+func TestUserRegisterService_Register_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// Create mock instances
 	mockUserGetRepo := NewMockUserGetRepo(ctrl)
 	mockUserSaveRepo := NewMockUserSaveRepo(ctrl)
 	mockUnitOfWork := NewMockUnitOfWork(ctrl)
-	mockHasher := NewMockHasher(ctrl)
-	mockJWTEncoder := NewMockJWTEncoder(ctrl)
 
-	svc := NewUserRegisterService(
+	// Create the service
+	service := NewUserRegisterService(
+		&configs.GophermartConfig{
+			JWTSecretKey: "secret",
+			JWTExp:       3600,
+		},
 		mockUserGetRepo,
 		mockUserSaveRepo,
 		mockUnitOfWork,
-		mockHasher,
-		mockJWTEncoder,
 	)
 
-	tests := []struct {
-		name          string
-		req           *domain.User
-		mockSetup     func()
-		expectedError error
-		expectedResp  *domain.UserToken
-	}{
-		{
-			name: "Happy path",
-			req: &domain.User{
-				Login:    "user1",
-				Password: "Password123!",
-			},
-			mockSetup: func() {
-				mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, fn func(tx *sql.Tx) error) error {
-						return fn(nil)
-					},
-				)
-				mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, nil)
-				mockHasher.EXPECT().Hash("Password123!").Return("hashedpassword123", nil)
-				mockUserSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
-				mockJWTEncoder.EXPECT().Encode("user1").Return("access-token", nil)
-			},
-			expectedError: nil,
-			expectedResp: &domain.UserToken{
-				Access: "access-token",
-			},
-		},
-		{
-			name: "User already exists",
-			req: &domain.User{
-				Login:    "user1",
-				Password: "Password123!",
-			},
-			mockSetup: func() {
-				mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, fn func(tx *sql.Tx) error) error {
-						return fn(nil)
-					},
-				)
-				mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(map[string]any{"login": "user1"}, nil)
-				mockHasher.EXPECT().Hash(gomock.Any()).Times(0)
-			},
-			expectedError: ErrUserAlreadyExists,
-			expectedResp:  nil,
-		},
-		{
-			name: "Password hash failure",
-			req: &domain.User{
-				Login:    "user1",
-				Password: "Password123!",
-			},
-			mockSetup: func() {
-				mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, fn func(tx *sql.Tx) error) error {
-						return fn(nil)
-					},
-				)
-				mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, nil)
-				mockHasher.EXPECT().Hash("Password123!").Return("", ErrUserRegisterInternal)
-			},
-			expectedError: ErrUserRegisterInternal,
-			expectedResp:  nil,
-		},
-		{
-			name: "Save user failure",
-			req: &domain.User{
-				Login:    "user1",
-				Password: "Password123!",
-			},
-			mockSetup: func() {
-				mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, fn func(tx *sql.Tx) error) error {
-						return fn(nil)
-					},
-				)
-				mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, nil)
-				mockHasher.EXPECT().Hash("Password123!").Return("hashedpassword123", nil)
-				mockUserSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(ErrUserRegisterInternal)
-			},
-			expectedError: ErrUserRegisterInternal,
-			expectedResp:  nil,
-		},
-		{
-			name: "JWT encoding failure",
-			req: &domain.User{
-				Login:    "user1",
-				Password: "Password123!",
-			},
-			mockSetup: func() {
-				mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, fn func(tx *sql.Tx) error) error {
-						return fn(nil)
-					},
-				)
-				mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, nil)
-				mockHasher.EXPECT().Hash("Password123!").Return("hashedpassword123", nil)
-				mockUserSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
-				mockJWTEncoder.EXPECT().Encode("user1").Return("", ErrUserRegisterInternal)
-			},
-			expectedError: ErrUserRegisterInternal,
-			expectedResp:  nil,
-		},
-		{
-			name: "User GetByParam failure",
-			req: &domain.User{
-				Login:    "user1",
-				Password: "Password123!",
-			},
-			mockSetup: func() {
-				mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, fn func(tx *sql.Tx) error) error {
-						return fn(nil)
-					},
-				)
-				mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, ErrUserRegisterInternal)
-				mockHasher.EXPECT().Hash(gomock.Any()).Times(0)
-				mockUserSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Times(0)
-				mockJWTEncoder.EXPECT().Encode(gomock.Any()).Times(0)
-			},
-			expectedError: ErrUserRegisterInternal,
-			expectedResp:  nil,
-		},
+	// Test data
+	user := &domain.User{
+		Login:    "testuser",
+		Password: "password123",
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockSetup()
-			resp, err := svc.Register(context.Background(), tt.req)
-			if tt.expectedError != nil {
-				assert.EqualError(t, err, tt.expectedError.Error())
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedResp, resp)
-			}
-		})
+	// Define expected behavior for mock objects
+	mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+	mockUserSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+	// Mock the UnitOfWork's Do method to invoke the passed function
+	mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, operation func(tx *sql.Tx) error) error {
+		// Call the provided operation (the function passed to Do)
+		return operation(nil) // nil simulates the tx (transaction), but in real scenarios it would be an actual DB transaction object.
+	}).Times(1)
+
+	// Call Register
+	token, err := service.Register(context.Background(), user)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+}
+
+func TestUserRegisterService_Register_UserAlreadyExists(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock instances
+	mockUserGetRepo := NewMockUserGetRepo(ctrl)
+	mockUserSaveRepo := NewMockUserSaveRepo(ctrl)
+	mockUnitOfWork := NewMockUnitOfWork(ctrl)
+
+	// Create the service
+	service := NewUserRegisterService(
+		&configs.GophermartConfig{
+			JWTSecretKey: "secret",
+			JWTExp:       3600,
+		},
+		mockUserGetRepo,
+		mockUserSaveRepo,
+		mockUnitOfWork,
+	)
+
+	// Test data
+	user := &domain.User{
+		Login:    "existinguser",
+		Password: "password123",
 	}
+
+	// Define expected behavior for mock objects
+	mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(map[string]any{"login": "existinguser"}, nil).Times(1)
+
+	// Mock the UnitOfWork's Do method
+	mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, operation func(tx *sql.Tx) error) error {
+		// Call the provided operation (the function passed to Do)
+		return operation(nil) // Simulate transaction context
+	}).Times(1)
+
+	// Call Register
+	token, err := service.Register(context.Background(), user)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Equal(t, ErrUserAlreadyExists, err)
+	assert.Empty(t, token)
+}
+
+func TestUserRegisterService_Register_InternalErrorOnSave(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock instances
+	mockUserGetRepo := NewMockUserGetRepo(ctrl)
+	mockUserSaveRepo := NewMockUserSaveRepo(ctrl)
+	mockUnitOfWork := NewMockUnitOfWork(ctrl)
+
+	// Create the service
+	service := NewUserRegisterService(
+		&configs.GophermartConfig{
+			JWTSecretKey: "secret",
+			JWTExp:       3600,
+		},
+		mockUserGetRepo,
+		mockUserSaveRepo,
+		mockUnitOfWork,
+	)
+
+	// Test data
+	user := &domain.User{
+		Login:    "newuser",
+		Password: "password123",
+	}
+
+	// Define expected behavior for mock objects
+	mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+	mockUserSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(errors.New("internal error")).Times(1)
+
+	// Mock the UnitOfWork's Do method
+	mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, operation func(tx *sql.Tx) error) error {
+		// Call the provided operation (the function passed to Do)
+		return operation(nil) // Simulate transaction context
+	}).Times(1)
+
+	// Call Register
+	token, err := service.Register(context.Background(), user)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Equal(t, ErrUserRegisterInternal, err)
+	assert.Empty(t, token)
+}
+
+func TestUserRegisterService_GetByParam_ErrorHandling(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock instances
+	mockUserGetRepo := NewMockUserGetRepo(ctrl)
+	mockUserSaveRepo := NewMockUserSaveRepo(ctrl)
+	mockUnitOfWork := NewMockUnitOfWork(ctrl)
+
+	// Create the service
+	service := NewUserRegisterService(
+		&configs.GophermartConfig{
+			JWTSecretKey: "secret",
+			JWTExp:       3600,
+		},
+		mockUserGetRepo,
+		mockUserSaveRepo,
+		mockUnitOfWork,
+	)
+
+	// Test data
+	user := &domain.User{
+		Login:    "newuser",
+		Password: "password123",
+	}
+
+	// Mock the behavior of GetByParam to return an error
+	mockUserGetRepo.EXPECT().GetByParam(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error")).Times(1)
+
+	// Mock the behavior of UnitOfWork's Do method to call GetByParam and return nil
+	mockUnitOfWork.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, operation func(tx *sql.Tx) error) error {
+		// Simulate the behavior of GetByParam being called inside the operation
+		return operation(nil) // Passing nil as tx since we're not focusing on database transactions here
+	}).Times(1)
+
+	// Call Register method
+	token, err := service.Register(context.Background(), user)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Equal(t, ErrUserRegisterInternal, err)
+	assert.Empty(t, token)
 }

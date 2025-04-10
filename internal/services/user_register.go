@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
+	"github.com/sbilibin2017/go-gophermart/internal/password"
 )
 
 type UserGetRepo interface {
@@ -20,35 +23,24 @@ type UnitOfWork interface {
 	Do(ctx context.Context, operation func(tx *sql.Tx) error) error
 }
 
-type Hasher interface {
-	Hash(password string) (string, error)
-}
-
-type JWTEncoder interface {
-	Encode(login string) (string, error)
-}
-
 type UserRegisterService struct {
-	ugr UserGetRepo
-	usr UserSaveRepo
-	uow UnitOfWork
-	h   Hasher
-	e   JWTEncoder
+	config *configs.GophermartConfig
+	ugr    UserGetRepo
+	usr    UserSaveRepo
+	uow    UnitOfWork
 }
 
 func NewUserRegisterService(
+	config *configs.GophermartConfig,
 	ugr UserGetRepo,
 	usr UserSaveRepo,
 	uow UnitOfWork,
-	h Hasher,
-	e JWTEncoder,
 ) *UserRegisterService {
 	return &UserRegisterService{
-		ugr: ugr,
-		usr: usr,
-		uow: uow,
-		h:   h,
-		e:   e,
+		config: config,
+		ugr:    ugr,
+		usr:    usr,
+		uow:    uow,
 	}
 }
 
@@ -59,8 +51,8 @@ var (
 
 func (svc *UserRegisterService) Register(
 	ctx context.Context, u *domain.User,
-) (*domain.UserToken, error) {
-	var userToken domain.UserToken
+) (string, error) {
+	var token string
 	err := svc.uow.Do(ctx, func(tx *sql.Tx) error {
 		data := map[string]any{
 			"login": u.Login,
@@ -72,7 +64,7 @@ func (svc *UserRegisterService) Register(
 		if user != nil {
 			return ErrUserAlreadyExists
 		}
-		hashedPassword, err := svc.h.Hash(u.Password)
+		hashedPassword, err := password.Hash(u.Password)
 		if err != nil {
 			return ErrUserRegisterInternal
 		}
@@ -81,15 +73,14 @@ func (svc *UserRegisterService) Register(
 		if err != nil {
 			return ErrUserRegisterInternal
 		}
-		token, err := svc.e.Encode(u.Login)
+		token, err = jwt.Generate(u.Login, svc.config.JWTSecretKey, svc.config.JWTExp)
 		if err != nil {
 			return ErrUserRegisterInternal
 		}
-		userToken.Access = token
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return &userToken, nil
+	return token, nil
 }
