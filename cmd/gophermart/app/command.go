@@ -3,8 +3,9 @@ package app
 import (
 	"context"
 
-	c "github.com/sbilibin2017/go-gophermart/pkg/context"
-	"github.com/sbilibin2017/go-gophermart/pkg/server"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
+	"github.com/sbilibin2017/go-gophermart/internal/ctx"
+	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,13 +37,13 @@ const (
 
 func NewCommand() *cobra.Command {
 	viper.AutomaticEnv()
-	config := NewConfig()
+	config := configs.NewGophermartConfig()
 	cmd := &cobra.Command{
 		Use:   Use,
 		Short: Short,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			viper.Unmarshal(config)
-			ctx, cancel := c.NewCancelContext()
+			ctx, cancel := ctx.NewCancelContext()
 			defer cancel()
 			return run(ctx, config)
 		},
@@ -59,7 +60,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, config *Config) error {
+func run(ctx context.Context, config *configs.GophermartConfig) error {
 	srv := server.NewServerConfigured(config)
 	return srv.Run(ctx)
 }

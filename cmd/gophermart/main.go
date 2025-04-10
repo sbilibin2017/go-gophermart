@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/sbilibin2017/go-gophermart/cmd/gophermart/app"
-	"github.com/sbilibin2017/go-gophermart/pkg/cli"
+	"github.com/sbilibin2017/go-gophermart/internal/cli"
 )
 
 func main() {
