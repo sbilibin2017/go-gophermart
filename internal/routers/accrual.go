@@ -4,17 +4,19 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 )
 
 func NewAccrualRouter(
-	loggingMiddleware func(next http.Handler) http.Handler,
-	gzipMiddleware func(next http.Handler) http.Handler,
 	accrualHandler http.HandlerFunc,
 	registerOrderHandler http.HandlerFunc,
 	registerGoodsHandler http.HandlerFunc,
 ) *chi.Mux {
 	router := chi.NewRouter()
-	router.Use(loggingMiddleware, gzipMiddleware)
+	router.Use(
+		middlewares.LoggingMiddleware,
+		middlewares.GzipMiddleware,
+	)
 	router.Route("/api", func(r chi.Router) {
 		r.Get("/orders/{number}", accrualHandler)
 		r.Post("/orders", registerOrderHandler)

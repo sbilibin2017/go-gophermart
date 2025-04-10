@@ -4,140 +4,137 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/golang/mock/gomock"
-	"github.com/sbilibin2017/go-gophermart/pkg/jwt"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRoutes(t *testing.T) {
-	tests := []struct {
-		name             string
-		method           string
-		url              string
-		authHeader       string
-		expectedStatus   int
-		expectedResponse string
-		mockDecodeReturn *jwt.Claims
-		mockDecodeError  error
-	}{
-		{
-			name:             "Test Register Route",
-			method:           http.MethodPost,
-			url:              "/api/user/register",
-			authHeader:       "",
-			expectedStatus:   http.StatusOK,
-			expectedResponse: "register",
-			mockDecodeReturn: nil,
-			mockDecodeError:  nil,
-		},
-		{
-			name:             "Test Login Route",
-			method:           http.MethodPost,
-			url:              "/api/user/login",
-			authHeader:       "",
-			expectedStatus:   http.StatusOK,
-			expectedResponse: "login",
-			mockDecodeReturn: nil,
-			mockDecodeError:  nil,
-		},
-		{
-			name:             "Test Upload Order Route with Auth",
-			method:           http.MethodPost,
-			url:              "/api/user/orders",
-			authHeader:       "Bearer some_token",
-			expectedStatus:   http.StatusOK,
-			expectedResponse: "upload order",
-			mockDecodeReturn: &jwt.Claims{},
-			mockDecodeError:  nil,
-		},
-		{
-			name:             "Test Get Orders Route with Auth",
-			method:           http.MethodGet,
-			url:              "/api/user/orders",
-			authHeader:       "Bearer some_token",
-			expectedStatus:   http.StatusOK,
-			expectedResponse: "get orders",
-			mockDecodeReturn: &jwt.Claims{},
-			mockDecodeError:  nil,
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("register"))
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("login"))
+}
+
+func uploadOrderHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("order uploaded"))
+}
+
+func getOrderHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("orders"))
+}
+
+func getBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("balance"))
+}
+
+func withdrawBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("balance withdrawn"))
+}
+
+func withdrawalsHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("withdrawals"))
+}
+
+type Claims struct {
+	Login string `json:"login"`
+	jwt.RegisteredClaims
+}
+
+func Generate(login string, secret string, expireTime time.Duration) (string, error) {
+	claims := &Claims{
+		Login: login,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "test",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expireTime)),
 		},
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			mockJWTDecoder := NewMockJWTDecoder(ctrl)
-			mockLoggingMiddleware := func(next http.Handler) http.Handler {
-				return next
-			}
-			mockGzipMiddleware := func(next http.Handler) http.Handler {
-				return next
-			}
-			mockAuthMiddleware := func(decoder JWTDecoder) func(next http.Handler) http.Handler {
-				return func(next http.Handler) http.Handler {
-					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						token := r.Header.Get("Authorization")
-						_, err := decoder.Decode(token)
-						if err != nil {
-							http.Error(w, "Unauthorized", http.StatusUnauthorized)
-							return
-						}
-						next.ServeHTTP(w, r)
-					})
-				}
-			}
-
-			registerHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("register"))
-			})
-			loginHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("login"))
-			})
-			uploadOrderHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("upload order"))
-			})
-			getOrdersHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("get orders"))
-			})
-			getBalanceHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("balance"))
-			})
-			withdrawBalanceHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("withdraw balance"))
-			})
-			withdrawalsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("withdrawals"))
-			})
-
-			router := NewGophermartRouter(
-				mockLoggingMiddleware,
-				mockGzipMiddleware,
-				mockJWTDecoder,
-				mockAuthMiddleware,
-				registerHandler,
-				loginHandler,
-				uploadOrderHandler,
-				getOrdersHandler,
-				getBalanceHandler,
-				withdrawBalanceHandler,
-				withdrawalsHandler,
-			)
-
-			req := httptest.NewRequest(tt.method, tt.url, nil)
-			if tt.authHeader != "" {
-				req.Header.Set("Authorization", tt.authHeader)
-			}
-			w := httptest.NewRecorder()
-
-			if tt.mockDecodeReturn != nil {
-				mockJWTDecoder.EXPECT().Decode(tt.authHeader).Return(tt.mockDecodeReturn, tt.mockDecodeError).Times(1)
-			}
-
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-			assert.Equal(t, tt.expectedResponse, w.Body.String())
-		})
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", err
 	}
+	return tokenString, nil
+}
+
+func TestNewGophermartRouter(t *testing.T) {
+	config := &configs.GophermartConfig{
+		JWTSecretKey: "secret",
+	}
+
+	tokenString, err := Generate("testuser", config.JWTSecretKey, time.Hour)
+	assert.NoError(t, err)
+
+	router := NewGophermartRouter(
+		config,
+		registerHandler,
+		loginHandler,
+		uploadOrderHandler,
+		getOrderHandler,
+		getBalanceHandler,
+		withdrawBalanceHandler,
+		withdrawalsHandler,
+	)
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	resp, err := http.Post(ts.URL+"/api/user/register", "application/json", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	resp, err = http.Post(ts.URL+"/api/user/login", "application/json", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	resp, err = http.Post(ts.URL+"/api/user/orders", "application/json", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/user/orders", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	client := &http.Client{}
+	resp, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/api/user/orders", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	resp, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/api/user/balance", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	resp, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	req, err = http.NewRequest(http.MethodPost, ts.URL+"/api/user/balance/withdraw", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	resp, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/api/user/withdrawals", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	resp, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
