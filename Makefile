@@ -5,8 +5,7 @@ test:
 
 test-cov:
 	go test -coverprofile=coverage.out ./...
-	go tool cover -func=coverage.out | grep -v '_mock' > coverage
-	rm coverage.out
+	
 
 lint:
 	staticcheck ./...
