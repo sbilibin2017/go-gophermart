@@ -22,29 +22,24 @@ const userGetByParamQuery = `
 	LIMIT 1
 `
 
-type UserGetParam struct {
-	Login string
-}
-
-type UserGet struct {
-	Login    string
-	Password string
-}
-
 func (r *UserGetByParamRepository) GetByParam(
-	ctx context.Context, p *UserGetParam,
-) (*UserGet, error) {
-	var user UserGet
+	ctx context.Context, p map[string]any,
+) (map[string]any, error) {
+	var login, password string
 	err := r.db.QueryRowContext(
 		ctx,
 		userGetByParamQuery,
-		p.Login,
-	).Scan(&user.Login, &user.Password)
+		p["login"],
+	).Scan(&login, &password)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &user, nil
+	user := map[string]any{
+		"login":    login,
+		"password": password,
+	}
+	return user, nil
 }
