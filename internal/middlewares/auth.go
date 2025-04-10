@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 )
 
 type contextKey string
@@ -18,8 +18,6 @@ const (
 var (
 	ErrAuthHeaderMissing       = errors.New("authorization header missing")
 	ErrInvalidAuthHeaderFormat = errors.New("invalid authorization header format")
-	ErrInvalidToken            = errors.New("invalid token")
-	ErrExpiredToken            = errors.New("token is expired")
 )
 
 func AuthMiddleware(jwtSecret string) func(next http.Handler) http.Handler {
@@ -30,7 +28,7 @@ func AuthMiddleware(jwtSecret string) func(next http.Handler) http.Handler {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-			claims, err := parseToken(tokenString, jwtSecret)
+			claims, err := jwt.Parse(tokenString, jwtSecret)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
@@ -52,30 +50,6 @@ func getTokenFromRequestHeader(r *http.Request) (string, error) {
 		return "", ErrInvalidAuthHeaderFormat
 	}
 	return parts[1], nil
-}
-
-func parseToken(tokenStr string, jwtSecret string) (struct {
-	Login string `json:"login"`
-	jwt.RegisteredClaims
-}, error) {
-	claims := struct {
-		Login string `json:"login"`
-		jwt.RegisteredClaims
-	}{}
-	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (any, error) {
-		return []byte(jwtSecret), nil
-	})
-	if err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) {
-			return claims, ErrExpiredToken
-		}
-		return claims, ErrInvalidToken
-	}
-	if !token.Valid {
-		return claims, ErrInvalidToken
-	}
-
-	return claims, nil
 }
 
 func GetLoginFromContext(ctx context.Context) (string, bool) {
