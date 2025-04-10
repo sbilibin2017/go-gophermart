@@ -4,40 +4,59 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/errors"
+	"github.com/go-playground/validator/v10"
+	"github.com/julienschmidt/httprouter"
+	"github.com/sbilibin2017/go-gophermart/internal/domain"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
-	"github.com/sbilibin2017/go-gophermart/internal/requests"
-	"github.com/sbilibin2017/go-gophermart/internal/responses"
+	"github.com/sbilibin2017/go-gophermart/internal/handlers/validation"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
-type UserRegisterUsecase interface {
-	Execute(ctx context.Context, req *requests.UserRegisterRequest) (*responses.UserRegisterResponse, error)
+type UserRegisterRequest struct {
+	Login    string `validate:"login"`
+	Password string `validate:"password"`
 }
 
-func UserRegisterHandler(uc UserRegisterUsecase) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req requests.UserRegisterRequest
-		if !utils.DecodeJSON(w, r, &req) {
+type UserRegisterResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+type UserRegisterService interface {
+	Register(ctx context.Context, u *domain.User) (*domain.UserToken, error)
+}
+
+func UserRegisterHandler(svc UserRegisterService) httprouter.Handle {
+	validate := validator.New()
+	validate.RegisterValidation("login", validation.ValidateLogin)
+	validate.RegisterValidation("password", validation.ValidatePassword)
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		var req UserRegisterRequest
+		if err := utils.DecodeJSON(w, r, &req); err != nil {
 			return
 		}
-		resp, err := uc.Execute(r.Context(), &req)
+		err := validate.Struct(req)
 		if err != nil {
-			switch err {
-			case errors.ErrInvalidLogin:
-				utils.RespondBadRequest(w, err)
-				return
-			case errors.ErrUserAlreadyExists:
-				utils.RespondConflict(w, err)
-				return
-			default:
-				utils.RespondInternalServerError(w, err)
-				return
-			}
-		}
-		utils.SetJSONResponseHeader(w)
-		utils.SetStatusOKResponseHeader(w)
-		if !utils.EncodeJSON(w, resp.AccessToken) {
+			utils.HandleValidationError(w, err)
 			return
 		}
+		user := &domain.User{Login: req.Login, Password: req.Password}
+		token, err := svc.Register(r.Context(), user)
+		if err != nil {
+			handleUserRegisterError(w, err)
+			return
+		}
+		resp := &UserRegisterResponse{
+			AccessToken: token.Access,
+		}
+		utils.EncodeJSON(w, http.StatusOK, resp)
+	}
+}
+
+func handleUserRegisterError(w http.ResponseWriter, err error) {
+	switch err {
+	case services.ErrUserAlreadyExists:
+		http.Error(w, err.Error(), http.StatusConflict)
+	default:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
