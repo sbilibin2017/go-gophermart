@@ -36,10 +36,10 @@ func (m *MockUserRegisterService) EXPECT() *MockUserRegisterServiceMockRecorder 
 }
 
 // Register mocks base method.
-func (m *MockUserRegisterService) Register(ctx context.Context, u *domain.User) (*domain.UserToken, error) {
+func (m *MockUserRegisterService) Register(ctx context.Context, u *domain.User) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", ctx, u)
-	ret0, _ := ret[0].(*domain.UserToken)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
