@@ -10,44 +10,45 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	repositories "github.com/sbilibin2017/go-gophermart/internal/repositories"
 )
 
-// MockUserGetRepo is a mock of UserGetRepo interface.
-type MockUserGetRepo struct {
+// MockUserFilterRepo is a mock of UserFilterRepo interface.
+type MockUserFilterRepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockUserGetRepoMockRecorder
+	recorder *MockUserFilterRepoMockRecorder
 }
 
-// MockUserGetRepoMockRecorder is the mock recorder for MockUserGetRepo.
-type MockUserGetRepoMockRecorder struct {
-	mock *MockUserGetRepo
+// MockUserFilterRepoMockRecorder is the mock recorder for MockUserFilterRepo.
+type MockUserFilterRepoMockRecorder struct {
+	mock *MockUserFilterRepo
 }
 
-// NewMockUserGetRepo creates a new mock instance.
-func NewMockUserGetRepo(ctrl *gomock.Controller) *MockUserGetRepo {
-	mock := &MockUserGetRepo{ctrl: ctrl}
-	mock.recorder = &MockUserGetRepoMockRecorder{mock}
+// NewMockUserFilterRepo creates a new mock instance.
+func NewMockUserFilterRepo(ctrl *gomock.Controller) *MockUserFilterRepo {
+	mock := &MockUserFilterRepo{ctrl: ctrl}
+	mock.recorder = &MockUserFilterRepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUserGetRepo) EXPECT() *MockUserGetRepoMockRecorder {
+func (m *MockUserFilterRepo) EXPECT() *MockUserFilterRepoMockRecorder {
 	return m.recorder
 }
 
-// GetByParam mocks base method.
-func (m *MockUserGetRepo) GetByParam(ctx context.Context, p map[string]any) (map[string]any, error) {
+// Filter mocks base method.
+func (m *MockUserFilterRepo) Filter(ctx context.Context, filter *repositories.UserFilter) (*repositories.UserFiltered, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByParam", ctx, p)
-	ret0, _ := ret[0].(map[string]any)
+	ret := m.ctrl.Call(m, "Filter", ctx, filter)
+	ret0, _ := ret[0].(*repositories.UserFiltered)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetByParam indicates an expected call of GetByParam.
-func (mr *MockUserGetRepoMockRecorder) GetByParam(ctx, p interface{}) *gomock.Call {
+// Filter indicates an expected call of Filter.
+func (mr *MockUserFilterRepoMockRecorder) Filter(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByParam", reflect.TypeOf((*MockUserGetRepo)(nil).GetByParam), ctx, p)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Filter", reflect.TypeOf((*MockUserFilterRepo)(nil).Filter), ctx, filter)
 }
 
 // MockUserSaveRepo is a mock of UserSaveRepo interface.
@@ -74,17 +75,17 @@ func (m *MockUserSaveRepo) EXPECT() *MockUserSaveRepoMockRecorder {
 }
 
 // Save mocks base method.
-func (m *MockUserSaveRepo) Save(ctx context.Context, u map[string]any) error {
+func (m *MockUserSaveRepo) Save(ctx context.Context, user *repositories.UserSave) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Save", ctx, u)
+	ret := m.ctrl.Call(m, "Save", ctx, user)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Save indicates an expected call of Save.
-func (mr *MockUserSaveRepoMockRecorder) Save(ctx, u interface{}) *gomock.Call {
+func (mr *MockUserSaveRepoMockRecorder) Save(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockUserSaveRepo)(nil).Save), ctx, u)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockUserSaveRepo)(nil).Save), ctx, user)
 }
 
 // MockUnitOfWork is a mock of UnitOfWork interface.

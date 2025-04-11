@@ -1,9 +1,8 @@
-package usecases
+package validators
 
 import (
 	"testing"
 
-	"github.com/sbilibin2017/go-gophermart/internal/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,12 +30,12 @@ func TestLoginValidator_Validate(t *testing.T) {
 		login       string
 		expectedErr error
 	}{
-		{"ab", errors.ErrInvalidLogin},                       // Логин слишком короткий
-		{"thisisaverylongloginname", errors.ErrInvalidLogin}, // Логин слишком длинный
-		{"user name", errors.ErrInvalidLogin},                // Логин содержит пробел
-		{"user@name", errors.ErrInvalidLogin},                // Логин содержит недопустимый символ '@'
-		{"user#123", errors.ErrInvalidLogin},                 // Логин содержит недопустимый символ '#'
-		{"тест", errors.ErrInvalidLogin},
+		{"ab", ErrInvalidLogin},                       // Логин слишком короткий
+		{"thisisaverylongloginname", ErrInvalidLogin}, // Логин слишком длинный
+		{"user name", ErrInvalidLogin},                // Логин содержит пробел
+		{"user@name", ErrInvalidLogin},                // Логин содержит недопустимый символ '@'
+		{"user#123", ErrInvalidLogin},                 // Логин содержит недопустимый символ '#'
+		{"тест", ErrInvalidLogin},
 	}
 
 	for _, test := range invalidLogins {

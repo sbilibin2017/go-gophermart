@@ -4,181 +4,109 @@ import (
 	"context"
 	"database/sql"
 	e "errors"
-
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
-	"github.com/sbilibin2017/go-gophermart/internal/errors"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestRegisterUser_Success(t *testing.T) {
+type testMocks struct {
+	uow  *MockUnitOfWork
+	ugr  *MockUserFilterRepo // Corrected to use the right mock interface
+	usr  *MockUserSaveRepo
+	hash *MockHasher
+	jwt  *MockJWTGenerator
+}
+
+func setupTest(t *testing.T) (*UserRegisterService, *testMocks, *gomock.Controller) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
-	userGetRepo := NewMockUserGetRepo(ctrl)
-	userSaveRepo := NewMockUserSaveRepo(ctrl)
-	unitOfWork := NewMockUnitOfWork(ctrl)
-	hasher := NewMockHasher(ctrl)
-	jwtGen := NewMockJWTGenerator(ctrl)
-
-	ctx := context.Background()
-	user := &domain.User{
-		Login:    "testuser",
-		Password: "1234",
+	m := &testMocks{
+		uow:  NewMockUnitOfWork(ctrl),
+		ugr:  NewMockUserFilterRepo(ctrl), // Corrected to use the right mock interface
+		usr:  NewMockUserSaveRepo(ctrl),
+		hash: NewMockHasher(ctrl),
+		jwt:  NewMockJWTGenerator(ctrl),
 	}
 
-	hashedPassword := "hashed1234"
-
-	// Настроим mocks
-	userGetRepo.EXPECT().
-		GetByParam(ctx, map[string]any{"login": "testuser"}).
-		Return(nil, nil)
-
-	hasher.EXPECT().
-		Hash("1234").
-		Return(hashedPassword)
-
-	userSaveRepo.EXPECT().
-		Save(ctx, map[string]any{
-			"login":    "testuser",
-			"password": hashedPassword,
-		}).
-		Return(nil)
-
-	unitOfWork.EXPECT().
-		Do(ctx, gomock.Any()).
-		DoAndReturn(func(_ context.Context, op func(tx *sql.Tx) error) error {
-			return op(nil)
-		})
-
-	jwtGen.EXPECT().
-		Generate("testuser").
-		Return("jwt_token")
-
-	// Подготовка конфига
-	cfg := &configs.GophermartConfig{}
-
-	service := NewUserRegisterService(cfg, userGetRepo, userSaveRepo, unitOfWork, hasher, jwtGen)
-
-	// Выполнение
-	token, err := service.Register(ctx, user)
-
-	// Проверки
-	require.NoError(t, err)
-	assert.Equal(t, "jwt_token", token)
+	svc := NewUserRegisterService(m.ugr, m.usr, m.uow, m.hash, m.jwt)
+	return svc, m, ctrl
 }
 
-func TestRegisterUser_GetByParamError(t *testing.T) {
-	ctrl := gomock.NewController(t)
+func TestUserRegisterService_Register_Success(t *testing.T) {
+	svc, m, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	userGetRepo := NewMockUserGetRepo(ctrl)
-	userSaveRepo := NewMockUserSaveRepo(ctrl)
-	unitOfWork := NewMockUnitOfWork(ctrl)
-	hasher := NewMockHasher(ctrl)
-	jwtGen := NewMockJWTGenerator(ctrl)
-	cfg := &configs.GophermartConfig{}
+	u := &User{Login: "john", Password: "123"}
 
-	service := NewUserRegisterService(cfg, userGetRepo, userSaveRepo, unitOfWork, hasher, jwtGen)
+	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, fn func(*sql.Tx) error) error {
+			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, nil) // Corrected method call
+			m.hash.EXPECT().Hash("123").Return("hashed123")
+			m.usr.EXPECT().Save(ctx, &repositories.UserSave{Login: "john", Password: "hashed123"}).Return(nil) // Corrected method call
+			m.jwt.EXPECT().Generate("john").Return("token123")
+			return fn(nil)
+		},
+	)
 
-	ctx := context.Background()
-	user := &domain.User{Login: "testuser", Password: "1234"}
-
-	userGetRepo.EXPECT().
-		GetByParam(ctx, map[string]any{"login": "testuser"}).
-		Return(nil, e.New("db error"))
-
-	unitOfWork.EXPECT().
-		Do(ctx, gomock.Any()).
-		DoAndReturn(func(_ context.Context, op func(tx *sql.Tx) error) error {
-			return op(nil)
-		})
-
-	token, err := service.Register(ctx, user)
-
-	require.Error(t, err)
-	assert.Equal(t, "", token)
-	assert.ErrorIs(t, err, errors.ErrInternal)
+	token, err := svc.Register(context.Background(), u)
+	assert.NoError(t, err)
+	assert.Equal(t, "token123", token)
 }
 
-func TestRegisterUser_UserAlreadyExists(t *testing.T) {
-	ctrl := gomock.NewController(t)
+func TestUserRegisterService_Register_UserAlreadyExists(t *testing.T) {
+	svc, m, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	userGetRepo := NewMockUserGetRepo(ctrl)
-	userSaveRepo := NewMockUserSaveRepo(ctrl)
-	unitOfWork := NewMockUnitOfWork(ctrl)
-	hasher := NewMockHasher(ctrl)
-	jwtGen := NewMockJWTGenerator(ctrl)
-	cfg := &configs.GophermartConfig{}
+	u := &User{Login: "john", Password: "123"}
 
-	service := NewUserRegisterService(cfg, userGetRepo, userSaveRepo, unitOfWork, hasher, jwtGen)
+	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, fn func(*sql.Tx) error) error {
+			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(&repositories.UserFiltered{}, nil) // Corrected method call
+			return fn(nil)
+		},
+	)
 
-	ctx := context.Background()
-	user := &domain.User{Login: "testuser", Password: "1234"}
-
-	userGetRepo.EXPECT().
-		GetByParam(ctx, map[string]any{"login": "testuser"}).
-		Return(map[string]any{"login": "testuser"}, nil)
-
-	unitOfWork.EXPECT().
-		Do(ctx, gomock.Any()).
-		DoAndReturn(func(_ context.Context, op func(tx *sql.Tx) error) error {
-			return op(nil)
-		})
-
-	token, err := service.Register(ctx, user)
-
-	require.Error(t, err)
-	assert.Equal(t, "", token)
-	assert.ErrorIs(t, err, errors.ErrUserAlreadyExists)
+	token, err := svc.Register(context.Background(), u)
+	assert.ErrorIs(t, err, ErrUserAlreadyExists)
+	assert.Empty(t, token)
 }
 
-func TestRegisterUser_SaveError(t *testing.T) {
-	ctrl := gomock.NewController(t)
+func TestUserRegisterService_Register_GetUserError(t *testing.T) {
+	svc, m, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	userGetRepo := NewMockUserGetRepo(ctrl)
-	userSaveRepo := NewMockUserSaveRepo(ctrl)
-	unitOfWork := NewMockUnitOfWork(ctrl)
-	hasher := NewMockHasher(ctrl)
-	jwtGen := NewMockJWTGenerator(ctrl)
-	cfg := &configs.GophermartConfig{}
+	u := &User{Login: "john", Password: "123"}
 
-	service := NewUserRegisterService(cfg, userGetRepo, userSaveRepo, unitOfWork, hasher, jwtGen)
+	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, fn func(*sql.Tx) error) error {
+			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, e.New("db error")) // Corrected method call
+			return fn(nil)
+		},
+	)
 
-	ctx := context.Background()
-	user := &domain.User{Login: "testuser", Password: "1234"}
-	hashedPassword := "hashed1234"
+	token, err := svc.Register(context.Background(), u)
+	assert.ErrorIs(t, err, ErrUserRegisterInternal)
+	assert.Empty(t, token)
+}
 
-	userGetRepo.EXPECT().
-		GetByParam(ctx, map[string]any{"login": "testuser"}).
-		Return(nil, nil)
+func TestUserRegisterService_Register_SaveError(t *testing.T) {
+	svc, m, ctrl := setupTest(t)
+	defer ctrl.Finish()
 
-	hasher.EXPECT().
-		Hash("1234").
-		Return(hashedPassword)
+	u := &User{Login: "john", Password: "123"}
 
-	userSaveRepo.EXPECT().
-		Save(ctx, map[string]any{
-			"login":    "testuser",
-			"password": hashedPassword,
-		}).
-		Return(e.New("insert error"))
+	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, fn func(*sql.Tx) error) error {
+			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, nil) // Corrected method call
+			m.hash.EXPECT().Hash("123").Return("hashed123")
+			m.usr.EXPECT().Save(ctx, &repositories.UserSave{Login: "john", Password: "hashed123"}).Return(e.New("insert error"))
+			return fn(nil)
+		},
+	)
 
-	unitOfWork.EXPECT().
-		Do(ctx, gomock.Any()).
-		DoAndReturn(func(_ context.Context, op func(tx *sql.Tx) error) error {
-			return op(nil)
-		})
-
-	token, err := service.Register(ctx, user)
-
-	require.Error(t, err)
-	assert.Equal(t, "", token)
-	assert.ErrorIs(t, err, errors.ErrInternal)
+	token, err := svc.Register(context.Background(), u)
+	assert.ErrorIs(t, err, ErrUserRegisterInternal)
+	assert.Empty(t, token)
 }

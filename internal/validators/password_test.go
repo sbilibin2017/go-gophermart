@@ -1,9 +1,8 @@
-package usecases
+package validators
 
 import (
 	"testing"
 
-	"github.com/sbilibin2017/go-gophermart/internal/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,12 +16,12 @@ func TestPasswordValidator_Validate(t *testing.T) {
 		expected error
 	}{
 		// Тесты с ошибками
-		{"short", errors.ErrInvalidPassword},                       // слишком короткий пароль
-		{"ThisIsAVeryLongPassword123!", errors.ErrInvalidPassword}, // слишком длинный пароль
-		{"Password with space1!", errors.ErrInvalidPassword},       // пароль с пробелами
-		{"password1!", errors.ErrInvalidPassword},                  // пароль без заглавной буквы
-		{"Password!", errors.ErrInvalidPassword},                   // пароль без цифры
-		{"Password1", errors.ErrInvalidPassword},                   // пароль без спецсимвола
+		{"short", ErrInvalidPassword},                       // слишком короткий пароль
+		{"ThisIsAVeryLongPassword123!", ErrInvalidPassword}, // слишком длинный пароль
+		{"Password with space1!", ErrInvalidPassword},       // пароль с пробелами
+		{"password1!", ErrInvalidPassword},                  // пароль без заглавной буквы
+		{"Password!", ErrInvalidPassword},                   // пароль без цифры
+		{"Password1", ErrInvalidPassword},                   // пароль без спецсимвола
 
 		// Тест с успешной валидацией
 		{"ValidPass1!", nil}, // правильный пароль

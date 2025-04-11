@@ -20,12 +20,17 @@ const userSaveQuery = `
 	VALUES ($1, $2);	
 `
 
-func (r *UserSaveRepository) Save(ctx context.Context, u map[string]any) error {
+type UserSave struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+func (r *UserSaveRepository) Save(ctx context.Context, u *UserSave) error {
 	_, err := r.db.ExecContext(
 		ctx,
 		userSaveQuery,
-		u["login"],
-		u["password"],
+		u.Login,
+		u.Password,
 	)
 	if err != nil {
 		return err

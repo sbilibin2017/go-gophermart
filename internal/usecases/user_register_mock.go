@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	domain "github.com/sbilibin2017/go-gophermart/internal/domain"
+	services "github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 // MockLoginValidator is a mock of LoginValidator interface.
@@ -110,7 +110,7 @@ func (m *MockUserRegisterService) EXPECT() *MockUserRegisterServiceMockRecorder 
 }
 
 // Register mocks base method.
-func (m *MockUserRegisterService) Register(ctx context.Context, u *domain.User) (string, error) {
+func (m *MockUserRegisterService) Register(ctx context.Context, u *services.User) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", ctx, u)
 	ret0, _ := ret[0].(string)

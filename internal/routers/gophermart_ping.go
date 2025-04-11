@@ -6,9 +6,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisterGophermartPingHandler(
+func RegisterGophermartPingRoute(
 	router *chi.Mux,
 	h http.HandlerFunc,
 ) {
-	router.Post("/ping", h)
+	router.Get("/ping", h)
 }

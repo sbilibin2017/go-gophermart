@@ -7,13 +7,13 @@ type GophermartConfig struct {
 	DatabaseURI          string `mapstructure:"database-uri"`
 	AccrualSystemAddress string `mapstructure:"accrual-system-address"`
 	JWTSecretKey         string
-	JWTExp               time.Duration
+	JWTExpireTime        time.Duration
 }
 
 func NewGophermartConfig() *GophermartConfig {
 	return &GophermartConfig{
-		JWTSecretKey: "test",
-		JWTExp:       365 * 24 * time.Hour,
+		JWTSecretKey:  "test",
+		JWTExpireTime: 365 * 24 * time.Hour,
 	}
 }
 
@@ -29,10 +29,10 @@ func (c *GophermartConfig) GetAccrualSystemAddress() string {
 	return c.AccrualSystemAddress
 }
 
-func (c *GophermartConfig) GetJWTSecretKey() string {
+func (c *GophermartConfig) GetSecretKey() string {
 	return c.JWTSecretKey
 }
 
-func (c *GophermartConfig) GetJWTExp() time.Duration {
-	return c.JWTExp
+func (c *GophermartConfig) GetExpireTime() time.Duration {
+	return c.JWTExpireTime
 }

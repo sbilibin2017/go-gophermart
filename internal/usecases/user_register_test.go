@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func TestUserRegisterUsecase_Execute_Success(t *testing.T) {
 	// Настроим моки
 	mockLoginValidator.EXPECT().Validate("validLogin").Return(nil).Times(1)
 	mockPasswordValidator.EXPECT().Validate("validPassword").Return(nil).Times(1)
-	mockUserRegisterService.EXPECT().Register(context.Background(), &domain.User{Login: "validLogin", Password: "validPassword"}).
+	mockUserRegisterService.EXPECT().Register(context.Background(), &services.User{Login: "validLogin", Password: "validPassword"}).
 		Return("accessToken", nil).Times(1)
 
 	// Создаем экземпляр UserRegisterUsecase
@@ -128,7 +129,7 @@ func TestUserRegisterUsecase_Execute_UserRegisterServiceError(t *testing.T) {
 	// Настроим моки
 	mockLoginValidator.EXPECT().Validate("validLogin").Return(nil).Times(1)
 	mockPasswordValidator.EXPECT().Validate("validPassword").Return(nil).Times(1)
-	mockUserRegisterService.EXPECT().Register(context.Background(), &domain.User{Login: "validLogin", Password: "validPassword"}).
+	mockUserRegisterService.EXPECT().Register(context.Background(), &services.User{Login: "validLogin", Password: "validPassword"}).
 		Return("", errors.New("service error")).Times(1)
 
 	// Создаем экземпляр UserRegisterUsecase
