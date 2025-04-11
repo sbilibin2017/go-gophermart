@@ -6,22 +6,24 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRegisterUserRegisterHandler(t *testing.T) {
-	r := chi.NewRouter()
-	config := &configs.GophermartConfig{}
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("User registered"))
+func TestRegisterGophermartRouter(t *testing.T) {
+	mockHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte("registered"))
 	}
-	RegisterUserRegisterHandler(r, config, handler)
-	req, err := http.NewRequest(http.MethodPost, "/api/user/register", nil)
-	assert.NoError(t, err)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "User registered", rr.Body.String())
+	mockMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+	r := chi.NewRouter()
+	RegisteruserRegisterRoute(r, "/api/user", mockHandler, mockMiddleware, mockMiddleware)
+	req := httptest.NewRequest(http.MethodPost, "/api/user/register", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, "registered", rec.Body.String())
 }

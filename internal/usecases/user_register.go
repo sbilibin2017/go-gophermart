@@ -3,7 +3,7 @@ package usecases
 import (
 	"context"
 
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 type LoginValidator interface {
@@ -15,7 +15,7 @@ type PasswordValidator interface {
 }
 
 type UserRegisterService interface {
-	Register(ctx context.Context, u *domain.User) (string, error)
+	Register(ctx context.Context, u *services.User) (string, error)
 }
 
 type UserRegisterRequest struct {
@@ -33,6 +33,18 @@ type UserRegisterUsecase struct {
 	svc UserRegisterService
 }
 
+func NewUserRegisterUsecase(
+	lv LoginValidator,
+	pv PasswordValidator,
+	svc UserRegisterService,
+) *UserRegisterUsecase {
+	return &UserRegisterUsecase{
+		lv:  lv,
+		pv:  pv,
+		svc: svc,
+	}
+}
+
 func (uc *UserRegisterUsecase) Execute(
 	ctx context.Context, req *UserRegisterRequest,
 ) (*UserRegisterResponse, error) {
@@ -44,7 +56,7 @@ func (uc *UserRegisterUsecase) Execute(
 	if err != nil {
 		return nil, err
 	}
-	token, err := uc.svc.Register(ctx, &domain.User{
+	token, err := uc.svc.Register(ctx, &services.User{
 		Login: req.Login, Password: req.Password,
 	})
 	if err != nil {

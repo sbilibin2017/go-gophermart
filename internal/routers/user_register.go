@@ -4,17 +4,22 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
-	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 )
 
-func RegisterUserRegisterHandler(
+func RegisteruserRegisterRoute(
 	router *chi.Mux,
-	config *configs.GophermartConfig,
-	h http.HandlerFunc,
+	prefix string,
+	handler http.HandlerFunc,
+	loggingMiddleware func(next http.Handler) http.Handler,
+	gzipMiddleware func(next http.Handler) http.Handler,
 ) {
-	router.With(
-		middlewares.LoggingMiddleware,
-		middlewares.GzipMiddleware,
-	).Post("/api/user/register", h)
+	_router := chi.NewRouter()
+	_router.Use(
+		loggingMiddleware,
+		gzipMiddleware,
+	)
+	_router.Route(prefix, func(r chi.Router) {
+		r.Post("/register", handler)
+	})
+	router.Mount("/", _router)
 }
