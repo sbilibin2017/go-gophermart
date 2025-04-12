@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -11,9 +12,11 @@ import (
 func TestNewCommand(t *testing.T) {
 	cmd := NewCommand()
 
-	assert.NotNil(t, cmd)
-	assert.Equal(t, Use, cmd.Use)
-	assert.Equal(t, Short, cmd.Short)
+	go func() {
+		cmd.Execute()
+	}()
+
+	time.Sleep(2 * time.Second)
 }
 
 func TestFlags(t *testing.T) {

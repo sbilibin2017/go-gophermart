@@ -1,12 +1,30 @@
 package app
 
 import (
-	"github.com/sbilibin2017/go-gophermart/internal/engines/context"
-	"github.com/sbilibin2017/go-gophermart/internal/engines/db"
+	"context"
+	"database/sql"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/sbilibin2017/go-gophermart/internal/api/handlers"
+	"github.com/sbilibin2017/go-gophermart/internal/api/middlewares"
+	"github.com/sbilibin2017/go-gophermart/internal/api/routers"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
+	c "github.com/sbilibin2017/go-gophermart/internal/engines/context"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/json"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/jwt"
 	"github.com/sbilibin2017/go-gophermart/internal/engines/log"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/password"
 	"github.com/sbilibin2017/go-gophermart/internal/engines/server"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
+	"github.com/sbilibin2017/go-gophermart/internal/usecases"
+	"github.com/sbilibin2017/go-gophermart/internal/usecases/unitofwork"
+	"github.com/sbilibin2017/go-gophermart/internal/usecases/validators"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 const (
@@ -45,23 +63,16 @@ func NewCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Init(log.LevelInfo)
 
-			config := NewConfig(
+			config := configs.NewGophermartConfig(
 				viper.GetString(FlagLongRunAddress),
 				viper.GetString(FlagLongDatabaseURI),
 				viper.GetString(FlagLongAccrualSystemAddress),
 			)
 
-			db := db.NewDB(config)
-
-			container, err := NewContainer(config, db)
-			if err != nil {
-				return err
-			}
-
-			ctx, cancel := context.NewCancelContext()
+			ctx, cancel := c.NewCancelContext()
 			defer cancel()
 
-			return server.Run(ctx, container.Server)
+			return Run(ctx, config)
 
 		},
 	}
@@ -85,4 +96,42 @@ func NewCommand() *cobra.Command {
 	viper.BindEnv(FlagLongAccrualSystemAddress, EnvAccrualSystemAddress)
 
 	return cmd
+}
+
+func Run(ctx context.Context, config *configs.GophermartConfig) error {
+	log.Info("Initializing server...")
+
+	db, _ := sql.Open("pgx", config.GetDatabaseURI())
+
+	jwtGenerator := jwt.NewJWTGenerator(config)
+	hasher := password.NewHasher()
+
+	ugr := repositories.NewUserFilterRepository(db)
+	usr := repositories.NewUserSaveRepository(db)
+
+	ursSvc := services.NewUserRegisterService(ugr, usr, hasher, jwtGenerator)
+
+	lv := validators.NewLoginValidator()
+	pv := validators.NewPasswordValidator()
+	uow := unitofwork.NewUnitOfWork(db)
+	urUc := usecases.NewUserRegisterUsecase(uow, lv, pv, ursSvc)
+
+	gph := handlers.PingHandler(db)
+
+	rd := json.NewRequestDecoder()
+	urh := handlers.UserRegisterHandler(urUc, rd)
+
+	rtr := chi.NewRouter()
+	routers.RegisterPingRoute(rtr, gph)
+	routers.RegisterUserRegisterRoute(
+		rtr,
+		"/api/user",
+		urh,
+		middlewares.LoggingMiddleware,
+		middlewares.GzipMiddleware,
+	)
+
+	srv := &http.Server{Addr: config.GetRunAddress(), Handler: rtr}
+
+	return server.Run(ctx, srv)
 }
