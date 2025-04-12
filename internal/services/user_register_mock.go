@@ -6,7 +6,6 @@ package services
 
 import (
 	context "context"
-	sql "database/sql"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -86,43 +85,6 @@ func (m *MockUserSaveRepo) Save(ctx context.Context, user *repositories.UserSave
 func (mr *MockUserSaveRepoMockRecorder) Save(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockUserSaveRepo)(nil).Save), ctx, user)
-}
-
-// MockUnitOfWork is a mock of UnitOfWork interface.
-type MockUnitOfWork struct {
-	ctrl     *gomock.Controller
-	recorder *MockUnitOfWorkMockRecorder
-}
-
-// MockUnitOfWorkMockRecorder is the mock recorder for MockUnitOfWork.
-type MockUnitOfWorkMockRecorder struct {
-	mock *MockUnitOfWork
-}
-
-// NewMockUnitOfWork creates a new mock instance.
-func NewMockUnitOfWork(ctrl *gomock.Controller) *MockUnitOfWork {
-	mock := &MockUnitOfWork{ctrl: ctrl}
-	mock.recorder = &MockUnitOfWorkMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUnitOfWork) EXPECT() *MockUnitOfWorkMockRecorder {
-	return m.recorder
-}
-
-// Do mocks base method.
-func (m *MockUnitOfWork) Do(ctx context.Context, operation func(*sql.Tx) error) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Do", ctx, operation)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Do indicates an expected call of Do.
-func (mr *MockUnitOfWorkMockRecorder) Do(ctx, operation interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Do", reflect.TypeOf((*MockUnitOfWork)(nil).Do), ctx, operation)
 }
 
 // MockHasher is a mock of Hasher interface.
