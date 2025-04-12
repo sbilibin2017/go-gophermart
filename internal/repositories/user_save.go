@@ -25,16 +25,7 @@ type UserSave struct {
 	Password string `json:"password"`
 }
 
-func (r *UserSaveRepository) Save(ctx context.Context, tx *sql.Tx, u *UserSave) error {
-	var (
-		_, err error
-	)
-
-	if tx != nil {
-		_, err = tx.ExecContext(ctx, userSaveQuery, u.Login, u.Password)
-	} else {
-		_, err = r.db.ExecContext(ctx, userSaveQuery, u.Login, u.Password)
-	}
-
+func (r *UserSaveRepository) Save(ctx context.Context, u *UserSave) error {
+	_, err := r.db.ExecContext(ctx, userSaveQuery, u.Login, u.Password)
 	return err
 }

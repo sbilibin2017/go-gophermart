@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -14,75 +14,34 @@ func TestUserSaveRepository_Save(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
-
 	repo := NewUserSaveRepository(db)
-
 	user := &UserSave{
 		Login:    "testuser",
-		Password: "password123",
+		Password: "testpassword",
 	}
-
-	mock.ExpectExec("INSERT INTO users").
+	mock.ExpectExec(`^INSERT INTO users \(login, password\) VALUES \(\$1, \$2\);`).
 		WithArgs(user.Login, user.Password).
 		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	err = repo.Save(context.Background(), nil, user)
-
+	err = repo.Save(context.Background(), user)
 	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
 }
 
 func TestUserSaveRepository_Save_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
-
 	repo := NewUserSaveRepository(db)
-
 	user := &UserSave{
 		Login:    "testuser",
-		Password: "password123",
+		Password: "testpassword",
 	}
-
-	mock.ExpectExec("INSERT INTO users").
+	mock.ExpectExec(`^INSERT INTO users \(login, password\) VALUES \(\$1, \$2\);`).
 		WithArgs(user.Login, user.Password).
-		WillReturnError(fmt.Errorf("database error"))
-
-	err = repo.Save(context.Background(), nil, user)
-
+		WillReturnError(sql.ErrConnDone)
+	err = repo.Save(context.Background(), user)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "database error")
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestUserSaveRepository_Save_WithTx_Success(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	repo := NewUserSaveRepository(db)
-	ctx := context.Background()
-	user := &UserSave{
-		Login:    "testuser",
-		Password: "password123",
-	}
-
-	mock.ExpectBegin()
-
-	mock.ExpectExec("INSERT INTO users").
-		WithArgs(user.Login, user.Password).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	mock.ExpectCommit()
-
-	tx, err := db.Begin()
-	require.NoError(t, err)
-
-	err = repo.Save(ctx, tx, user)
+	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
-
-	err = tx.Commit()
-	assert.NoError(t, err)
-
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
