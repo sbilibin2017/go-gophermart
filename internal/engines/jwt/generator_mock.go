@@ -34,30 +34,30 @@ func (m *MockJWTGeneratorConfigurer) EXPECT() *MockJWTGeneratorConfigurerMockRec
 	return m.recorder
 }
 
-// GetExpireTime mocks base method.
-func (m *MockJWTGeneratorConfigurer) GetExpireTime() time.Duration {
+// GetJWTExpireTime mocks base method.
+func (m *MockJWTGeneratorConfigurer) GetJWTExpireTime() time.Duration {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetExpireTime")
+	ret := m.ctrl.Call(m, "GetJWTExpireTime")
 	ret0, _ := ret[0].(time.Duration)
 	return ret0
 }
 
-// GetExpireTime indicates an expected call of GetExpireTime.
-func (mr *MockJWTGeneratorConfigurerMockRecorder) GetExpireTime() *gomock.Call {
+// GetJWTExpireTime indicates an expected call of GetJWTExpireTime.
+func (mr *MockJWTGeneratorConfigurerMockRecorder) GetJWTExpireTime() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExpireTime", reflect.TypeOf((*MockJWTGeneratorConfigurer)(nil).GetExpireTime))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJWTExpireTime", reflect.TypeOf((*MockJWTGeneratorConfigurer)(nil).GetJWTExpireTime))
 }
 
-// GetSecretKey mocks base method.
-func (m *MockJWTGeneratorConfigurer) GetSecretKey() string {
+// GetJWTSecretKey mocks base method.
+func (m *MockJWTGeneratorConfigurer) GetJWTSecretKey() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSecretKey")
+	ret := m.ctrl.Call(m, "GetJWTSecretKey")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// GetSecretKey indicates an expected call of GetSecretKey.
-func (mr *MockJWTGeneratorConfigurerMockRecorder) GetSecretKey() *gomock.Call {
+// GetJWTSecretKey indicates an expected call of GetJWTSecretKey.
+func (mr *MockJWTGeneratorConfigurerMockRecorder) GetJWTSecretKey() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretKey", reflect.TypeOf((*MockJWTGeneratorConfigurer)(nil).GetSecretKey))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJWTSecretKey", reflect.TypeOf((*MockJWTGeneratorConfigurer)(nil).GetJWTSecretKey))
 }

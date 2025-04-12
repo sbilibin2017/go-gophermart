@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sbilibin2017/go-gophermart/internal/log"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

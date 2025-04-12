@@ -4,9 +4,11 @@ import (
 	"os"
 
 	"github.com/sbilibin2017/go-gophermart/cmd/gophermart/app"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/cli"
 )
 
 func main() {
-	code := app.Run()
+	cmd := app.NewCommand()
+	code := cli.Run(cmd)
 	os.Exit(code)
 }

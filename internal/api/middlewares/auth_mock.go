@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	jwt "github.com/sbilibin2017/go-gophermart/internal/jwt"
+	jwt "github.com/sbilibin2017/go-gophermart/internal/engines/jwt"
 )
 
 // MockJWTPArser is a mock of JWTPArser interface.

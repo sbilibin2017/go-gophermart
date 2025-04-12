@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sbilibin2017/go-gophermart/internal/jwt"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/jwt"
 )
 
 type contextKey string

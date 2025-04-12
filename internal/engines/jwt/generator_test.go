@@ -15,8 +15,8 @@ func TestJWTGenerator_Generate(t *testing.T) {
 	mockConfig := NewMockJWTGeneratorConfigurer(ctrl)
 	secretKey := "testsecret"
 	expireTime := time.Hour
-	mockConfig.EXPECT().GetSecretKey().Return(secretKey).Times(1)
-	mockConfig.EXPECT().GetExpireTime().Return(expireTime).Times(1)
+	mockConfig.EXPECT().GetJWTSecretKey().Return(secretKey).Times(1)
+	mockConfig.EXPECT().GetJWTExpireTime().Return(expireTime).Times(1)
 	generator := NewJWTGenerator(mockConfig)
 	login := "testuser"
 	token := generator.Generate(login)
@@ -35,15 +35,15 @@ func TestJWTGenerator_Generate_EmptySecretKey(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockConfig := NewMockJWTGeneratorConfigurer(ctrl)
-	mockConfig.EXPECT().GetSecretKey().Return("").Times(1)
-	mockConfig.EXPECT().GetExpireTime().Return(time.Hour).Times(1)
+	mockConfig.EXPECT().GetJWTSecretKey().Return("").Times(1)
+	mockConfig.EXPECT().GetJWTExpireTime().Return(time.Hour).Times(1)
 	generator := NewJWTGenerator(mockConfig)
 	login := "testuser"
 	token := generator.Generate(login)
 	assert.NotEmpty(t, token)
 	parsedClaims := &Claims{}
 	_, err := jwt.ParseWithClaims(token, parsedClaims, func(token *jwt.Token) (any, error) {
-		return []byte(""), nil 
+		return []byte(""), nil
 	})
 	assert.NoError(t, err)
 }
@@ -54,15 +54,15 @@ func TestJWTGenerator_Generate_InvalidSecretKey(t *testing.T) {
 	mockConfig := NewMockJWTGeneratorConfigurer(ctrl)
 	secretKey := "testsecret"
 	expireTime := time.Hour
-	mockConfig.EXPECT().GetSecretKey().Return(secretKey).Times(1)
-	mockConfig.EXPECT().GetExpireTime().Return(expireTime).Times(1)
+	mockConfig.EXPECT().GetJWTSecretKey().Return(secretKey).Times(1)
+	mockConfig.EXPECT().GetJWTExpireTime().Return(expireTime).Times(1)
 	generator := NewJWTGenerator(mockConfig)
 	login := "testuser"
 	token := generator.Generate(login)
 	assert.NotEmpty(t, token)
 	parsedClaims := &Claims{}
 	_, err := jwt.ParseWithClaims(token, parsedClaims, func(token *jwt.Token) (any, error) {
-		return []byte("wrongsecret"), nil 
+		return []byte("wrongsecret"), nil
 	})
 	assert.Error(t, err)
 }

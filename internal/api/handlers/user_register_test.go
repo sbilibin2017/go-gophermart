@@ -8,12 +8,11 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-
-	"github.com/sbilibin2017/go-gophermart/internal/handlers"
+	"github.com/sbilibin2017/go-gophermart/internal/api/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/usecases"
-	"github.com/sbilibin2017/go-gophermart/internal/validators"
+	"github.com/sbilibin2017/go-gophermart/internal/usecases/validators"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUserRegisterHandler_Success(t *testing.T) {

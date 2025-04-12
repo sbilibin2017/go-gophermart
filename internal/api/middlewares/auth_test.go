@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/sbilibin2017/go-gophermart/internal/jwt"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/jwt"
 	"github.com/stretchr/testify/assert"
 )
 

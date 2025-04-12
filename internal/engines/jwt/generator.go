@@ -7,8 +7,8 @@ import (
 )
 
 type JWTGeneratorConfigurer interface {
-	GetSecretKey() string
-	GetExpireTime() time.Duration
+	GetJWTSecretKey() string
+	GetJWTExpireTime() time.Duration
 }
 
 type JWTGenerator struct {
@@ -23,10 +23,10 @@ func (g *JWTGenerator) Generate(login string) string {
 	claims := &Claims{
 		Login: login,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(g.c.GetExpireTime())),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(g.c.GetJWTExpireTime())),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, _ := token.SignedString([]byte(g.c.GetSecretKey()))
+	tokenString, _ := token.SignedString([]byte(g.c.GetJWTSecretKey()))
 	return tokenString
 }

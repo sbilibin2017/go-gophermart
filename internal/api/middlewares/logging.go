@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sbilibin2017/go-gophermart/internal/log"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/log"
 )
 
 func LoggingMiddleware(next http.Handler) http.Handler {

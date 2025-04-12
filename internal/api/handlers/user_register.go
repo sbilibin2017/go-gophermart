@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/json"
+	"github.com/sbilibin2017/go-gophermart/internal/engines/json"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/usecases"
-	"github.com/sbilibin2017/go-gophermart/internal/validators"
+	"github.com/sbilibin2017/go-gophermart/internal/usecases/validators"
 )
 
 type UserRegisterUsecase interface {
