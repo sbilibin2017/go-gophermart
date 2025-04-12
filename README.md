@@ -100,13 +100,13 @@
 │   │   ├── user_save.go               # Логика сохранения пользователей
 │   │   └── user_save_test.go          # Тесты для сохранения пользователей
 │   ├── services                        # Бизнес логика
+│   |   ├── unitofwork                  # Реализация паттерна "Unit of Work"
+│   |   │   ├── unit_of_work.go         # Логика паттерна "Unit of Work"
+│   |   │   └── unit_of_work_test.go    # Тесты для паттерна "Unit of Work"
 │   │   ├── user_register.go           # Сервис регистрации пользователя
 │   │   ├── user_register_mock.go      # Мок для тестирования сервиса регистрации
 │   │   └── user_register_test.go      # Тесты для сервиса регистрации
 │   └── usecases                        # Пользовательские сценарии
-│       ├── unitofwork                  # Реализация паттерна "Unit of Work"
-│       │   ├── unit_of_work.go         # Логика паттерна "Unit of Work"
-│       │   └── unit_of_work_test.go    # Тесты для паттерна "Unit of Work"
 │       ├── user_register.go           # Паттерн использования для регистрации
 │       ├── user_register_mock.go      # Мок для тестирования паттерна использования регистрации
 │       ├── user_register_test.go      # Тесты для паттерна использования регистрации
