@@ -16,4 +16,4 @@ func (d *RequestDecoder) Decode(r *http.Request, v any) error {
 	return json.NewDecoder(r.Body).Decode(v)
 }
 
-var ErrUnprocessableJson = errors.New("unprocessable json")
+var ErrRequestDecoderUnprocessableJson = errors.New("unprocessable json")
