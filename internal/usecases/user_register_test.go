@@ -11,145 +11,101 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserRegisterUsecase_Execute_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Создаем моки для зависимостей
-	mockLoginValidator := NewMockLoginValidator(ctrl)
-	mockPasswordValidator := NewMockPasswordValidator(ctrl)
-	mockUserRegisterService := NewMockUserRegisterService(ctrl)
-
-	// Настроим моки
-	mockLoginValidator.EXPECT().Validate("validLogin").Return(nil).Times(1)
-	mockPasswordValidator.EXPECT().Validate("validPassword").Return(nil).Times(1)
-	mockUserRegisterService.EXPECT().Register(context.Background(), &services.User{Login: "validLogin", Password: "validPassword"}).
-		Return("accessToken", nil).Times(1)
-
-	// Создаем экземпляр UserRegisterUsecase
-	uc := &UserRegisterUsecase{
-		lv:  mockLoginValidator,
-		pv:  mockPasswordValidator,
-		svc: mockUserRegisterService,
+func TestUserRegisterUsecase_Execute(t *testing.T) {
+	type testCase struct {
+		name       string
+		login      string
+		password   string
+		setupMocks func(
+			mockLoginValidator *MockLoginValidator,
+			mockPasswordValidator *MockPasswordValidator,
+			mockUserRegisterService *MockUserRegisterService,
+		)
+		expectedToken string
+		expectedError error
 	}
 
-	// Создаем запрос
-	req := &UserRegisterRequest{
-		Login:    "validLogin",
-		Password: "validPassword",
+	testCases := []testCase{
+		{
+			name:     "Success",
+			login:    "validLogin",
+			password: "validPassword",
+			setupMocks: func(mLogin *MockLoginValidator, mPass *MockPasswordValidator, mService *MockUserRegisterService) {
+				mLogin.EXPECT().Validate("validLogin").Return(nil)
+				mPass.EXPECT().Validate("validPassword").Return(nil)
+				mService.EXPECT().
+					Register(gomock.Any(), &services.User{Login: "validLogin", Password: "validPassword"}).
+					Return("accessToken", nil)
+			},
+			expectedToken: "accessToken",
+			expectedError: nil,
+		},
+		{
+			name:     "Login validation error",
+			login:    "invalidLogin",
+			password: "validPassword",
+			setupMocks: func(mLogin *MockLoginValidator, mPass *MockPasswordValidator, mService *MockUserRegisterService) {
+				mLogin.EXPECT().Validate("invalidLogin").Return(errors.New("invalid login"))
+			},
+			expectedToken: "",
+			expectedError: errors.New("invalid login"),
+		},
+		{
+			name:     "Password validation error",
+			login:    "validLogin",
+			password: "invalidPassword",
+			setupMocks: func(mLogin *MockLoginValidator, mPass *MockPasswordValidator, mService *MockUserRegisterService) {
+				mLogin.EXPECT().Validate("validLogin").Return(nil)
+				mPass.EXPECT().Validate("invalidPassword").Return(errors.New("invalid password"))
+			},
+			expectedToken: "",
+			expectedError: errors.New("invalid password"),
+		},
+		{
+			name:     "Register service error",
+			login:    "validLogin",
+			password: "validPassword",
+			setupMocks: func(mLogin *MockLoginValidator, mPass *MockPasswordValidator, mService *MockUserRegisterService) {
+				mLogin.EXPECT().Validate("validLogin").Return(nil)
+				mPass.EXPECT().Validate("validPassword").Return(nil)
+				mService.EXPECT().
+					Register(gomock.Any(), &services.User{Login: "validLogin", Password: "validPassword"}).
+					Return("", errors.New("service error"))
+			},
+			expectedToken: "",
+			expectedError: errors.New("service error"),
+		},
 	}
 
-	// Выполняем метод Execute
-	resp, err := uc.Execute(context.Background(), req)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	// Проверяем, что ошибок нет и токен возвращен
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Equal(t, "accessToken", resp.AccessToken)
-}
+			mockLoginValidator := NewMockLoginValidator(ctrl)
+			mockPasswordValidator := NewMockPasswordValidator(ctrl)
+			mockUserRegisterService := NewMockUserRegisterService(ctrl)
 
-func TestUserRegisterUsecase_Execute_LoginValidationError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+			tc.setupMocks(mockLoginValidator, mockPasswordValidator, mockUserRegisterService)
 
-	// Создаем моки для зависимостей
-	mockLoginValidator := NewMockLoginValidator(ctrl)
-	mockPasswordValidator := NewMockPasswordValidator(ctrl)
-	mockUserRegisterService := NewMockUserRegisterService(ctrl)
+			uc := NewUserRegisterUsecase(mockLoginValidator, mockPasswordValidator, mockUserRegisterService)
 
-	// Настроим моки
-	mockLoginValidator.EXPECT().Validate("invalidLogin").Return(errors.New("invalid login")).Times(1)
+			req := &UserRegisterRequest{
+				Login:    tc.login,
+				Password: tc.password,
+			}
 
-	// Создаем экземпляр UserRegisterUsecase
-	uc := &UserRegisterUsecase{
-		lv:  mockLoginValidator,
-		pv:  mockPasswordValidator,
-		svc: mockUserRegisterService,
+			resp, err := uc.Execute(context.Background(), req)
+
+			if tc.expectedError != nil {
+				assert.Error(t, err)
+				assert.EqualError(t, err, tc.expectedError.Error())
+				assert.Nil(t, resp)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, resp)
+				assert.Equal(t, tc.expectedToken, resp.AccessToken)
+			}
+		})
 	}
-
-	// Создаем запрос с неправильным логином
-	req := &UserRegisterRequest{
-		Login:    "invalidLogin",
-		Password: "validPassword",
-	}
-
-	// Выполняем метод Execute
-	resp, err := uc.Execute(context.Background(), req)
-
-	// Проверяем, что ошибка вернулась, и ответ пустой
-	assert.Error(t, err)
-	assert.Nil(t, resp)
-	assert.EqualError(t, err, "invalid login")
-}
-
-func TestUserRegisterUsecase_Execute_PasswordValidationError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Создаем моки для зависимостей
-	mockLoginValidator := NewMockLoginValidator(ctrl)
-	mockPasswordValidator := NewMockPasswordValidator(ctrl)
-	mockUserRegisterService := NewMockUserRegisterService(ctrl)
-
-	// Настроим моки
-	mockLoginValidator.EXPECT().Validate("validLogin").Return(nil).Times(1)
-	mockPasswordValidator.EXPECT().Validate("invalidPassword").Return(errors.New("invalid password")).Times(1)
-
-	// Создаем экземпляр UserRegisterUsecase
-	uc := &UserRegisterUsecase{
-		lv:  mockLoginValidator,
-		pv:  mockPasswordValidator,
-		svc: mockUserRegisterService,
-	}
-
-	// Создаем запрос с неправильным паролем
-	req := &UserRegisterRequest{
-		Login:    "validLogin",
-		Password: "invalidPassword",
-	}
-
-	// Выполняем метод Execute
-	resp, err := uc.Execute(context.Background(), req)
-
-	// Проверяем, что ошибка вернулась, и ответ пустой
-	assert.Error(t, err)
-	assert.Nil(t, resp)
-	assert.EqualError(t, err, "invalid password")
-}
-
-func TestUserRegisterUsecase_Execute_UserRegisterServiceError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Создаем моки для зависимостей
-	mockLoginValidator := NewMockLoginValidator(ctrl)
-	mockPasswordValidator := NewMockPasswordValidator(ctrl)
-	mockUserRegisterService := NewMockUserRegisterService(ctrl)
-
-	// Настроим моки
-	mockLoginValidator.EXPECT().Validate("validLogin").Return(nil).Times(1)
-	mockPasswordValidator.EXPECT().Validate("validPassword").Return(nil).Times(1)
-	mockUserRegisterService.EXPECT().Register(context.Background(), &services.User{Login: "validLogin", Password: "validPassword"}).
-		Return("", errors.New("service error")).Times(1)
-
-	// Создаем экземпляр UserRegisterUsecase
-	uc := &UserRegisterUsecase{
-		lv:  mockLoginValidator,
-		pv:  mockPasswordValidator,
-		svc: mockUserRegisterService,
-	}
-
-	// Создаем запрос
-	req := &UserRegisterRequest{
-		Login:    "validLogin",
-		Password: "validPassword",
-	}
-
-	// Выполняем метод Execute
-	resp, err := uc.Execute(context.Background(), req)
-
-	// Проверяем, что ошибка вернулась и ответ пустой
-	assert.Error(t, err)
-	assert.Nil(t, resp)
-	assert.EqualError(t, err, "service error")
 }
