@@ -18,8 +18,8 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/engines/server"
 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
+	"github.com/sbilibin2017/go-gophermart/internal/services/unitofwork"
 	"github.com/sbilibin2017/go-gophermart/internal/usecases"
-	"github.com/sbilibin2017/go-gophermart/internal/usecases/unitofwork"
 	"github.com/sbilibin2017/go-gophermart/internal/usecases/validators"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -109,12 +109,14 @@ func Run(ctx context.Context, config *configs.GophermartConfig) error {
 	ugr := repositories.NewUserFilterRepository(db)
 	usr := repositories.NewUserSaveRepository(db)
 
-	ursSvc := services.NewUserRegisterService(ugr, usr, hasher, jwtGenerator)
+	uow := unitofwork.NewUnitOfWork(db)
+
+	ursSvc := services.NewUserRegisterService(ugr, usr, hasher, jwtGenerator, uow)
 
 	lv := validators.NewLoginValidator()
 	pv := validators.NewPasswordValidator()
-	uow := unitofwork.NewUnitOfWork(db)
-	urUc := usecases.NewUserRegisterUsecase(uow, lv, pv, ursSvc)
+
+	urUc := usecases.NewUserRegisterUsecase(lv, pv, ursSvc)
 
 	gph := handlers.PingHandler(db)
 
