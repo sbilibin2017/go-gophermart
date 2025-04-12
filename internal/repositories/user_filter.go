@@ -32,19 +32,25 @@ type UserFiltered struct {
 }
 
 func (r *UserFilterRepository) Filter(
-	ctx context.Context, filter *UserFilter,
+	ctx context.Context, tx *sql.Tx, filter *UserFilter,
 ) (*UserFiltered, error) {
 	var userFiltered UserFiltered
-	err := r.db.QueryRowContext(
-		ctx,
-		userFilterQuery,
-		filter.Login,
-	).Scan(&userFiltered.Login, &userFiltered.Password)
+	var err error
+
+	if tx != nil {
+		err = tx.QueryRowContext(ctx, userFilterQuery, filter.Login).
+			Scan(&userFiltered.Login, &userFiltered.Password)
+	} else {
+		err = r.db.QueryRowContext(ctx, userFilterQuery, filter.Login).
+			Scan(&userFiltered.Login, &userFiltered.Password)
+	}
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+
 	return &userFiltered, nil
 }
