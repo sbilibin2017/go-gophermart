@@ -15,7 +15,7 @@ func TestRegisterGophermartPingHandler(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("pong"))
 	}
-	RegisterGophermartPingRoute(r, handler)
+	RegisterPingRoute(r, handler)
 	req, err := http.NewRequest(http.MethodGet, "/ping", nil)
 	assert.NoError(t, err)
 	rr := httptest.NewRecorder()

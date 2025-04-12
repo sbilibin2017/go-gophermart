@@ -10,7 +10,7 @@ type Pinger interface {
 	Ping() error
 }
 
-func GophermartPingHandler(p Pinger) http.HandlerFunc {
+func PingHandler(p Pinger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if p == nil {
 			http.Error(w, "Database connection error", http.StatusInternalServerError)
