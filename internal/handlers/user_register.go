@@ -27,7 +27,7 @@ func UserRegisterHandler(
 		var req usecases.UserRegisterRequest
 
 		if err := decoder.Decode(r, &req); err != nil {
-			http.Error(w, json.ErrUnprocessableJson.Error(), http.StatusBadRequest)
+			http.Error(w, json.ErrRequestDecoderUnprocessableJson.Error(), http.StatusBadRequest)
 			return
 		}
 
