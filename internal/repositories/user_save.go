@@ -2,16 +2,16 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 )
 
 type UserSaveRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewUserSaveRepository(db *sql.DB) *UserSaveRepository {
+func NewUserSaveRepository(db *sqlx.DB) *UserSaveRepository {
 	return &UserSaveRepository{db: db}
 }
 
@@ -21,8 +21,8 @@ const userSaveQuery = `
 `
 
 type UserSave struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
+	Login    string `db:"login"`
+	Password string `db:"password"`
 }
 
 func (r *UserSaveRepository) Save(ctx context.Context, u *UserSave) error {

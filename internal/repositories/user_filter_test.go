@@ -2,62 +2,67 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories/fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserFilterRepository_Filter_Success(t *testing.T) {
-	db, mock, err := sqlmock.New()
+func TestUserFilterRepository_Filter(t *testing.T) {
+	db, query, cleanup := fixtures.SetupPostgresDB(t)
+	defer cleanup()
+
+	// Create the 'users' table
+	err := query(context.Background(), `
+		CREATE TABLE IF NOT EXISTS users (
+			login      VARCHAR(100) PRIMARY KEY,
+			password   VARCHAR(100) NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT now(),
+			updated_at TIMESTAMP NOT NULL DEFAULT now()
+		);
+	`)
 	require.NoError(t, err)
-	defer db.Close()
+
+	// Insert a user into the 'users' table
+	_, err = db.ExecContext(context.Background(), `
+		INSERT INTO users (login, password)
+		VALUES ('testuser', 'testpassword');
+	`)
+	require.NoError(t, err)
+
 	repo := NewUserFilterRepository(db)
-	filter := &UserFilter{Login: "testuser"}
-	expectedUser := &UserFiltered{Login: "testuser", Password: "testpassword"}
-	mock.ExpectQuery(`^SELECT login, password FROM users WHERE login = \$1 LIMIT 1`).
-		WithArgs(filter.Login).
-		WillReturnRows(sqlmock.NewRows([]string{"login", "password"}).
-			AddRow(expectedUser.Login, expectedUser.Password))
-	user, err := repo.Filter(context.Background(), filter)
-	assert.NoError(t, err)
-	assert.NotNil(t, user)
-	assert.Equal(t, expectedUser.Login, user.Login)
-	assert.Equal(t, expectedUser.Password, user.Password)
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
+
+	filter := &UserFilter{
+		Login: "testuser",
+	}
+
+	userFiltered, err := repo.Filter(context.Background(), filter)
+	require.NoError(t, err)
+
+	assert.NotNil(t, userFiltered)
+	assert.Equal(t, "testuser", userFiltered.Login)
+	assert.Equal(t, "testpassword", userFiltered.Password)
+
+	filter.Login = "nonexistentuser"
+	userFiltered, err = repo.Filter(context.Background(), filter)
+	require.NoError(t, err)
+
+	assert.Nil(t, userFiltered)
 }
 
-func TestUserFilterRepository_Filter_NoRows(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-	repo := NewUserFilterRepository(db)
-	filter := &UserFilter{Login: "nonexistentuser"}
-	mock.ExpectQuery(`^SELECT login, password FROM users WHERE login = \$1 LIMIT 1`).
-		WithArgs(filter.Login).
-		WillReturnError(sql.ErrNoRows)
-	user, err := repo.Filter(context.Background(), filter)
-	assert.NoError(t, err)
-	assert.Nil(t, user)
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
-}
+func TestUserFilterRepository_Filter_ErrorHandling(t *testing.T) {
+	db, _, cleanup := fixtures.SetupPostgresDB(t)
+	defer cleanup()
 
-func TestUserFilterRepository_Filter_Error(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
 	repo := NewUserFilterRepository(db)
-	filter := &UserFilter{Login: "testuser"}
-	mock.ExpectQuery(`^SELECT login, password FROM users WHERE login = \$1 LIMIT 1`).
-		WithArgs(filter.Login).
-		WillReturnError(sql.ErrConnDone)
-	user, err := repo.Filter(context.Background(), filter)
+
+	filter := &UserFilter{
+		Login: "testuser",
+	}
+
+	userFiltered, err := repo.Filter(context.Background(), filter)
+
 	assert.Error(t, err)
-	assert.Nil(t, user)
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
+	assert.Nil(t, userFiltered)
 }

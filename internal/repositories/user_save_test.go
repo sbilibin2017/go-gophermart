@@ -2,46 +2,40 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories/fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUserSaveRepository_Save(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	db, query, cleanup := fixtures.SetupPostgresDB(t)
+	defer cleanup()
+	err := query(context.Background(), `
+		CREATE TABLE IF NOT EXISTS users (
+			login      VARCHAR(100) PRIMARY KEY,
+			password   VARCHAR(100) NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT now(),
+			updated_at TIMESTAMP NOT NULL DEFAULT now()
+		);
+	`)
 	require.NoError(t, err)
-	defer db.Close()
-	repo := NewUserSaveRepository(db)
-	user := &UserSave{
-		Login:    "testuser",
-		Password: "testpassword",
-	}
-	mock.ExpectExec(`^INSERT INTO users \(login, password\) VALUES \(\$1, \$2\);`).
-		WithArgs(user.Login, user.Password).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-	err = repo.Save(context.Background(), user)
-	assert.NoError(t, err)
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
-}
 
-func TestUserSaveRepository_Save_Error(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
 	repo := NewUserSaveRepository(db)
+
 	user := &UserSave{
 		Login:    "testuser",
 		Password: "testpassword",
 	}
-	mock.ExpectExec(`^INSERT INTO users \(login, password\) VALUES \(\$1, \$2\);`).
-		WithArgs(user.Login, user.Password).
-		WillReturnError(sql.ErrConnDone)
+
 	err = repo.Save(context.Background(), user)
-	assert.Error(t, err)
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
+	require.NoError(t, err)
+
+	var savedUser UserSave
+	err = db.GetContext(context.Background(), &savedUser, "SELECT login, password FROM users WHERE login = $1", user.Login)
+	require.NoError(t, err)
+
+	assert.Equal(t, user.Login, savedUser.Login)
+	assert.Equal(t, user.Password, savedUser.Password)
 }
