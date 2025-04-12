@@ -20,7 +20,7 @@ func TestRegisterGophermartRouter(t *testing.T) {
 		})
 	}
 	r := chi.NewRouter()
-	RegisteruserRegisterRoute(r, "/api/user", mockHandler, mockMiddleware, mockMiddleware)
+	RegisterUserRegisterRoute(r, "/api/user", mockHandler, mockMiddleware, mockMiddleware)
 	req := httptest.NewRequest(http.MethodPost, "/api/user/register", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)

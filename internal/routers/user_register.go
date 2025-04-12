@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisteruserRegisterRoute(
+func RegisterUserRegisterRoute(
 	router *chi.Mux,
 	prefix string,
 	handler http.HandlerFunc,
