@@ -34,79 +34,91 @@ func setupTest(t *testing.T) (*UserRegisterService, *testMocks, *gomock.Controll
 	return svc, m, ctrl
 }
 
-func TestUserRegisterService_Register_Success(t *testing.T) {
-	svc, m, ctrl := setupTest(t)
-	defer ctrl.Finish()
-
-	u := &User{Login: "john", Password: "123"}
-
-	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, fn func(*sql.Tx) error) error {
-			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, nil) // Corrected method call
-			m.hash.EXPECT().Hash("123").Return("hashed123")
-			m.usr.EXPECT().Save(ctx, &repositories.UserSave{Login: "john", Password: "hashed123"}).Return(nil) // Corrected method call
-			m.jwt.EXPECT().Generate("john").Return("token123")
-			return fn(nil)
+func TestUserRegisterService_Register(t *testing.T) {
+	tests := []struct {
+		name          string
+		user          *User
+		setupMocks    func(m *testMocks)
+		expectedErr   error
+		expectedToken string
+	}{
+		{
+			name: "Success",
+			user: &User{Login: "john", Password: "123"},
+			setupMocks: func(m *testMocks) {
+				m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, fn func(*sql.Tx) error) error {
+						m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, nil)
+						m.hash.EXPECT().Hash("123").Return("hashed123")
+						m.usr.EXPECT().Save(ctx, &repositories.UserSave{Login: "john", Password: "hashed123"}).Return(nil)
+						m.jwt.EXPECT().Generate("john").Return("token123")
+						return fn(nil)
+					},
+				)
+			},
+			expectedErr:   nil,
+			expectedToken: "token123",
 		},
-	)
-
-	token, err := svc.Register(context.Background(), u)
-	assert.NoError(t, err)
-	assert.Equal(t, "token123", token)
-}
-
-func TestUserRegisterService_Register_UserAlreadyExists(t *testing.T) {
-	svc, m, ctrl := setupTest(t)
-	defer ctrl.Finish()
-
-	u := &User{Login: "john", Password: "123"}
-
-	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, fn func(*sql.Tx) error) error {
-			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(&repositories.UserFiltered{}, nil) // Corrected method call
-			return fn(nil)
+		{
+			name: "UserAlreadyExists",
+			user: &User{Login: "john", Password: "123"},
+			setupMocks: func(m *testMocks) {
+				m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, fn func(*sql.Tx) error) error {
+						m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(&repositories.UserFiltered{}, nil)
+						return fn(nil)
+					},
+				)
+			},
+			expectedErr:   ErrUserAlreadyExists,
+			expectedToken: "",
 		},
-	)
-
-	token, err := svc.Register(context.Background(), u)
-	assert.ErrorIs(t, err, ErrUserAlreadyExists)
-	assert.Empty(t, token)
-}
-
-func TestUserRegisterService_Register_GetUserError(t *testing.T) {
-	svc, m, ctrl := setupTest(t)
-	defer ctrl.Finish()
-
-	u := &User{Login: "john", Password: "123"}
-
-	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, fn func(*sql.Tx) error) error {
-			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, e.New("db error")) // Corrected method call
-			return fn(nil)
+		{
+			name: "GetUserError",
+			user: &User{Login: "john", Password: "123"},
+			setupMocks: func(m *testMocks) {
+				m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, fn func(*sql.Tx) error) error {
+						m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, e.New("db error"))
+						return fn(nil)
+					},
+				)
+			},
+			expectedErr:   ErrUserRegisterInternal,
+			expectedToken: "",
 		},
-	)
-
-	token, err := svc.Register(context.Background(), u)
-	assert.ErrorIs(t, err, ErrUserRegisterInternal)
-	assert.Empty(t, token)
-}
-
-func TestUserRegisterService_Register_SaveError(t *testing.T) {
-	svc, m, ctrl := setupTest(t)
-	defer ctrl.Finish()
-
-	u := &User{Login: "john", Password: "123"}
-
-	m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, fn func(*sql.Tx) error) error {
-			m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, nil) // Corrected method call
-			m.hash.EXPECT().Hash("123").Return("hashed123")
-			m.usr.EXPECT().Save(ctx, &repositories.UserSave{Login: "john", Password: "hashed123"}).Return(e.New("insert error"))
-			return fn(nil)
+		{
+			name: "SaveError",
+			user: &User{Login: "john", Password: "123"},
+			setupMocks: func(m *testMocks) {
+				m.uow.EXPECT().Do(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, fn func(*sql.Tx) error) error {
+						m.ugr.EXPECT().Filter(ctx, &repositories.UserFilter{Login: "john"}).Return(nil, nil)
+						m.hash.EXPECT().Hash("123").Return("hashed123")
+						m.usr.EXPECT().Save(ctx, &repositories.UserSave{Login: "john", Password: "hashed123"}).Return(e.New("insert error"))
+						return fn(nil)
+					},
+				)
+			},
+			expectedErr:   ErrUserRegisterInternal,
+			expectedToken: "",
 		},
-	)
+	}
 
-	token, err := svc.Register(context.Background(), u)
-	assert.ErrorIs(t, err, ErrUserRegisterInternal)
-	assert.Empty(t, token)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc, m, ctrl := setupTest(t)
+			defer ctrl.Finish()
+
+			tt.setupMocks(m)
+
+			token, err := svc.Register(context.Background(), tt.user)
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.expectedToken, token)
+		})
+	}
 }
