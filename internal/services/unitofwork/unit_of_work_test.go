@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -15,7 +17,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func setupPostgresContainer(t *testing.T) (*sql.DB, func()) {
+func setupPostgresContainer(t *testing.T) (*sqlx.DB, func()) {
 	ctx := context.Background()
 
 	req := testcontainers.ContainerRequest{
@@ -41,7 +43,7 @@ func setupPostgresContainer(t *testing.T) (*sql.DB, func()) {
 	require.NoError(t, err)
 
 	dsn := "postgres://testuser:testpassword@" + host + ":" + port.Port() + "/testdb?sslmode=disable"
-	db, err := sql.Open("pgx", dsn)
+	db, err := sqlx.Connect("pgx", dsn)
 	require.NoError(t, err)
 
 	err = db.PingContext(ctx)

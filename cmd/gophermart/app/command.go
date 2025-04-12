@@ -2,8 +2,9 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sbilibin2017/go-gophermart/internal/api/handlers"
@@ -101,7 +102,7 @@ func NewCommand() *cobra.Command {
 func Run(ctx context.Context, config *configs.GophermartConfig) error {
 	log.Info("Initializing server...")
 
-	db, _ := sql.Open("pgx", config.GetDatabaseURI())
+	db, _ := sqlx.Connect("pgx", config.GetDatabaseURI())
 
 	jwtGenerator := jwt.NewJWTGenerator(config)
 	hasher := password.NewHasher()

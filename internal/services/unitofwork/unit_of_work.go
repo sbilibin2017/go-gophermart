@@ -5,13 +5,14 @@ import (
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 )
 
 type UnitOfWork struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewUnitOfWork(db *sql.DB) *UnitOfWork {
+func NewUnitOfWork(db *sqlx.DB) *UnitOfWork {
 	return &UnitOfWork{db: db}
 }
 

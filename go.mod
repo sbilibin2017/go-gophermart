@@ -3,11 +3,11 @@ module github.com/sbilibin2017/go-gophermart
 go 1.24.1
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx/v5 v5.7.4
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
