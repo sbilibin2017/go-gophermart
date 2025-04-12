@@ -8,7 +8,12 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/log"
 )
 
-func Run(ctx context.Context, srv *http.Server) error {
+type Server interface {
+	ListenAndServe() error
+	Shutdown(ctx context.Context) error
+}
+
+func Run(ctx context.Context, srv Server) error {
 	log.Info("Starting server...")
 
 	go func() {
