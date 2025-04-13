@@ -19,7 +19,7 @@ func TestOrderExistsRepository_Exists(t *testing.T) {
 	db, cleanup := setupTestPostgres(t, setupQuery)
 	defer cleanup()
 
-	repo := NewOrderExistsRepository(db)
+	repo := NewOrderExistRepository(db)
 
 	existingOrderID := uint64(12345)
 	_, err := db.Exec(`INSERT INTO orders (order_id) VALUES ($1)`, existingOrderID)
@@ -58,7 +58,7 @@ func TestOrderExistsRepository_Exists_DBError(t *testing.T) {
 	defer db.Close()
 
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	repo := NewOrderExistsRepository(sqlxDB)
+	repo := NewOrderExistRepository(sqlxDB)
 
 	orderID := &OrderExistsID{OrderID: 42}
 

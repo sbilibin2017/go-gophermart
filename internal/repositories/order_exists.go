@@ -7,12 +7,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type OrderExistsRepository struct {
+type OrderExistRepository struct {
 	db *sqlx.DB
 }
 
-func NewOrderExistsRepository(db *sqlx.DB) *OrderExistsRepository {
-	return &OrderExistsRepository{db: db}
+func NewOrderExistRepository(db *sqlx.DB) *OrderExistRepository {
+	return &OrderExistRepository{db: db}
 }
 
 // Обновлённый запрос, учитывающий правильные имена столбцов
@@ -24,7 +24,7 @@ type OrderExistsID struct {
 }
 
 // Метод для проверки существования заказа
-func (r *OrderExistsRepository) Exists(ctx context.Context, orderId *OrderExistsID) (bool, error) {
+func (r *OrderExistRepository) Exists(ctx context.Context, orderId *OrderExistsID) (bool, error) {
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, orderExistsQuery, orderId.OrderID)
 	if err != nil {
