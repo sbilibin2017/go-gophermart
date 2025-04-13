@@ -37,18 +37,18 @@ func (m *MockOrderRegisterOrderExistsRepository) EXPECT() *MockOrderRegisterOrde
 }
 
 // Exists mocks base method.
-func (m *MockOrderRegisterOrderExistsRepository) Exists(ctx context.Context, orderId *repositories.OrderExistsID) (bool, error) {
+func (m *MockOrderRegisterOrderExistsRepository) Exists(ctx context.Context, orderID *repositories.OrderExistsID) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", ctx, orderId)
+	ret := m.ctrl.Call(m, "Exists", ctx, orderID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockOrderRegisterOrderExistsRepositoryMockRecorder) Exists(ctx, orderId interface{}) *gomock.Call {
+func (mr *MockOrderRegisterOrderExistsRepositoryMockRecorder) Exists(ctx, orderID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockOrderRegisterOrderExistsRepository)(nil).Exists), ctx, orderId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockOrderRegisterOrderExistsRepository)(nil).Exists), ctx, orderID)
 }
 
 // MockOrderRegisterOrderSaveRepository is a mock of OrderRegisterOrderSaveRepository interface.

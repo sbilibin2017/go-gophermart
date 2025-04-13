@@ -15,9 +15,9 @@ func NewRequestDecoder() *RequestDecoder {
 func (d *RequestDecoder) Decode(w http.ResponseWriter, r *http.Request, v any) error {
 	err := json.NewDecoder(r.Body).Decode(v)
 	if err != nil {
-		return ErrRequestDecoderUnprocessableJson
+		return ErrRequestDecoderUnprocessableJSON
 	}
 	return nil
 }
 
-var ErrRequestDecoderUnprocessableJson = errors.New("invalid json")
+var ErrRequestDecoderUnprocessableJSON = errors.New("invalid json")

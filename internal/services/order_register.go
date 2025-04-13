@@ -10,7 +10,7 @@ import (
 
 // OrderRegisterOrderExistsRepository определяет интерфейс для проверки, существует ли заказ.
 type OrderRegisterOrderExistsRepository interface {
-	Exists(ctx context.Context, orderId *repositories.OrderExistsID) (bool, error)
+	Exists(ctx context.Context, orderID *repositories.OrderExistsID) (bool, error)
 }
 
 // OrderRegisterOrderSaveRepository определяет интерфейс для сохранения данных заказа.

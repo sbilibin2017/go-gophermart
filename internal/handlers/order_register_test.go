@@ -52,7 +52,7 @@ func TestOrderRegisterHandler(t *testing.T) {
 			requestBody: "{invalid json",
 			mockDecode: func() {
 				mockDecoder.EXPECT().Decode(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(j.ErrRequestDecoderUnprocessableJson)
+					Return(j.ErrRequestDecoderUnprocessableJSON)
 			},
 			mockExecute:    func() {}, // не вызывается
 			expectedStatus: http.StatusBadRequest,

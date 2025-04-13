@@ -24,9 +24,9 @@ type OrderExistsID struct {
 }
 
 // Метод для проверки существования заказа
-func (r *OrderExistRepository) Exists(ctx context.Context, orderId *OrderExistsID) (bool, error) {
+func (r *OrderExistRepository) Exists(ctx context.Context, orderID *OrderExistsID) (bool, error) {
 	var exists bool
-	err := r.db.GetContext(ctx, &exists, orderExistsQuery, orderId.OrderID)
+	err := r.db.GetContext(ctx, &exists, orderExistsQuery, orderID.OrderID)
 	if err != nil {
 		return false, err
 	}

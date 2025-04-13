@@ -29,7 +29,7 @@ func TestRequestDecoder_Decode(t *testing.T) {
 		{
 			name:        "Invalid JSON",
 			inputJSON:   []byte(`{"name": "John"`), // Missing closing brace
-			expectedErr: ErrRequestDecoderUnprocessableJson,
+			expectedErr: ErrRequestDecoderUnprocessableJSON,
 		},
 		{
 			name:           "Empty JSON",
@@ -62,7 +62,7 @@ func TestRequestDecoder_Decode_InvalidJSON(t *testing.T) {
 	decoder := NewRequestDecoder()
 	var result map[string]string
 	err := decoder.Decode(w, req, &result)
-	assert.ErrorIs(t, err, ErrRequestDecoderUnprocessableJson)
+	assert.ErrorIs(t, err, ErrRequestDecoderUnprocessableJSON)
 }
 
 func TestRequestDecoder_Decode_Success(t *testing.T) {

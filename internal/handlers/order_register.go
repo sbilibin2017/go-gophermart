@@ -45,7 +45,7 @@ func handleOrderRegisterError(w http.ResponseWriter, err error) {
 	case services.ErrOrderAlreadyRegistered:
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
-	case json.ErrRequestDecoderUnprocessableJson: // Here we match the error from the decoder
+	case json.ErrRequestDecoderUnprocessableJSON: // Here we match the error from the decoder
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	default:

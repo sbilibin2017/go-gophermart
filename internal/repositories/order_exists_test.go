@@ -21,8 +21,8 @@ func TestOrderExistsRepository_Exists(t *testing.T) {
 
 	repo := NewOrderExistRepository(db)
 
-	existingOrderID := uint64(12345)
-	_, err := db.Exec(`INSERT INTO orders (order_id) VALUES ($1)`, existingOrderID)
+	existingorderID := uint64(12345)
+	_, err := db.Exec(`INSERT INTO orders (order_id) VALUES ($1)`, existingorderID)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -32,7 +32,7 @@ func TestOrderExistsRepository_Exists(t *testing.T) {
 	}{
 		{
 			name:       "Order exists",
-			orderID:    existingOrderID,
+			orderID:    existingorderID,
 			wantExists: true,
 		},
 		{
