@@ -6,7 +6,7 @@ test:
 test-cov:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out | tee coverage.txt
-	grep -v '_mock' coverage.txt > coverage_filtered.txt
+	grep -v '_mock' coverage.txt | grep -v 'main.go' | grep -v '^total:' > coverage_filtered.txt
 	rm coverage.txt coverage.out
 	mv coverage_filtered.txt coverage.txt
 

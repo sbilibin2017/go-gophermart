@@ -1,12 +1,8 @@
+github.com/sbilibin2017/go-gophermart/cmd/accrual/app/command.go:33:				NewCommand					100.0%
 github.com/sbilibin2017/go-gophermart/cmd/accrual/app/config.go:8:				GetDatabaseURI					100.0%
 github.com/sbilibin2017/go-gophermart/cmd/accrual/app/config.go:12:				GetRunAddress					100.0%
-github.com/sbilibin2017/go-gophermart/cmd/accrual/app/flags.go:22:				ParseFlags					100.0%
-github.com/sbilibin2017/go-gophermart/cmd/accrual/app/run.go:8:					Run						100.0%
-github.com/sbilibin2017/go-gophermart/cmd/accrual/app/run.go:13:				runWithConfig					100.0%
 github.com/sbilibin2017/go-gophermart/cmd/accrual/app/server.go:19:				NewServer					100.0%
-github.com/sbilibin2017/go-gophermart/cmd/accrual/main.go:8:					main						100.0%
-github.com/sbilibin2017/go-gophermart/cmd/gophermart/main.go:3:					main						0.0%
-github.com/sbilibin2017/go-gophermart/internal/cli/run.go:3:					Run						100.0%
+github.com/sbilibin2017/go-gophermart/internal/cli/run.go:5:					Run						100.0%
 github.com/sbilibin2017/go-gophermart/internal/context/cancel.go:9:				NewCancelContext				100.0%
 github.com/sbilibin2017/go-gophermart/internal/handlers/order_register.go:20:			OrderRegisterHandler				100.0%
 github.com/sbilibin2017/go-gophermart/internal/handlers/order_register.go:40:			handleOrderRegisterError			100.0%
@@ -29,7 +25,7 @@ github.com/sbilibin2017/go-gophermart/internal/repositories/reward_filter.go:14:
 github.com/sbilibin2017/go-gophermart/internal/repositories/reward_filter.go:34:		getRewardFilterQueryArgs			100.0%
 github.com/sbilibin2017/go-gophermart/internal/repositories/reward_filter.go:42:		Filter						100.0%
 github.com/sbilibin2017/go-gophermart/internal/routers/order_register.go:9:			RegisterOrderRegisterRoute			100.0%
-github.com/sbilibin2017/go-gophermart/internal/server/run.go:16:				Run						100.0%
+github.com/sbilibin2017/go-gophermart/internal/server/run.go:11:				Run						100.0%
 github.com/sbilibin2017/go-gophermart/internal/services/order_register.go:39:			NewOrderRegisterService				100.0%
 github.com/sbilibin2017/go-gophermart/internal/services/order_register.go:72:			Register					100.0%
 github.com/sbilibin2017/go-gophermart/internal/storage/db.go:12:				NewDB						100.0%
@@ -39,4 +35,3 @@ github.com/sbilibin2017/go-gophermart/internal/usecases/order_register.go:23:			
 github.com/sbilibin2017/go-gophermart/internal/usecases/order_register.go:47:			Execute						100.0%
 github.com/sbilibin2017/go-gophermart/internal/validators/louna.go:11:				ValidateNumberWithLouna				100.0%
 github.com/sbilibin2017/go-gophermart/internal/validators/louna.go:41:				RegisterLounaValidator				100.0%
-total:												(statements)					100.0%

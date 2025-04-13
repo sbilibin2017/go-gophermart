@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/require"
@@ -43,6 +44,8 @@ func setupTestPostgres(t *testing.T, setupQuery string) (*sqlx.DB, func()) {
 	dsn := fmt.Sprintf("postgres://user:password@%s:%s/testdb?sslmode=disable", host, port.Port())
 	db, err := sqlx.Connect("pgx", dsn)
 	require.NoError(t, err)
+
+	time.Sleep(5)
 
 	_, err = db.Exec(setupQuery)
 	require.NoError(t, err)
