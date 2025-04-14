@@ -31,12 +31,15 @@ func OrderRegisterHandler(
 			handleOrderRegisterError(w, err)
 			return
 		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte(resp.Message))
 	}
 }
 
 func handleOrderRegisterError(w http.ResponseWriter, err error) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
 	switch err {
 	case errors.ErrOrderRegisterInvalidRequest:
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -44,7 +47,7 @@ func handleOrderRegisterError(w http.ResponseWriter, err error) {
 	case errors.ErrOrderAlreadyRegistered:
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
-	case errors.ErrRequestDecoderUnprocessableJSON: // Here we match the error from the decoder
+	case errors.ErrRequestDecoderUnprocessableJSON:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	default:
