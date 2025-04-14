@@ -14,6 +14,25 @@ export POSTGRES_PORT
 
 DSN := user=$(POSTGRES_USER) dbname=$(POSTGRES_DB) password=$(POSTGRES_PASSWORD) host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) sslmode=disable
 
+test:
+	go test ./...
+
+test-cov:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | tee coverage.txt
+	grep -v '_mock' coverage.txt | grep -v 'main.go' | grep -v '^total:' > coverage_filtered.txt
+	rm coverage.txt coverage.out
+	mv coverage_filtered.txt coverage.txt
+
+lint:
+	staticcheck ./...
+
+mockgen:
+	@echo "Generating mock for: $(file)"
+	@mockgen -source=$(file) \
+		-destination=$(dir $(file))$(notdir $(basename $(file)))_mock.go \
+		-package=$(shell basename $(dir $(file)))
+		
 dr:
 	$(MAKE) dspg
 	$(MAKE) drpg	
