@@ -3,6 +3,7 @@ module github.com/sbilibin2017/go-gophermart
 go 1.24.1
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang/mock v1.6.0

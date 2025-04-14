@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS goods (
     number VARCHAR(255) NOT NULL,
     description VARCHAR(255) NOT NULL,
-    price INT64 NOT NULL,
+    price BIGINT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 -- +goose StatementEnd
