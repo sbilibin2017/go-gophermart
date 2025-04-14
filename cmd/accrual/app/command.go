@@ -1,6 +1,8 @@
 package app
 
 import (
+	"github.com/sbilibin2017/go-gophermart/pkg/ctx"
+	"github.com/sbilibin2017/go-gophermart/pkg/srv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,7 +32,13 @@ func NewCommand() *cobra.Command {
 		Short: short,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			viper.Unmarshal(&cfg)
-			return nil
+			server, err := NewServer(&cfg)
+			if err != nil {
+				return err
+			}
+			cancelCtx, cancel := ctx.NewCancelContext()
+			defer cancel()
+			return srv.Run(cancelCtx, server)
 		},
 	}
 

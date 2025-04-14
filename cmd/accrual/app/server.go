@@ -6,26 +6,26 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
-	"github.com/sbilibin2017/go-gophermart/internal/json"
-	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/sbilibin2017/go-gophermart/internal/routers"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
-	"github.com/sbilibin2017/go-gophermart/internal/storage"
 	"github.com/sbilibin2017/go-gophermart/internal/usecases"
 	"github.com/sbilibin2017/go-gophermart/internal/validators"
+	"github.com/sbilibin2017/go-gophermart/pkg/db"
+	"github.com/sbilibin2017/go-gophermart/pkg/json"
+	"github.com/sbilibin2017/go-gophermart/pkg/middlewares"
 )
 
 func NewServer(config *Config) (*http.Server, error) {
-	db, err := storage.NewDB(config)
+	conn, err := db.NewDB(config)
 	if err != nil {
 		return nil, err
 	}
-	tx := storage.NewTx(db)
+	tx := db.NewTx(conn)
 
-	oeRepo := repositories.NewOrderExistRepository(db)
-	osRepo := repositories.NewOrderSaveRepository(db)
-	rfRepo := repositories.NewRewardFilterRepository(db)
+	oeRepo := repositories.NewOrderExistRepository(conn)
+	osRepo := repositories.NewOrderSaveRepository(conn)
+	rfRepo := repositories.NewRewardFilterRepository(conn)
 
 	orSvc := services.NewOrderRegisterService(oeRepo, osRepo, rfRepo, tx)
 
@@ -45,7 +45,10 @@ func NewServer(config *Config) (*http.Server, error) {
 		middlewares.LoggingMiddleware,
 	)
 
-	srv := &http.Server{Addr: config.GetRunAddress()}
+	srv := &http.Server{
+		Addr:    config.GetRunAddress(),
+		Handler: r,
+	}
 
 	return srv, nil
 }

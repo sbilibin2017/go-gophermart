@@ -1,11 +1,11 @@
-package server
+package srv
 
 import (
 	"context"
 	"net/http"
 	"time"
 
-	"github.com/sbilibin2017/go-gophermart/internal/log"
+	"github.com/sbilibin2017/go-gophermart/pkg/log"
 )
 
 func Run(ctx context.Context, srv *http.Server) error {
