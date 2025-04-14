@@ -1,3 +1,9 @@
 package main
 
-func main() {}
+import "os"
+
+var exitFunc = os.Exit
+
+func main() {
+	exitFunc(0)
+}
