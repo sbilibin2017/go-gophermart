@@ -1,4 +1,4 @@
-@startuml
+@startuml order_register
 
 actor User
 participant "OrderRegisterService" as Service
