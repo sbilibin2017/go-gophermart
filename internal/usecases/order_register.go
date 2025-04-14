@@ -2,9 +2,9 @@ package usecases
 
 import (
 	"context"
-	"errors"
 
 	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/errors"
 )
 
 type OrderValidator interface {
@@ -35,7 +35,7 @@ func (uc *OrderRegisterUsecase) Execute(
 ) (*types.OrderRegisterResponse, error) {
 	err := uc.ov.Struct(req)
 	if err != nil {
-		return nil, ErrOrderRegisterInvalidRequest
+		return nil, errors.ErrOrderRegisterInvalidRequest
 	}
 	var goods []types.Good
 	for _, g := range req.Goods {
@@ -52,7 +52,3 @@ func (uc *OrderRegisterUsecase) Execute(
 		Message: "order registered successfully",
 	}, nil
 }
-
-var (
-	ErrOrderRegisterInvalidRequest = errors.New("invalid order register request")
-)

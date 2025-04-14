@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
+	e "github.com/sbilibin2017/go-gophermart/internal/errors"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,10 +48,10 @@ func TestOrderRegisterUsecase_Execute(t *testing.T) {
 					{Description: "", Price: 200},
 				},
 			},
-			validateErr:           ErrOrderRegisterInvalidRequest,
+			validateErr:           e.ErrOrderRegisterInvalidRequest,
 			registerErr:           nil,
 			expectedResp:          nil,
-			expectedErr:           ErrOrderRegisterInvalidRequest,
+			expectedErr:           e.ErrOrderRegisterInvalidRequest,
 			expectedRegisterTimes: 0,
 		},
 		{
