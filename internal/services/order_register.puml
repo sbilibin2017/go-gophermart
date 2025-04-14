@@ -1,0 +1,25 @@
+@startuml
+
+actor User
+participant "OrderRegisterService" as Service
+participant "OrderRegisterOrderExistsRepository" as ExistsRepo
+participant "OrderRegisterRewardFilterRepository" as RewardRepo
+participant "OrderRegisterOrderSaveRepository" as SaveRepo
+participant "Tx" as Transaction
+
+User -> Service : Register(order)
+Service -> Transaction : Do(ctx, operation)
+Transaction -> ExistsRepo : Exists(ctx, orderFilter)
+ExistsRepo -> ExistsRepo : Check if order exists
+ExistsRepo --> Service : return exists, error
+Service -> RewardRepo : Filter(ctx, descriptionsFilter)
+RewardRepo -> RewardRepo : Filter rewards based on description
+RewardRepo --> Service : return rewardItems, error
+Service -> Service : Calculate accrual based on reward type
+Service -> SaveRepo : Save(ctx, orderToSave)
+SaveRepo -> SaveRepo : Save order to DB
+SaveRepo --> Service : return success/error
+Transaction --> Service : return success/error
+Service --> User : return success/error
+
+@enduml
