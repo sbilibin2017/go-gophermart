@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS goods (
-    order_id VARCHAR(255) NOT NULL,
+    number VARCHAR(255) NOT NULL,
     description VARCHAR(255) NOT NULL,
     price DOUBLE PRECISION NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -11,14 +11,14 @@ CREATE TABLE IF NOT EXISTS goods (
 -- +goose StatementBegin
 ALTER TABLE goods 
     ADD CONSTRAINT goods_pkey 
-    PRIMARY KEY (order_id, description);
+    PRIMARY KEY (number, description);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
 ALTER TABLE goods 
     ADD CONSTRAINT goods_order_fkey 
-    FOREIGN KEY (order_id) 
-    REFERENCES orders(order_id) 
+    FOREIGN KEY (number) 
+    REFERENCES orders(number) 
     ON DELETE CASCADE;
 -- +goose StatementEnd
 

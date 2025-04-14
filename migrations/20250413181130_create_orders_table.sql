@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS orders (
-    order_id VARCHAR(255),
+    number VARCHAR(255),
     status VARCHAR(255) NOT NULL,
     accrual DOUBLE PRECISION,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS orders (
 -- +goose StatementBegin
 ALTER TABLE orders 
     ADD CONSTRAINT orders_pkey 
-    PRIMARY KEY (order_id);
+    PRIMARY KEY (number);
 -- +goose StatementEnd
 
 -- +goose Down
