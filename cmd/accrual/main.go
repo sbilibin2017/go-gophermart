@@ -4,11 +4,10 @@ import (
 	"os"
 
 	"github.com/sbilibin2017/go-gophermart/cmd/accrual/app"
-	"github.com/sbilibin2017/go-gophermart/pkg/cli"
 )
 
+var exitFunc = os.Exit
+
 func main() {
-	cmd := app.NewCommand()
-	code := cli.Run(cmd)
-	os.Exit(code)
+	exitFunc(app.Run())
 }
