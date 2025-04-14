@@ -26,3 +26,22 @@ type OrderRegisterRequest struct {
 type OrderRegisterResponse struct {
 	Message string `json:"message"` // Сообщение, которое возвращается в ответ на запрос
 }
+
+type OrderExistsFilter struct {
+	Number uint64 `db:"number"`
+}
+
+type Status string
+
+const (
+	StatusNew        Status = "NEW"        // заказ загружен, но не попал в обработку
+	StatusProcessing Status = "PROCESSING" // вознаграждение рассчитывается
+	StatusInvalid    Status = "INVALID"    // система отказала в расчёте
+	StatusProcessed  Status = "PROCESSED"  // расчёт успешно завершён
+)
+
+type OrderDB struct {
+	Number  uint64  `db:"number"`
+	Status  Status  `db:"status"`
+	Accrual float64 `db:"accrual"`
+}
