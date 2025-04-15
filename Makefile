@@ -14,7 +14,13 @@ export POSTGRES_PORT
 
 DSN := user=$(POSTGRES_USER) dbname=$(POSTGRES_DB) password=$(POSTGRES_PASSWORD) host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) sslmode=disable
 
-docker-run-postgres:
+mg:
+	@echo "Generating mock for: $(file)"
+	@mockgen -source=$(file) \
+		-destination=$(dir $(file))$(notdir $(basename $(file)))_mock.go \
+		-package=$(shell basename $(dir $(file)))
+
+drp:
 	docker run -d \
 		-e POSTGRES_USER=$(POSTGRES_USER) \
 		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \

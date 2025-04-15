@@ -3,6 +3,7 @@ module github.com/sbilibin2017/go-gophermart
 go 1.24.1
 
 require (
+	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/stretchr/testify v1.8.1
