@@ -20,6 +20,7 @@ func Validate(v Validator, obj interface{}) error {
 			}
 			return fmt.Errorf("validation failed: %s", strings.Join(validationMessages, ", "))
 		}
+		return err
 	}
 	return nil
 }
