@@ -11,6 +11,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+func init() {
+	logger.Init(zapcore.InfoLevel)
+}
+
 func resetFlags() {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 }
@@ -90,8 +94,4 @@ func TestNewAccrualFlags_EnvOverridesFlags(t *testing.T) {
 
 	assert.Equal(t, envAddr, fl.RunAddress)
 	assert.Equal(t, envDB, fl.DatabaseURI)
-}
-
-func init() {
-	logger.Init(zapcore.InfoLevel)
 }
