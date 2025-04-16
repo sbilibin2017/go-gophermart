@@ -2,11 +2,14 @@ package server
 
 import (
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestNewServer(t *testing.T) {
 	addr := ":8080"
-	srv := NewServer(addr)
+	h := chi.NewRouter()
+	srv := NewServer(addr, h)
 	if srv == nil {
 		t.Fatal("Expected server to be non-nil")
 	}

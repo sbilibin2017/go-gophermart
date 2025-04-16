@@ -2,11 +2,19 @@ package main
 
 import (
 	"flag"
+	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/sbilibin2017/go-gophermart/internal/ctx"
+	"github.com/sbilibin2017/go-gophermart/internal/handlers"
+	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
+	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/options"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
+	"github.com/sbilibin2017/go-gophermart/internal/router"
 	"github.com/sbilibin2017/go-gophermart/internal/runners"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/storage"
 )
 
@@ -43,8 +51,7 @@ func flags() {
 	flag.Parse()
 
 	flagRunAddr = options.Combine(envRunAddr, flagRunAddrName, defaultRunAddr)
-	flagDatabaseURI = options.Combine(envDatabaseURI, flagDatabaseURI, defaultDatabaseURI)
-
+	flagDatabaseURI = options.Combine(envDatabaseURI, flagDatabaseURIName, defaultDatabaseURI)
 }
 
 func run() {
@@ -54,7 +61,32 @@ func run() {
 	}
 	defer db.Close()
 
-	srv := server.NewServer(flagRunAddr)
+	reRepo := repositories.NewRewardExistsRepository(db)
+	rsRepo := repositories.NewRewardSaveRepository(db)
+
+	rSvc := services.NewRewardService(reRepo, rsRepo)
+
+	rH := handlers.RegisterGoodRewardHandler(
+		rSvc,
+		utils.Decode,
+		utils.ValidateStruct,
+		utils.RespondWithError,
+	)
+
+	r := chi.NewRouter()
+
+	router.RegisterHandler(
+		r,
+		"/api/goods",
+		router.MethodPost,
+		rH,
+		[]func(next http.Handler) http.Handler{
+			middlewares.GzipMiddleware,
+			middlewares.LoggingMiddleware,
+		},
+	)
+
+	srv := server.NewServer(flagRunAddr, r)
 
 	ctx, stop := ctx.NewCancelContext()
 	defer stop()

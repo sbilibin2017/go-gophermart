@@ -11,11 +11,19 @@ func ValidateStruct(
 	w http.ResponseWriter,
 	validate *validator.Validate,
 	v interface{},
+	errMap map[string]error,
 ) error {
 	err := validate.Struct(v)
 	if err != nil {
-		http.Error(w, errors.ErrDataIsNotValid.Error(), http.StatusBadRequest)
-		return err
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+			for _, fieldErr := range validationErrors {
+				field := fieldErr.Field()
+				if err, found := errMap[field]; found {
+					return err
+				}
+			}
+		}
+		return errors.ErrDataIsNotValid
 	}
 	return nil
 }

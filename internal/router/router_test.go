@@ -13,7 +13,7 @@ import (
 func TestRegisterHandler_WithMiddlewares(t *testing.T) {
 	tests := []struct {
 		name         string
-		method       HttpMethod
+		method       HTTPMethod
 		path         string
 		expectedCode int
 	}{

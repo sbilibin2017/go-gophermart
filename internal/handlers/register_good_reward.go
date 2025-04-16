@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
-	"github.com/sbilibin2017/go-gophermart/internal/errors"
+	e "github.com/sbilibin2017/go-gophermart/internal/errors"
 	"github.com/sbilibin2017/go-gophermart/internal/requests"
 )
 
@@ -17,13 +18,19 @@ type RewardService interface {
 func RegisterGoodRewardHandler(
 	svc RewardService,
 	decode func(w http.ResponseWriter, r *http.Request, v *requests.RewardRequest) error,
-	validate func(w http.ResponseWriter, validate *validator.Validate, v interface{}) error,
+	validate func(
+		w http.ResponseWriter,
+		validate *validator.Validate,
+		v interface{},
+		errMap map[string]error,
+	) error,
 	respondWithError func(w http.ResponseWriter, err error, status int),
 ) http.HandlerFunc {
 	v := validator.New()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req requests.RewardRequest
+		w.Header().Set("Content-Type", "text/plain")
 
 		err := decode(w, r, &req)
 		if err != nil {
@@ -31,7 +38,11 @@ func RegisterGoodRewardHandler(
 			return
 		}
 
-		err = validate(w, v, &req)
+		err = validate(w, v, &req, map[string]error{
+			"Match":      errors.New("missing match parameter"),
+			"Reward":     errors.New("missing reward parameter"),
+			"RewardType": errors.New("invalid reward type parameter"),
+		})
 		if err != nil {
 			respondWithError(w, err, http.StatusBadRequest)
 			return
@@ -43,7 +54,7 @@ func RegisterGoodRewardHandler(
 
 		if err != nil {
 			switch err {
-			case errors.ErrGoodRewardAlreadyExists:
+			case e.ErrGoodRewardAlreadyExists:
 				respondWithError(w, err, http.StatusConflict)
 				return
 			default:
@@ -53,6 +64,6 @@ func RegisterGoodRewardHandler(
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Good reward registered successfully"))
+		w.Write([]byte("Reward registered successfully"))
 	}
 }

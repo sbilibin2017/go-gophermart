@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/sbilibin2017/go-gophermart/internal/ctx"
 	"github.com/sbilibin2017/go-gophermart/internal/options"
 	"github.com/sbilibin2017/go-gophermart/internal/runners"
@@ -60,7 +61,8 @@ func run() {
 	}
 	defer db.Close()
 
-	srv := server.NewServer(flagRunAddr)
+	r := chi.NewRouter()
+	srv := server.NewServer(flagRunAddr, r)
 
 	ctx, stop := ctx.NewCancelContext()
 	defer stop()
