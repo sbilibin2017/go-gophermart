@@ -1,19 +1,19 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/sbilibin2017/go-gophermart/internal/ctx"
+
+	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/log"
 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
+	"github.com/sbilibin2017/go-gophermart/internal/storage"
 )
 
 func main() {
@@ -45,9 +45,8 @@ func run() {
 	log.Init()
 	defer log.Logger.Sync()
 
-	db, err := sql.Open("pgx", flagDatabaseURI)
+	db, err := storage.NewDB(flagDatabaseURI)
 	if err != nil {
-		log.Logger.Fatalf("Ошибка подключения к базе данных: %v", err)
 		return
 	}
 	defer db.Close()
@@ -55,7 +54,7 @@ func run() {
 	reRepo := repositories.NewRewardExistsRepository(db)
 	rsRepo := repositories.NewRewardSaveRepository(db)
 
-	rSvc := services.NewRewardService(reRepo, rsRepo)
+	rSvc := services.NewRewardService(reRepo, rsRepo, db)
 
 	r := chi.NewRouter()
 	r.Post("/api/goods", handlers.RegisterRewardHandler(rSvc))
@@ -65,7 +64,7 @@ func run() {
 		Handler: r,
 	}
 
-	ctx, cancel := ctx.NewCancelContext()
+	ctx, cancel := contextutil.NewCancelContext()
 	defer cancel()
 
 	server.Run(ctx, srv)

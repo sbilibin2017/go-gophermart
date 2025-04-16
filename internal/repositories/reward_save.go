@@ -2,7 +2,8 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type RewardSaveRepository interface {
@@ -10,23 +11,35 @@ type RewardSaveRepository interface {
 }
 
 type RewardSaveRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewRewardSaveRepository(db *sql.DB) *RewardSaveRepositoryImpl {
+func NewRewardSaveRepository(db *sqlx.DB) *RewardSaveRepositoryImpl {
 	return &RewardSaveRepositoryImpl{
 		db: db,
 	}
 }
 
 func (r *RewardSaveRepositoryImpl) Save(
-	ctx context.Context, match string, reward uint, rewardType string,
+	ctx context.Context, tx *sqlx.Tx, reward *RewardSave,
 ) error {
-	_, err := r.db.ExecContext(ctx, rewardSaveQuery, match, reward, rewardType)
-	if err != nil {
-		return err
+	query := rewardSaveQuery
+	args := []interface{}{reward.Match, reward.Reward, reward.RewardType}
+
+	var err error
+	if tx != nil {
+		_, err = tx.ExecContext(ctx, query, args...)
+	} else {
+		_, err = r.db.ExecContext(ctx, query, args...)
 	}
-	return nil
+
+	return err
+}
+
+type RewardSave struct {
+	Match      string `db:"match"`
+	Reward     uint   `db:"reward"`
+	RewardType string `db:"reward_type"`
 }
 
 var rewardSaveQuery = `

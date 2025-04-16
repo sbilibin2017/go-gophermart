@@ -7,7 +7,7 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/sbilibin2017/go-gophermart/internal/ctx"
+	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
 	"github.com/sbilibin2017/go-gophermart/internal/log"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 )
@@ -59,7 +59,7 @@ func run() {
 		Addr: flagRunAddr,
 	}
 
-	ctx, cancel := ctx.NewCancelContext()
+	ctx, cancel := contextutil.NewCancelContext()
 	defer cancel()
 
 	server.Run(ctx, srv)
