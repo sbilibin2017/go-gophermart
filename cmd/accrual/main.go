@@ -1,20 +1,18 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"flag"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/sbilibin2017/go-gophermart/internal/ctx"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/log"
 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
+	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
@@ -62,36 +60,14 @@ func run() {
 	r := chi.NewRouter()
 	r.Post("/api/goods", handlers.RegisterRewardHandler(rSvc))
 
-	server := &http.Server{
+	srv := &http.Server{
 		Addr:    flagRunAddr,
 		Handler: r,
 	}
 
-	// Настроим канал для получения сигналов завершения работы
-	ctx, cancel := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM,
-	)
+	ctx, cancel := ctx.NewCancelContext()
 	defer cancel()
 
-	go func() {
-		log.Logger.Infof("Запуск сервера на %s...", flagRunAddr)
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Logger.Fatalf("Ошибка сервера: %v", err)
-		}
-	}()
+	server.Run(ctx, srv)
 
-	<-ctx.Done()
-	log.Logger.Info("Ожидаем завершения работы...")
-
-	// Завершаем работу сервера с таймаутом
-	ctxShutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctxShutdown); err != nil {
-		log.Logger.Fatalf("Не удалось завершить работу сервера: %v", err)
-	}
-
-	log.Logger.Info("Сервер завершил работу корректно")
 }
