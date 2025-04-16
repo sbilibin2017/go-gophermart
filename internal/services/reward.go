@@ -9,7 +9,7 @@ import (
 )
 
 type RewardExistsRepository interface {
-	Exists(ctx context.Context, match string) (bool, error)
+	Exists(ctx context.Context, filter *models.RewardFilter) (bool, error)
 }
 
 type RewardSaveRepository interface {
@@ -31,7 +31,7 @@ func NewRewardService(
 func (svc *RewardService) Register(
 	ctx context.Context, reward *domain.Reward,
 ) error {
-	exists, err := svc.re.Exists(ctx, reward.Match)
+	exists, err := svc.re.Exists(ctx, &models.RewardFilter{Match: reward.Match})
 	if err != nil {
 		return errors.ErrInternal
 	}
@@ -39,11 +39,11 @@ func (svc *RewardService) Register(
 		return errors.ErrGoodRewardAlreadyExists
 	}
 
-	dbReward := models.NewRewardDB(
-		reward.Match,
-		reward.Reward,
-		string(reward.RewardType),
-	)
+	dbReward := &models.RewardDB{
+		Match:      reward.Match,
+		Reward:     reward.Reward,
+		RewardType: string(reward.RewardType),
+	}
 
 	err = svc.rs.Save(ctx, dbReward)
 	if err != nil {

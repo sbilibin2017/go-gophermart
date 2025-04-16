@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
 	e "github.com/sbilibin2017/go-gophermart/internal/errors"
+	"github.com/sbilibin2017/go-gophermart/internal/models"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 func TestRewardService_Register(t *testing.T) {
@@ -18,10 +20,10 @@ func TestRewardService_Register(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockExistsRepo := NewMockRewardExistsRepository(ctrl)
-	mockSaveRepo := NewMockRewardSaveRepository(ctrl)
+	mockExistsRepo := services.NewMockRewardExistsRepository(ctrl)
+	mockSaveRepo := services.NewMockRewardSaveRepository(ctrl)
 
-	rewardService := NewRewardService(mockExistsRepo, mockSaveRepo)
+	rewardService := services.NewRewardService(mockExistsRepo, mockSaveRepo)
 
 	testReward := &domain.Reward{
 		Match:      "test-match",
@@ -32,12 +34,12 @@ func TestRewardService_Register(t *testing.T) {
 	t.Run("success - new reward", func(t *testing.T) {
 		mockExistsRepo.
 			EXPECT().
-			Exists(ctx, testReward.Match).
+			Exists(ctx, &models.RewardFilter{Match: testReward.Match}).
 			Return(false, nil)
 
 		mockSaveRepo.
 			EXPECT().
-			Save(ctx, gomock.Any()).
+			Save(ctx, gomock.AssignableToTypeOf(&models.RewardDB{})).
 			Return(nil)
 
 		err := rewardService.Register(ctx, testReward)
@@ -47,7 +49,7 @@ func TestRewardService_Register(t *testing.T) {
 	t.Run("error - reward already exists", func(t *testing.T) {
 		mockExistsRepo.
 			EXPECT().
-			Exists(ctx, testReward.Match).
+			Exists(ctx, &models.RewardFilter{Match: testReward.Match}).
 			Return(true, nil)
 
 		err := rewardService.Register(ctx, testReward)
@@ -57,7 +59,7 @@ func TestRewardService_Register(t *testing.T) {
 	t.Run("error - exists repo fails", func(t *testing.T) {
 		mockExistsRepo.
 			EXPECT().
-			Exists(ctx, testReward.Match).
+			Exists(ctx, &models.RewardFilter{Match: testReward.Match}).
 			Return(false, errors.New("db error"))
 
 		err := rewardService.Register(ctx, testReward)
@@ -67,12 +69,12 @@ func TestRewardService_Register(t *testing.T) {
 	t.Run("error - save repo fails", func(t *testing.T) {
 		mockExistsRepo.
 			EXPECT().
-			Exists(ctx, testReward.Match).
+			Exists(ctx, &models.RewardFilter{Match: testReward.Match}).
 			Return(false, nil)
 
 		mockSaveRepo.
 			EXPECT().
-			Save(ctx, gomock.Any()).
+			Save(ctx, gomock.AssignableToTypeOf(&models.RewardDB{})).
 			Return(errors.New("insert error"))
 
 		err := rewardService.Register(ctx, testReward)

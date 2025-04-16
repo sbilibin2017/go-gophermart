@@ -36,18 +36,18 @@ func (m *MockRewardExistsRepository) EXPECT() *MockRewardExistsRepositoryMockRec
 }
 
 // Exists mocks base method.
-func (m *MockRewardExistsRepository) Exists(ctx context.Context, match string) (bool, error) {
+func (m *MockRewardExistsRepository) Exists(ctx context.Context, filter *models.RewardFilter) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", ctx, match)
+	ret := m.ctrl.Call(m, "Exists", ctx, filter)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockRewardExistsRepositoryMockRecorder) Exists(ctx, match interface{}) *gomock.Call {
+func (mr *MockRewardExistsRepositoryMockRecorder) Exists(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockRewardExistsRepository)(nil).Exists), ctx, match)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockRewardExistsRepository)(nil).Exists), ctx, filter)
 }
 
 // MockRewardSaveRepository is a mock of RewardSaveRepository interface.
