@@ -15,17 +15,13 @@ import (
 
 func setup(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock, *gomock.Controller, *MockRewardExistsRepository, *MockRewardSaveRepository, *RegisterRewardService) {
 	t.Helper()
-
 	ctrl := gomock.NewController(t)
 	mockExists := NewMockRewardExistsRepository(ctrl)
 	mockSave := NewMockRewardSaveRepository(ctrl)
-
 	db, mockDB, err := sqlmock.New()
 	assert.NoError(t, err)
-
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	service := NewRegisterRewardService(mockExists, mockSave, sqlxDB)
-
 	return sqlxDB, mockDB, ctrl, mockExists, mockSave, service
 }
 
@@ -53,8 +49,12 @@ func TestRegister(t *testing.T) {
 				mockDB.ExpectBegin()
 				mockDB.ExpectCommit()
 
-				mockExists.EXPECT().Exists(gomock.Any(), "order123").Return(false, nil)
-				mockSave.EXPECT().Save(gomock.Any(), "order123", uint(100), "pt").Return(nil)
+				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(false, nil)
+				mockSave.EXPECT().Save(gomock.Any(), map[string]any{
+					"match":       "order123",
+					"reward":      uint(100),
+					"reward_type": "pt",
+				}).Return(nil)
 			},
 			expectedError: nil,
 		},
@@ -69,7 +69,7 @@ func TestRegister(t *testing.T) {
 				mockDB.ExpectBegin()
 				mockDB.ExpectRollback()
 
-				mockExists.EXPECT().Exists(gomock.Any(), "order123").Return(true, nil)
+				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(true, nil)
 			},
 			expectedError: domain.ErrRewardKeyAlreadyRegistered,
 		},
@@ -84,7 +84,7 @@ func TestRegister(t *testing.T) {
 				mockDB.ExpectBegin()
 				mockDB.ExpectRollback()
 
-				mockExists.EXPECT().Exists(gomock.Any(), "order123").Return(false, errors.New("db error"))
+				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(false, errors.New("db error"))
 			},
 			expectedError: domain.ErrFailedToRegisterReward,
 		},
@@ -99,8 +99,12 @@ func TestRegister(t *testing.T) {
 				mockDB.ExpectBegin()
 				mockDB.ExpectRollback()
 
-				mockExists.EXPECT().Exists(gomock.Any(), "order123").Return(false, nil)
-				mockSave.EXPECT().Save(gomock.Any(), "order123", uint(100), "pt").Return(errors.New("insert error"))
+				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(false, nil)
+				mockSave.EXPECT().Save(gomock.Any(), map[string]any{
+					"match":       "order123",
+					"reward":      uint(100),
+					"reward_type": "pt",
+				}).Return(errors.New("insert error"))
 			},
 			expectedError: domain.ErrFailedToRegisterReward,
 		},
@@ -110,16 +114,13 @@ func TestRegister(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sqlxDB, mockDB, ctrl, mockExists, mockSave, service := setup(t)
 			defer ctrl.Finish()
-
 			tt.mockBehavior(mockExists, mockSave, mockDB)
-
 			err := service.Register(context.Background(), tt.reward)
 			if tt.expectedError != nil {
 				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
-
 			assert.NoError(t, mockDB.ExpectationsWereMet())
 			_ = sqlxDB.Close()
 		})

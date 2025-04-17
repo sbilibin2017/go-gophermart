@@ -10,11 +10,11 @@ import (
 )
 
 type RewardExistsRepository interface {
-	Exists(ctx context.Context, match string) (bool, error)
+	Exists(ctx context.Context, filter map[string]any) (bool, error)
 }
 
 type RewardSaveRepository interface {
-	Save(ctx context.Context, match string, reward uint, rewardType string) error
+	Save(ctx context.Context, match map[string]any) error
 }
 
 type RegisterRewardService struct {
@@ -39,7 +39,7 @@ func (svc *RegisterRewardService) Register(
 	ctx context.Context, reward *domain.Reward,
 ) error {
 	return db.WithTx(ctx, svc.db, func(tx *sqlx.Tx) error {
-		exists, err := svc.re.Exists(ctx, reward.Match)
+		exists, err := svc.re.Exists(ctx, map[string]any{"match": reward.Match})
 		if err != nil {
 			return domain.ErrFailedToRegisterReward
 		}
@@ -47,7 +47,11 @@ func (svc *RegisterRewardService) Register(
 			return domain.ErrRewardKeyAlreadyRegistered
 		}
 
-		err = svc.rs.Save(ctx, reward.Match, reward.Reward, string(reward.RewardType))
+		err = svc.rs.Save(ctx, map[string]any{
+			"match":       reward.Match,
+			"reward":      reward.Reward,
+			"reward_type": string(reward.RewardType),
+		})
 		if err != nil {
 			return domain.ErrFailedToRegisterReward
 		}
