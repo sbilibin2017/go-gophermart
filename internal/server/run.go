@@ -3,9 +3,6 @@ package server
 import (
 	"context"
 
-	"net/http"
-	"time"
-
 	"github.com/sbilibin2017/go-gophermart/internal/log"
 )
 
@@ -14,28 +11,30 @@ type Server interface {
 	Shutdown(ctx context.Context) error
 }
 
-func Run(ctx context.Context, srv Server) error {
-	go func() error {
-		log.Logger.Infof("Запуск сервера...")
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Logger.Fatalf("Ошибка сервера: %v", err)
-			return err
+func Run(ctx context.Context, server Server) error {
+	errChan := make(chan error)
+
+	// Start the server in a goroutine
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			errChan <- err // Send error to the channel
 		}
-		return nil
 	}()
 
-	<-ctx.Done()
-	log.Logger.Info("Ожидаем завершения работы...")
-
-	ctxShutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := srv.Shutdown(ctxShutdown); err != nil {
-		log.Logger.Fatalf("Не удалось завершить работу сервера: %v", err)
+	// Wait for either the context to be done or the server to return an error
+	select {
+	case <-ctx.Done():
+		// If the context is done, shut down the server
+		if err := server.Shutdown(ctx); err != nil {
+			log.Logger.Error("Ошибка при завершении сервера:", err)
+			return err
+		}
+	case err := <-errChan:
+		// If an error occurs in the server, log it and return the error
+		log.Logger.Error("Ошибка сервера:", err)
 		return err
 	}
-
-	log.Logger.Info("Сервер завершил работу корректно")
 
 	return nil
 }
