@@ -26,31 +26,31 @@ func init() {
 }
 
 var (
-	runAddress  string
-	databaseURI string
+	a string
+	d string
 )
 
 func flags() {
-	flag.StringVar(&runAddress, "a", "", "run address")
-	flag.StringVar(&databaseURI, "d", "", "database uri")
+	flag.StringVar(&a, "a", "", "run address")
+	flag.StringVar(&d, "d", "", "database uri")
 
 	flag.Parse()
 
-	if envAddr := os.Getenv("RUN_ADDRESS"); envAddr != "" {
-		runAddress = envAddr
+	if envA := os.Getenv("RUN_ADDRESS"); envA != "" {
+		a = envA
 	}
-	if envDBURI := os.Getenv("DATABASE_URI"); envDBURI != "" {
-		databaseURI = envDBURI
+	if envD := os.Getenv("DATABASE_URI"); envD != "" {
+		d = envD
 	}
 }
 
 func run() {
 	logger.Logger.Infow("Starting application",
-		"address", runAddress,
-		"databaseURI", databaseURI,
+		"address", a,
+		"databaseURI", d,
 	)
 
-	db, err := sql.Open("pgx", databaseURI)
+	db, err := sql.Open("pgx", d)
 	if err != nil {
 		logger.Logger.Errorw("Failed to connect to database", "error", err)
 		return
@@ -60,7 +60,7 @@ func run() {
 	router := chi.NewRouter()
 
 	server := &http.Server{
-		Addr:    runAddress,
+		Addr:    a,
 		Handler: router,
 	}
 
@@ -72,8 +72,9 @@ func run() {
 	defer stop()
 
 	go func() {
-		logger.Logger.Infow("Starting HTTP server", "address", runAddress)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Logger.Infow("Starting HTTP server", "address", a)
+		if err := server.ListenAndServe(); err != nil &&
+			err != http.ErrServerClosed {
 			logger.Logger.Errorw("HTTP server error", "error", err)
 			stop()
 		}
@@ -82,7 +83,10 @@ func run() {
 	<-ctx.Done()
 	logger.Logger.Infow("Shutdown signal received")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		5*time.Second,
+	)
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
@@ -91,5 +95,4 @@ func run() {
 	}
 
 	logger.Logger.Infow("Server shutdown gracefully")
-
 }
