@@ -2,8 +2,7 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -11,60 +10,70 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWithTx_TableDriven(t *testing.T) {
+func TestTx_Do(t *testing.T) {
 	type testCase struct {
-		name          string
-		setupMock     func(mock sqlmock.Sqlmock)
-		dbIsNil       bool
-		fn            func(tx *sqlx.Tx) error
-		expectedError error
-		expectCalled  bool
+		name         string
+		setupMock    func(mock sqlmock.Sqlmock)
+		isErr        bool
+		expectCalled bool
+		fn           func(tx *sqlx.Tx) error
 	}
 
 	tests := []testCase{
 		{
-			name: "success",
+			name: "успешное выполнение транзакции",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 				mock.ExpectCommit()
 			},
 			fn: func(tx *sqlx.Tx) error {
+				// Можно сюда добавить какие-то проверки или работу с tx, если нужно
 				return nil
 			},
-			expectedError: nil,
-			expectCalled:  true,
+			isErr:        false,
+			expectCalled: true,
 		},
 		{
-			name: "fn returns error",
+			name: "ошибка при начале транзакции",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectBegin().WillReturnError(fmt.Errorf("begin error"))
+			},
+			fn: func(tx *sqlx.Tx) error {
+				return nil
+			},
+			isErr:        true,
+			expectCalled: false,
+		},
+		{
+			name: "ошибка внутри функции fn",
 			setupMock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 				mock.ExpectRollback()
 			},
 			fn: func(tx *sqlx.Tx) error {
-				return errors.New("something went wrong")
+				return fmt.Errorf("some error")
 			},
-			expectedError: errors.New("something went wrong"),
-			expectCalled:  true,
+			isErr:        true,
+			expectCalled: true,
 		},
 		{
-			name: "begin fails",
+			name: "ошибка при коммите транзакции",
 			setupMock: func(mock sqlmock.Sqlmock) {
-				mock.ExpectBegin().WillReturnError(errors.New("begin failed"))
+				mock.ExpectBegin()
+				mock.ExpectCommit().WillReturnError(fmt.Errorf("commit failed"))
 			},
 			fn: func(tx *sqlx.Tx) error {
 				return nil
 			},
-			expectedError: errors.New("begin failed"),
-			expectCalled:  false,
+			isErr:        true,
+			expectCalled: true,
 		},
 		{
-			name:    "nil db",
-			dbIsNil: true,
-			fn: func(tx *sqlx.Tx) error {
-				return nil
-			},
-			expectedError: nil,
-			expectCalled:  false,
+			name:         "отсутствие подключения к бд",
+			setupMock:    nil, // не нужен mock
+			fn:           func(tx *sqlx.Tx) error { return nil },
+			isErr:        true,
+			expectCalled: false,
 		},
 	}
 
@@ -76,30 +85,42 @@ func TestWithTx_TableDriven(t *testing.T) {
 				err  error
 			)
 
-			if !tc.dbIsNil {
-				var rawDB *sql.DB
-				rawDB, mock, err = sqlmock.New()
-				assert.NoError(t, err)
+			if tc.name != "отсутствие подключения к бд" {
+				rawDB, sqlmock, mockErr := sqlmock.New()
+				assert.NoError(t, mockErr)
 				defer rawDB.Close()
 
 				db = sqlx.NewDb(rawDB, "sqlmock")
+				mock = sqlmock
+			} else {
+				db = nil
+			}
 
-				if tc.setupMock != nil {
-					tc.setupMock(mock)
-				}
+			tx := &Tx{db: db}
+
+			if tc.setupMock != nil {
+				tc.setupMock(mock)
 			}
 
 			called := false
-			err = WithTx(context.Background(), db, func(tx *sqlx.Tx) error {
+			err = tx.Do(context.Background(), func(tx *sqlx.Tx) error {
 				called = true
 				return tc.fn(tx)
 			})
 
-			assert.Equal(t, tc.expectedError, err)
-			assert.Equal(t, tc.expectCalled, called)
+			if tc.isErr {
+				assert.Error(t, err)
+				if tc.name == "отсутствие подключения к бд" {
+					assert.Contains(t, err.Error(), "отсутствие подключения к бд")
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, tc.expectCalled, called, "ожидание вызова fn не совпало")
 
 			if mock != nil {
-				assert.NoError(t, mock.ExpectationsWereMet())
+				assert.NoError(t, mock.ExpectationsWereMet(), "все ожидаемые SQL действия должны быть выполнены")
 			}
 		})
 	}
