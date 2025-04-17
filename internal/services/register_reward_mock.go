@@ -10,7 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	sqlx "github.com/jmoiron/sqlx"
-	repositories "github.com/sbilibin2017/go-gophermart/internal/repositories"
+	dto "github.com/sbilibin2017/go-gophermart/internal/dto"
 )
 
 // MockRewardExistsRepository is a mock of RewardExistsRepository interface.
@@ -37,18 +37,18 @@ func (m *MockRewardExistsRepository) EXPECT() *MockRewardExistsRepositoryMockRec
 }
 
 // Exists mocks base method.
-func (m *MockRewardExistsRepository) Exists(ctx context.Context, tx *sqlx.Tx, filter *repositories.RewardExistsFilter) (bool, error) {
+func (m *MockRewardExistsRepository) Exists(ctx context.Context, filter *dto.RewardExistsFilterDB) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", ctx, tx, filter)
+	ret := m.ctrl.Call(m, "Exists", ctx, filter)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockRewardExistsRepositoryMockRecorder) Exists(ctx, tx, filter interface{}) *gomock.Call {
+func (mr *MockRewardExistsRepositoryMockRecorder) Exists(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockRewardExistsRepository)(nil).Exists), ctx, tx, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockRewardExistsRepository)(nil).Exists), ctx, filter)
 }
 
 // MockRewardSaveRepository is a mock of RewardSaveRepository interface.
@@ -75,15 +75,52 @@ func (m *MockRewardSaveRepository) EXPECT() *MockRewardSaveRepositoryMockRecorde
 }
 
 // Save mocks base method.
-func (m *MockRewardSaveRepository) Save(ctx context.Context, tx *sqlx.Tx, reward *repositories.RewardSave) error {
+func (m *MockRewardSaveRepository) Save(ctx context.Context, reward *dto.RewardDB) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Save", ctx, tx, reward)
+	ret := m.ctrl.Call(m, "Save", ctx, reward)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Save indicates an expected call of Save.
-func (mr *MockRewardSaveRepositoryMockRecorder) Save(ctx, tx, reward interface{}) *gomock.Call {
+func (mr *MockRewardSaveRepositoryMockRecorder) Save(ctx, reward interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockRewardSaveRepository)(nil).Save), ctx, tx, reward)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockRewardSaveRepository)(nil).Save), ctx, reward)
+}
+
+// MockTx is a mock of Tx interface.
+type MockTx struct {
+	ctrl     *gomock.Controller
+	recorder *MockTxMockRecorder
+}
+
+// MockTxMockRecorder is the mock recorder for MockTx.
+type MockTxMockRecorder struct {
+	mock *MockTx
+}
+
+// NewMockTx creates a new mock instance.
+func NewMockTx(ctrl *gomock.Controller) *MockTx {
+	mock := &MockTx{ctrl: ctrl}
+	mock.recorder = &MockTxMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTx) EXPECT() *MockTxMockRecorder {
+	return m.recorder
+}
+
+// Do mocks base method.
+func (m *MockTx) Do(ctx context.Context, fn func(*sqlx.Tx) error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Do", ctx, fn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Do indicates an expected call of Do.
+func (mr *MockTxMockRecorder) Do(ctx, fn interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Do", reflect.TypeOf((*MockTx)(nil).Do), ctx, fn)
 }

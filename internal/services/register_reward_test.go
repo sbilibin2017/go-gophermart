@@ -1,134 +1,146 @@
-package services
+package services_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/dto"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestRewardService_Register(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRewardExistsRepo := NewMockRewardExistsRepository(ctrl)
-	mockRewardSaveRepo := NewMockRewardSaveRepository(ctrl)
-
-	db, mock, err := sqlmock.New()
-	assert.NoError(t, err)
-	defer db.Close()
-
-	sqlxDB := sqlx.NewDb(db, "postgres")
-
-	service := NewRewardService(mockRewardExistsRepo, mockRewardSaveRepo, sqlxDB)
-
-	reward := &domain.Reward{
-		Match:      "product-123",
-		Reward:     100,
-		RewardType: domain.RewardTypePercent,
-	}
-
+func TestRegisterRewardService_Register(t *testing.T) {
 	tests := []struct {
 		name              string
-		mockExistsReturn  bool
-		mockExistsError   error
-		mockSaveError     error
+		isErr             bool
+		mockExpectActions func(mockRewardExistsRepo *services.MockRewardExistsRepository, mockRewardSaveRepo *services.MockRewardSaveRepository, mockTx *services.MockTx)
 		expectedError     error
-		mockExpectActions func()
 	}{
 		{
-			name:             "successful registration",
-			mockExistsReturn: false,
-			mockExistsError:  nil,
-			mockSaveError:    nil,
-			expectedError:    nil,
-			mockExpectActions: func() {
-				mock.ExpectBegin()
-				mockRewardExistsRepo.EXPECT().Exists(context.Background(), gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
-				mockRewardSaveRepo.EXPECT().Save(context.Background(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mock.ExpectCommit()
+			name:  "Награда существует, ошибка",
+			isErr: true,
+			mockExpectActions: func(mockRewardExistsRepo *services.MockRewardExistsRepository, mockRewardSaveRepo *services.MockRewardSaveRepository, mockTx *services.MockTx) {
+				mockRewardExistsRepo.EXPECT().
+					Exists(gomock.Any(), gomock.Eq(&dto.RewardExistsFilterDB{Match: "some_match"})).
+					Return(true, nil).Times(1)
+				mockRewardSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Times(0)
+				mockTx.EXPECT().
+					Do(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, fn func(tx *sqlx.Tx) error) error {
+						return fn(nil)
+					}).Times(1)
 			},
+			expectedError: services.ErrGoodRewardAlreadyExists,
 		},
 		{
-			name:             "reward already exists",
-			mockExistsReturn: true,
-			mockExistsError:  nil,
-			mockSaveError:    nil,
-			expectedError:    ErrGoodRewardAlreadyExists,
-			mockExpectActions: func() {
-				mock.ExpectBegin()
-				mockRewardExistsRepo.EXPECT().Exists(context.Background(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-				mock.ExpectRollback()
+			name:  "Ошибка при проверке существования награды",
+			isErr: true,
+			mockExpectActions: func(mockRewardExistsRepo *services.MockRewardExistsRepository, mockRewardSaveRepo *services.MockRewardSaveRepository, mockTx *services.MockTx) {
+				mockRewardExistsRepo.EXPECT().
+					Exists(gomock.Any(), gomock.Eq(&dto.RewardExistsFilterDB{Match: "some_match"})).
+					Return(false, assert.AnError).Times(1)
+				mockRewardSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Times(0)
+				mockTx.EXPECT().
+					Do(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, fn func(tx *sqlx.Tx) error) error {
+						return fn(nil)
+					}).Times(1)
 			},
+			expectedError: assert.AnError,
 		},
 		{
-			name:             "database error on save",
-			mockExistsReturn: false,
-			mockExistsError:  nil,
-			mockSaveError:    errors.New("db error"),
-			expectedError:    ErrRegisterRewardInternal,
-			mockExpectActions: func() {
-				mock.ExpectBegin()
-				mockRewardExistsRepo.EXPECT().Exists(context.Background(), gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
-				mockRewardSaveRepo.EXPECT().Save(context.Background(), gomock.Any(), gomock.Any()).Return(errors.New("db error")).Times(1)
-				mock.ExpectRollback()
+			name:  "Награда не существует, сохранение успешно",
+			isErr: false,
+			mockExpectActions: func(mockRewardExistsRepo *services.MockRewardExistsRepository, mockRewardSaveRepo *services.MockRewardSaveRepository, mockTx *services.MockTx) {
+				mockRewardExistsRepo.EXPECT().
+					Exists(gomock.Any(), gomock.Eq(&dto.RewardExistsFilterDB{Match: "some_match"})).
+					Return(false, nil).Times(1)
+				mockRewardSaveRepo.EXPECT().
+					Save(gomock.Any(), gomock.Eq(&dto.RewardDB{
+						Match:      "some_match",
+						Reward:     100,
+						RewardType: "bonus",
+					})).
+					Return(nil).Times(1)
+				mockTx.EXPECT().
+					Do(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, fn func(tx *sqlx.Tx) error) error {
+						return fn(nil)
+					}).Times(1)
 			},
+			expectedError: nil,
 		},
 		{
-			name:             "error in transaction begin",
-			mockExistsReturn: false,
-			mockExistsError:  nil,
-			mockSaveError:    nil,
-			expectedError:    errors.New("transaction begin error"),
-			mockExpectActions: func() {
-				mock.ExpectBegin().WillReturnError(errors.New("transaction begin error"))
+			name:  "Награда существует, сохранение не должно быть вызвано",
+			isErr: true,
+			mockExpectActions: func(mockRewardExistsRepo *services.MockRewardExistsRepository, mockRewardSaveRepo *services.MockRewardSaveRepository, mockTx *services.MockTx) {
+				mockRewardExistsRepo.EXPECT().
+					Exists(gomock.Any(), gomock.Eq(&dto.RewardExistsFilterDB{Match: "some_match"})).
+					Return(true, nil).Times(1)
+				mockRewardSaveRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Times(0)
+				mockTx.EXPECT().
+					Do(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, fn func(tx *sqlx.Tx) error) error {
+						return fn(nil)
+					}).Times(1)
 			},
+			expectedError: services.ErrGoodRewardAlreadyExists,
 		},
 		{
-			name:             "error during transaction commit",
-			mockExistsReturn: false,
-			mockExistsError:  nil,
-			mockSaveError:    nil,
-			expectedError:    errors.New("commit error"),
-			mockExpectActions: func() {
-				mock.ExpectBegin()
-				mockRewardExistsRepo.EXPECT().Exists(context.Background(), gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
-				mockRewardSaveRepo.EXPECT().Save(context.Background(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+			name:  "Ошибка при сохранении, возвращение ошибки",
+			isErr: true,
+			mockExpectActions: func(mockRewardExistsRepo *services.MockRewardExistsRepository, mockRewardSaveRepo *services.MockRewardSaveRepository, mockTx *services.MockTx) {
+				mockRewardExistsRepo.EXPECT().
+					Exists(gomock.Any(), gomock.Eq(&dto.RewardExistsFilterDB{Match: "some_match"})).
+					Return(false, nil).Times(1)
+				mockRewardSaveRepo.EXPECT().
+					Save(gomock.Any(), gomock.Eq(&dto.RewardDB{
+						Match:      "some_match",
+						Reward:     100,
+						RewardType: "bonus",
+					})).
+					Return(assert.AnError).Times(1)
+				mockTx.EXPECT().
+					Do(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, fn func(tx *sqlx.Tx) error) error {
+						return fn(nil)
+					}).Times(1)
 			},
-		},
-		{
-			name:             "error in Exists method",
-			mockExistsReturn: false,
-			mockExistsError:  errors.New("exists method error"),
-			mockSaveError:    nil,
-			expectedError:    ErrRegisterRewardInternal,
-			mockExpectActions: func() {
-				mock.ExpectBegin()
-				mockRewardExistsRepo.EXPECT().Exists(context.Background(), gomock.Any(), gomock.Any()).Return(false, errors.New("exists method error")).Times(1)
-				mock.ExpectRollback()
-			},
+			expectedError: assert.AnError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockExpectActions()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRewardExistsRepo := services.NewMockRewardExistsRepository(ctrl)
+			mockRewardSaveRepo := services.NewMockRewardSaveRepository(ctrl)
+			mockTx := services.NewMockTx(ctrl)
+
+			tt.mockExpectActions(mockRewardExistsRepo, mockRewardSaveRepo, mockTx)
+
+			service := services.NewRegisterRewardService(mockRewardExistsRepo, mockRewardSaveRepo, mockTx)
+
+			reward := &domain.Reward{
+				Match:      "some_match",
+				Reward:     100,
+				RewardType: domain.RewardType("bonus"),
+			}
 
 			err := service.Register(context.Background(), reward)
 
-			if tt.expectedError != nil {
-				assert.EqualError(t, err, tt.expectedError.Error())
+			if tt.isErr {
+				require.Error(t, err)
+				assert.Equal(t, tt.expectedError, err)
 			} else {
 				assert.NoError(t, err)
 			}
-
-			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
