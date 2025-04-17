@@ -4,42 +4,26 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/dto"
 )
 
-type RewardSaveRepository interface {
-	Save(ctx context.Context, match string, reward uint, rewardType string) error
-}
-
-type RewardSaveRepositoryImpl struct {
+type RewardSaveRepository struct {
 	db *sqlx.DB
 }
 
-func NewRewardSaveRepository(db *sqlx.DB) *RewardSaveRepositoryImpl {
-	return &RewardSaveRepositoryImpl{
+func NewRewardSaveRepository(db *sqlx.DB) *RewardSaveRepository {
+	return &RewardSaveRepository{
 		db: db,
 	}
 }
 
-func (r *RewardSaveRepositoryImpl) Save(
-	ctx context.Context, tx *sqlx.Tx, reward *RewardSave,
+func (r *RewardSaveRepository) Save(
+	ctx context.Context, reward *dto.RewardDB,
 ) error {
 	query := rewardSaveQuery
 	args := []interface{}{reward.Match, reward.Reward, reward.RewardType}
-
-	var err error
-	if tx != nil {
-		_, err = tx.ExecContext(ctx, query, args...)
-	} else {
-		_, err = r.db.ExecContext(ctx, query, args...)
-	}
-
+	_, err := r.db.ExecContext(ctx, query, args...)
 	return err
-}
-
-type RewardSave struct {
-	Match      string `db:"match"`
-	Reward     uint   `db:"reward"`
-	RewardType string `db:"reward_type"`
 }
 
 var rewardSaveQuery = `

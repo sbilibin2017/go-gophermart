@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/dto"
 )
 
 type RewardExistsRepository struct {
@@ -16,25 +17,16 @@ func NewRewardExistsRepository(db *sqlx.DB) *RewardExistsRepository {
 	}
 }
 
-func (r *RewardExistsRepository) Exists(ctx context.Context, tx *sqlx.Tx, match *RewardExistsFilter) (bool, error) {
+func (r *RewardExistsRepository) Exists(
+	ctx context.Context, match *dto.RewardExistsFilterDB,
+) (bool, error) {
 	var exists bool
 	query := rewardExistsQuery
-
-	var err error
-	if tx != nil {
-		err = tx.GetContext(ctx, &exists, query, match.Match)
-	} else {
-		err = r.db.GetContext(ctx, &exists, query, match.Match)
-	}
-
+	err := r.db.GetContext(ctx, &exists, query, match.Match)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
-}
-
-type RewardExistsFilter struct {
-	Match string `db:"match"`
 }
 
 var rewardExistsQuery = `SELECT EXISTS (SELECT 1 FROM rewards WHERE match = $1)`
