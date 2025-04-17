@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/db"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
@@ -35,27 +34,23 @@ var (
 	ErrGoodRewardAlreadyExists = errors.New("reward already exists")
 )
 
-func (svc *RegisterRewardService) Register(
-	ctx context.Context, reward *domain.Reward,
-) error {
-	return db.WithTx(ctx, svc.db, func(tx *sqlx.Tx) error {
-		exists, err := svc.re.Exists(ctx, map[string]any{"match": reward.Match})
-		if err != nil {
-			return domain.ErrFailedToRegisterReward
-		}
-		if exists {
-			return domain.ErrRewardKeyAlreadyRegistered
-		}
+func (svc *RegisterRewardService) Register(ctx context.Context, reward *domain.Reward) error {
+	exists, err := svc.re.Exists(ctx, map[string]any{"match": reward.Match})
+	if err != nil {
+		return domain.ErrFailedToRegisterReward
+	}
+	if exists {
+		return domain.ErrRewardKeyAlreadyRegistered
+	}
 
-		err = svc.rs.Save(ctx, map[string]any{
-			"match":       reward.Match,
-			"reward":      reward.Reward,
-			"reward_type": string(reward.RewardType),
-		})
-		if err != nil {
-			return domain.ErrFailedToRegisterReward
-		}
-
-		return nil
+	err = svc.rs.Save(ctx, map[string]any{
+		"match":       reward.Match,
+		"reward":      reward.Reward,
+		"reward_type": string(reward.RewardType),
 	})
+	if err != nil {
+		return domain.ErrFailedToRegisterReward
+	}
+
+	return nil
 }

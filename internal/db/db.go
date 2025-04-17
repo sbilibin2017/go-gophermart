@@ -5,10 +5,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var opener = sqlx.Open
+var dbProvider = sqlx.Open
 
 func NewDB(dsn string) (*sqlx.DB, error) {
-	db, err := opener("pgx", dsn)
+	db, err := dbProvider("pgx", dsn)
 	if err != nil {
 		return nil, err
 	}

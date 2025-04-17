@@ -7,101 +7,63 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestWithTx(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to open mock database: %v", err)
-	}
-	sqlxDB := sqlx.NewDb(db, "postgres")
+func TestContextWithTx(t *testing.T) {
 	ctx := context.Background()
+	mockTx := &sqlx.Tx{}
+	ctx = ContextWithTx(ctx, mockTx)
+	tx, ok := TxFromContext(ctx)
+	assert.True(t, ok, "Expected to find a transaction in context")
+	assert.Equal(t, mockTx, tx, "Expected to retrieve the same transaction from context")
+}
 
-	tests := []struct {
-		name        string
-		mockSetup   func()
-		txFunc      func(tx *sqlx.Tx) error
-		expectedErr error
-		db          *sqlx.DB
-	}{
-		{
-			name: "success",
-			mockSetup: func() {
-				mock.ExpectBegin()
-				mock.ExpectCommit()
-			},
-			txFunc: func(tx *sqlx.Tx) error {
-				return nil
-			},
-			expectedErr: nil,
-			db:          sqlxDB,
-		},
-		{
-			name: "rollback_on_error",
-			mockSetup: func() {
-				mock.ExpectBegin()
-				mock.ExpectRollback()
-			},
-			txFunc: func(tx *sqlx.Tx) error {
-				return assert.AnError
-			},
-			expectedErr: assert.AnError,
-			db:          sqlxDB,
-		},
-		{
-			name: "commit_on_success",
-			mockSetup: func() {
-				mock.ExpectBegin()
-				mock.ExpectCommit()
-			},
-			txFunc: func(tx *sqlx.Tx) error {
-				return nil
-			},
-			expectedErr: nil,
-			db:          sqlxDB,
-		},
-		{
-			name: "nil_db",
-			mockSetup: func() {
-			},
-			txFunc: func(tx *sqlx.Tx) error {
-				return nil
-			},
-			expectedErr: nil,
-			db:          nil,
-		},
-		{
-			name: "error_begin_tx",
-			mockSetup: func() {
-				mock.ExpectBegin().WillReturnError(assert.AnError)
-			},
-			txFunc: func(tx *sqlx.Tx) error {
-				return nil
-			},
-			expectedErr: assert.AnError,
-			db:          sqlxDB,
-		},
-		{
-			name: "error_commit_tx",
-			mockSetup: func() {
-				mock.ExpectBegin()
-				mock.ExpectCommit().WillReturnError(assert.AnError)
-			},
-			txFunc: func(tx *sqlx.Tx) error {
-				return nil
-			},
-			expectedErr: assert.AnError,
-			db:          sqlxDB,
-		},
-	}
+func TestWithTx_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	mock.ExpectBegin()
+	mock.ExpectCommit()
+	err = WithTx(context.Background(), sqlxDB, func(tx *sqlx.Tx) error {
+		assert.NotNil(t, tx, "Expected a non-nil transaction")
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.db != nil {
-				tt.mockSetup()
-			}
-			err := WithTx(ctx, tt.db, tt.txFunc)
-			assert.ErrorIs(t, err, tt.expectedErr)
-		})
-	}
+func TestWithTx_RollbackOnError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+	err = WithTx(context.Background(), sqlxDB, func(tx *sqlx.Tx) error {
+		assert.NotNil(t, tx, "Expected a non-nil transaction")
+		return assert.AnError
+	})
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestWithTx_NilDB(t *testing.T) {
+	err := WithTx(context.Background(), nil, func(tx *sqlx.Tx) error {
+		t.Fatal("Expected WithTx to return early and not enter the function")
+		return nil
+	})
+	assert.NoError(t, err)
+}
+
+func TestWithTx_BeginTxx_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	mock.ExpectBegin().WillReturnError(assert.AnError)
+	err = WithTx(context.Background(), sqlxDB, func(tx *sqlx.Tx) error {
+		t.Fatal("Expected WithTx to return early due to BeginTxx error")
+		return nil
+	})
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

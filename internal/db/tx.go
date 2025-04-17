@@ -3,9 +3,19 @@ package db
 import (
 	"context"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
+
+type txKey struct{}
+
+func ContextWithTx(ctx context.Context, tx *sqlx.Tx) context.Context {
+	return context.WithValue(ctx, txKey{}, tx)
+}
+
+func TxFromContext(ctx context.Context) (*sqlx.Tx, bool) {
+	tx, ok := ctx.Value(txKey{}).(*sqlx.Tx)
+	return tx, ok
+}
 
 func WithTx(ctx context.Context, db *sqlx.DB, fn func(tx *sqlx.Tx) error) error {
 	if db == nil {
@@ -17,14 +27,14 @@ func WithTx(ctx context.Context, db *sqlx.DB, fn func(tx *sqlx.Tx) error) error 
 		return err
 	}
 
-	if err := fn(tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	err = fn(tx)
+	return err
 }

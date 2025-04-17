@@ -7,25 +7,31 @@ import (
 )
 
 type RewardSaveRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewRewardSaveRepository(db *sqlx.DB) *RewardSaveRepository {
+func NewRewardSaveRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *RewardSaveRepository {
 	return &RewardSaveRepository{
-		db: db,
+		db:         db,
+		txProvider: txProvider,
 	}
 }
 
-func (r *RewardSaveRepository) Save(
-	ctx context.Context, match map[string]any,
-) error {
+func (r *RewardSaveRepository) Save(ctx context.Context, match map[string]any) error {
 	query := rewardSaveQuery
 	args := []any{match["match"], match["reward"], match["reward_type"]}
-	_, err := r.db.ExecContext(ctx, query, args...)
-	if err != nil {
+
+	if tx, ok := r.txProvider(ctx); ok {
+		_, err := tx.ExecContext(ctx, query, args...)
 		return err
 	}
-	return nil
+
+	_, err := r.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 var rewardSaveQuery = `

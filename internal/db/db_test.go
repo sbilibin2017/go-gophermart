@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewDB(t *testing.T) {
+func TestNewDB_TableDriven(t *testing.T) {
 
 	type testCase struct {
 		name        string
@@ -38,12 +38,12 @@ func TestNewDB(t *testing.T) {
 		},
 	}
 
-	originalOpener := opener
-	defer func() { opener = originalOpener }()
+	originalOpener := dbProvider
+	defer func() { dbProvider = originalOpener }()
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			opener = tc.mockOpener
+			dbProvider = tc.mockOpener
 
 			db, err := NewDB("test-dsn")
 

@@ -7,25 +7,31 @@ import (
 )
 
 type RewardExistsRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewRewardExistsRepository(db *sqlx.DB) *RewardExistsRepository {
+func NewRewardExistsRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *RewardExistsRepository {
 	return &RewardExistsRepository{
-		db: db,
+		db:         db,
+		txProvider: txProvider,
 	}
 }
 
-func (r *RewardExistsRepository) Exists(
-	ctx context.Context, filter map[string]any,
-) (bool, error) {
+func (r *RewardExistsRepository) Exists(ctx context.Context, filter map[string]any) (bool, error) {
 	var exists bool
 	query := rewardExistsQuery
-	err := r.db.GetContext(ctx, &exists, query, filter["match"])
-	if err != nil {
-		return false, err
+
+	if tx, ok := r.txProvider(ctx); ok {
+		err := tx.GetContext(ctx, &exists, query, filter["match"])
+		return exists, err
 	}
-	return exists, nil
+
+	err := r.db.GetContext(ctx, &exists, query, filter["match"])
+	return exists, err
 }
 
 var rewardExistsQuery = `SELECT EXISTS (SELECT 1 FROM rewards WHERE match = $1)`

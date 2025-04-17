@@ -5,31 +5,24 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
-	"github.com/jmoiron/sqlx"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/stretchr/testify/assert"
 )
 
-func setup(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock, *gomock.Controller, *MockRewardExistsRepository, *MockRewardSaveRepository, *RegisterRewardService) {
+func setup(t *testing.T) (*gomock.Controller, *MockRewardExistsRepository, *MockRewardSaveRepository, *RegisterRewardService) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	mockExists := NewMockRewardExistsRepository(ctrl)
 	mockSave := NewMockRewardSaveRepository(ctrl)
-	db, mockDB, err := sqlmock.New()
-	assert.NoError(t, err)
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-	service := NewRegisterRewardService(mockExists, mockSave, sqlxDB)
-	return sqlxDB, mockDB, ctrl, mockExists, mockSave, service
+	service := NewRegisterRewardService(mockExists, mockSave, nil) // Теперь не нужен DB
+	return ctrl, mockExists, mockSave, service
 }
 
 func TestRegister(t *testing.T) {
 	type mockBehavior func(
 		mockExists *MockRewardExistsRepository,
 		mockSave *MockRewardSaveRepository,
-		mockDB sqlmock.Sqlmock,
 	)
 
 	tests := []struct {
@@ -45,10 +38,7 @@ func TestRegister(t *testing.T) {
 				Reward:     100,
 				RewardType: domain.RewardTypePoints,
 			},
-			mockBehavior: func(mockExists *MockRewardExistsRepository, mockSave *MockRewardSaveRepository, mockDB sqlmock.Sqlmock) {
-				mockDB.ExpectBegin()
-				mockDB.ExpectCommit()
-
+			mockBehavior: func(mockExists *MockRewardExistsRepository, mockSave *MockRewardSaveRepository) {
 				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(false, nil)
 				mockSave.EXPECT().Save(gomock.Any(), map[string]any{
 					"match":       "order123",
@@ -65,10 +55,7 @@ func TestRegister(t *testing.T) {
 				Reward:     100,
 				RewardType: domain.RewardTypePoints,
 			},
-			mockBehavior: func(mockExists *MockRewardExistsRepository, _ *MockRewardSaveRepository, mockDB sqlmock.Sqlmock) {
-				mockDB.ExpectBegin()
-				mockDB.ExpectRollback()
-
+			mockBehavior: func(mockExists *MockRewardExistsRepository, _ *MockRewardSaveRepository) {
 				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(true, nil)
 			},
 			expectedError: domain.ErrRewardKeyAlreadyRegistered,
@@ -80,10 +67,7 @@ func TestRegister(t *testing.T) {
 				Reward:     100,
 				RewardType: domain.RewardTypePoints,
 			},
-			mockBehavior: func(mockExists *MockRewardExistsRepository, _ *MockRewardSaveRepository, mockDB sqlmock.Sqlmock) {
-				mockDB.ExpectBegin()
-				mockDB.ExpectRollback()
-
+			mockBehavior: func(mockExists *MockRewardExistsRepository, _ *MockRewardSaveRepository) {
 				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(false, errors.New("db error"))
 			},
 			expectedError: domain.ErrFailedToRegisterReward,
@@ -95,10 +79,7 @@ func TestRegister(t *testing.T) {
 				Reward:     100,
 				RewardType: domain.RewardTypePoints,
 			},
-			mockBehavior: func(mockExists *MockRewardExistsRepository, mockSave *MockRewardSaveRepository, mockDB sqlmock.Sqlmock) {
-				mockDB.ExpectBegin()
-				mockDB.ExpectRollback()
-
+			mockBehavior: func(mockExists *MockRewardExistsRepository, mockSave *MockRewardSaveRepository) {
 				mockExists.EXPECT().Exists(gomock.Any(), map[string]any{"match": "order123"}).Return(false, nil)
 				mockSave.EXPECT().Save(gomock.Any(), map[string]any{
 					"match":       "order123",
@@ -112,17 +93,15 @@ func TestRegister(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sqlxDB, mockDB, ctrl, mockExists, mockSave, service := setup(t)
+			ctrl, mockExists, mockSave, service := setup(t)
 			defer ctrl.Finish()
-			tt.mockBehavior(mockExists, mockSave, mockDB)
+			tt.mockBehavior(mockExists, mockSave)
 			err := service.Register(context.Background(), tt.reward)
 			if tt.expectedError != nil {
 				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.NoError(t, mockDB.ExpectationsWereMet())
-			_ = sqlxDB.Close()
 		})
 	}
 }
