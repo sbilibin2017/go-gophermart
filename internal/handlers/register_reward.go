@@ -2,64 +2,66 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/dto"
+
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
-type RegisterRewardService interface {
-	Register(ctx context.Context, reward *domain.Reward) error
-}
-
-type RegisterRewardRequest struct {
-	Match      string `json:"match" validate:"required"`
-	Reward     uint   `json:"reward" validate:"required,gt=0"`
-	RewardType string `json:"reward_type" validate:"required,oneof=% pt"`
+type RegisterRewardUsecase interface {
+	Execute(ctx context.Context, req *dto.RegisterRewardRequest) (*dto.RegisterRewardResponse, error)
 }
 
 func RegisterRewardHandler(
-	svc RegisterRewardService,
+	uc RegisterRewardUsecase,
 ) http.HandlerFunc {
-	validate := validator.New()
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req RegisterRewardRequest
+		logger.Logger.Info("Начало обработки запроса для регистрации награды")
 
-		err := json.NewDecoder(r.Body).Decode(&req)
+		var req dto.RegisterRewardRequest
+		err := decodeJSON(r, &req)
 		if err != nil {
-			http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+			logger.Logger.Info("Ошибка декодирования JSON в запросе:", err)
+			handleRegisterRewardError(w, err)
+			return
+		}
+		logger.Logger.Info("JSON успешно декодирован в запросе")
+
+		resp, err := uc.Execute(r.Context(), &req)
+		if err != nil {
+			logger.Logger.Info("Ошибка при выполнении бизнес-логики регистрации награды:", err)
+			handleRegisterRewardError(w, err)
 			return
 		}
 
-		err = validate.Struct(req)
-		if err != nil {
-			http.Error(w, "Ошибка валидации полей запроса", http.StatusBadRequest)
-			return
-		}
+		logger.Logger.Info("Запрос успешно обработан, отправка ответа с сообщением:", resp.Message)
+		writeTextResponse(w, resp.Message)
+	}
+}
 
-		reward := &domain.Reward{
-			Match:      req.Match,
-			Reward:     req.Reward,
-			RewardType: domain.RewardType(req.RewardType),
-		}
+func handleRegisterRewardError(w http.ResponseWriter, err error) {
+	logger.Logger.Info("Обработка ошибки при регистрации награды")
 
-		err = svc.Register(r.Context(), reward)
-		if err != nil {
-			switch err {
-			case services.ErrGoodRewardAlreadyExists:
-				http.Error(w, "Ключ поиска уже зарегистрирован", http.StatusConflict)
-				return
-			default:
-				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
-				return
-			}
-		}
+	if _, ok := err.(*validator.InvalidValidationError); ok {
+		logger.Logger.Info("Ошибка валидации данных:", err)
+		http.Error(w, dto.GetRegisterRewardRequestError(err).Error(), http.StatusBadRequest)
+		return
+	}
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Информация о вознаграждении за товар зарегистрирована"))
+	if errors.Is(err, services.ErrGoodRewardAlreadyExists) {
+		logger.Logger.Info("Награда для товара уже существует:", err)
+		http.Error(w, capitalizeError(err).Error(), http.StatusConflict)
+		return
+	} else if errors.Is(err, ErrInternalServer) {
+		logger.Logger.Info("Внутренняя ошибка сервера:", err)
+		http.Error(w, capitalizeError(err).Error(), http.StatusInternalServerError)
+		return
+	} else {
+		logger.Logger.Info("Неизвестная ошибка:", err)
+		http.Error(w, capitalizeError(ErrInternalServer).Error(), http.StatusInternalServerError)
 	}
 }

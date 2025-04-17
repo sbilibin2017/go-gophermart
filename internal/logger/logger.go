@@ -1,4 +1,4 @@
-package log
+package logger
 
 import (
 	"go.uber.org/zap"
@@ -14,3 +14,5 @@ func Init() {
 	logInstance, _ := zapConfig.Build()
 	Logger = logInstance.Sugar()
 }
+
+

@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
-	"github.com/sbilibin2017/go-gophermart/internal/log"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 )
 
@@ -45,12 +45,12 @@ func flags() {
 }
 
 func run() {
-	log.Init()
-	defer log.Logger.Sync()
+	logger.Init()
+	defer logger.Logger.Sync()
 
 	db, err := sql.Open("pgx", flagDatabaseURI)
 	if err != nil {
-		log.Logger.Fatalf("Ошибка подключения к базе данных: %v", err)
+		logger.Logger.Fatalf("Ошибка подключения к базе данных: %v", err)
 		return
 	}
 	defer db.Close()

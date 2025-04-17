@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
 	"github.com/sbilibin2017/go-gophermart/internal/dto"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 )
 
 type RewardExistsRepository interface {
@@ -35,37 +36,46 @@ func NewRegisterRewardService(
 	return &RegisterRewardService{re: re, rs: rs, tx: tx}
 }
 
+var (
+	ErrGoodRewardAlreadyExists = errors.New("вознаграждение для указанного товара уже существует")
+)
+
 func (svc *RegisterRewardService) Register(
 	ctx context.Context, reward *domain.Reward,
 ) error {
-	return svc.tx.Do(ctx, func(tx *sqlx.Tx) error {
-		filter := &dto.RewardExistsFilterDB{
-			Match: reward.Match,
-		}
+	logger.Logger.Info("Начало регистрации награды для товара с match:", reward.Match)
 
-		exists, err := svc.re.Exists(ctx, filter)
+	err := svc.tx.Do(ctx, func(tx *sqlx.Tx) error {
+		logger.Logger.Info("Проверка существования награды для товара с match:", reward.Match)
+		exists, err := svc.re.Exists(ctx, &dto.RewardExistsFilterDB{Match: reward.Match})
 		if err != nil {
+			logger.Logger.Error("Ошибка при проверке существования награды:", err)
 			return err
 		}
 		if exists {
+			logger.Logger.Info("Награда для товара с match уже существует.")
 			return ErrGoodRewardAlreadyExists
 		}
 
-		reward := &dto.RewardDB{
+		rewardDTO := &dto.RewardDB{
 			Match:      reward.Match,
 			Reward:     reward.Reward,
 			RewardType: string(reward.RewardType),
 		}
 
-		err = svc.rs.Save(ctx, reward)
-		if err != nil {
+		logger.Logger.Info("Сохранение награды для товара с match:", reward.Match)
+		if err := svc.rs.Save(ctx, rewardDTO); err != nil {
+			logger.Logger.Error("Ошибка при сохранении награды:", err)
 			return err
 		}
 
+		logger.Logger.Info("Награда для товара с match успешно зарегистрирована.")
 		return nil
 	})
-}
 
-var (
-	ErrGoodRewardAlreadyExists = errors.New("вознаграждение для указанного товара уже существует")
-)
+	if errors.Is(err, ErrGoodRewardAlreadyExists) {
+		return ErrGoodRewardAlreadyExists
+	}
+
+	return err
+}

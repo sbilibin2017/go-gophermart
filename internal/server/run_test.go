@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/sbilibin2017/go-gophermart/internal/log"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	log.Init()
+	logger.Init()
 }
 
 func TestRun(t *testing.T) {

@@ -5,10 +5,13 @@ import (
 	"testing"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDB_TableDriven(t *testing.T) {
+	logger.Init()
+
 	type testCase struct {
 		name        string
 		mockOpener  func(driverName, dsn string) (*sqlx.DB, error)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/dto"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 )
 
 type RewardSaveRepository struct {
@@ -20,10 +21,20 @@ func NewRewardSaveRepository(db *sqlx.DB) *RewardSaveRepository {
 func (r *RewardSaveRepository) Save(
 	ctx context.Context, reward *dto.RewardDB,
 ) error {
+	logger.Logger.Info("Попытка сохранить или обновить награду для матча:", reward.Match)
+	logger.Logger.Info("Параметры для сохранения: reward =", reward.Reward, ", reward_type =", reward.RewardType)
+
 	query := rewardSaveQuery
 	args := []interface{}{reward.Match, reward.Reward, reward.RewardType}
+
 	_, err := r.db.ExecContext(ctx, query, args...)
-	return err
+	if err != nil {
+		logger.Logger.Error("Ошибка при выполнении запроса для сохранения награды:", err)
+		return err
+	}
+
+	logger.Logger.Info("Награда успешно сохранена или обновлена для матча:", reward.Match)
+	return nil
 }
 
 var rewardSaveQuery = `
