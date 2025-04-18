@@ -1,20 +1,21 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"flag"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
-	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
-	"github.com/sbilibin2017/go-gophermart/internal/server"
-	"github.com/sbilibin2017/go-gophermart/internal/storage"
 )
 
 func main() {
@@ -22,7 +23,12 @@ func main() {
 	run()
 }
 
-var config configs.AccrualConfig
+type Config struct {
+	RunAddress  string
+	DatabaseURI string
+}
+
+var config Config
 
 func flags() {
 	flag.StringVar(&config.RunAddress, "a", "", "run address")
@@ -34,31 +40,34 @@ func flags() {
 		config.RunAddress = envA
 	}
 	if envD := os.Getenv("DATABASE_URI"); envD != "" {
-		config.RunAddress = envD
+		config.DatabaseURI = envD
 	}
 }
 
 func run() {
-	logger.Logger.Infow("Starting application",
-		"address", config.RunAddress,
-		"databaseURI", config.DatabaseURI,
-	)
+	logger.Logger.Infof("Starting gophermart on address: %s", config.RunAddress)
+	logger.Logger.Infof("Database URI: %s", config.DatabaseURI)
 
-	db, err := storage.NewDB(config.DatabaseURI)
+	db, err := sql.Open("pgx", config.DatabaseURI)
 	if err != nil {
-		logger.Logger.Errorw("failed to connect to database", "error", err)
+		logger.Logger.Errorf("Failed to connect to database: %v", err)
+		return
+	}
+	err = db.Ping()
+	if err != nil {
+		logger.Logger.Errorf("Failed to ping database: %v", err)
 		return
 	}
 	defer db.Close()
 
-	rtr := server.NewRouter()
+	rtr := chi.NewRouter()
 
 	val := validator.New()
 
 	mws := []func(http.Handler) http.Handler{
 		middlewares.LoggingMiddleware,
 		middlewares.GzipMiddleware,
-		middlewares.TxMiddleware(db, storage.WithTx),
+		middlewares.TxMiddleware(db),
 	}
 
 	rtr.Route("/api", func(api chi.Router) {
@@ -69,10 +78,28 @@ func run() {
 		api.Post("/goods", handlers.RegisterGoodRewardHandler(val, nil))
 	})
 
-	srv := server.NewServer(config.RunAddress, rtr)
+	srv := &http.Server{Addr: config.RunAddress, Handler: rtr}
 
-	ctx, cancel := contextutil.NewCancelContext()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Logger.Errorf("Server error: %v", err)
+		}
+	}()
+
+	logger.Logger.Info("Server is running... Press Ctrl+C to stop.")
+
+	<-ctx.Done()
+	logger.Logger.Info("Shutting down server...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	srv.Run(ctx)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Logger.Errorf("Server shutdown failed: %v", err)
+	} else {
+		logger.Logger.Info("Server gracefully stopped.")
+	}
 }
