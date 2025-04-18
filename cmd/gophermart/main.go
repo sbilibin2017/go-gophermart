@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"net/http"
 	"os"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
+	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 )
 
@@ -53,62 +52,47 @@ func flags() {
 }
 
 func run() {
-	logger.Logger.Infof("Starting gophermart on address: %s", config.RunAddress)
-	logger.Logger.Infof("Database URI: %s", config.DatabaseURI)
-	logger.Logger.Infof("Accrual System Address: %s", config.AccrualSystemAddress)
-
-	db, err := sql.Open("pgx", config.DatabaseURI)
+	db, err := sqlx.Open("pgx", config.DatabaseURI)
 	if err != nil {
-		logger.Logger.Errorf("Failed to connect to database: %v", err)
-		return
-	}
-	err = db.Ping()
-	if err != nil {
-		logger.Logger.Errorf("Failed to ping database: %v", err)
 		return
 	}
 	defer db.Close()
 
-	rtr := chi.NewRouter()
+	api := chi.NewRouter()
 
-	rtr.Use(
+	api.Use(
 		middlewares.LoggingMiddleware,
 		middlewares.GzipMiddleware,
 		middlewares.TxMiddleware(db),
 	)
 
-	rtr.Route("/api/user", func(api chi.Router) {
-		api.Post("/register", nil)
-		api.Post("/login", nil)
-		api.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Post("/orders", nil)
-		api.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/orders", nil)
-		api.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/balance", nil)
-		api.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Post("/balance/withdraw", nil)
-		api.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/withdrawals", nil)
+	api.Route("/api/user", func(r chi.Router) {
+		r.Post("/register", nil)
+		r.Post("/login", nil)
+		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Post("/orders", nil)
+		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/orders", nil)
+		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/balance", nil)
+		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Post("/balance/withdraw", nil)
+		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/withdrawals", nil)
 	})
 
-	srv := &http.Server{Addr: config.RunAddress, Handler: rtr}
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 	defer cancel()
 
+	srv := &http.Server{Addr: config.RunAddress, Handler: api}
+
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Logger.Errorf("Server error: %v", err)
-		}
+		srv.ListenAndServe()
 	}()
 
-	logger.Logger.Info("Server is running... Press Ctrl+C to stop.")
-
 	<-ctx.Done()
-	logger.Logger.Info("Shutdown signal received, stopping server...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		logger.Logger.Errorf("Error during shutdown: %v", err)
-	} else {
-		logger.Logger.Info("Server gracefully stopped.")
-	}
+	srv.Shutdown(shutdownCtx)
 }

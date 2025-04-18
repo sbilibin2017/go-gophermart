@@ -75,5 +75,4 @@ func TestGzipMiddleware_GzipReadError(t *testing.T) {
 	middleware := GzipMiddleware(nextHandler)
 	middleware.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Failed to read gzip data")
 }

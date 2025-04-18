@@ -2,9 +2,14 @@ package middlewares
 
 import (
 	"compress/gzip"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
+)
+
+var (
+	ErrFailedToDecompressRequest = errors.New("failed to read gzip data")
 )
 
 func GzipMiddleware(next http.Handler) http.Handler {
@@ -12,26 +17,26 @@ func GzipMiddleware(next http.Handler) http.Handler {
 		if r.Header.Get("Content-Encoding") == "gzip" {
 			gzipReader, err := gzip.NewReader(r.Body)
 			if err != nil {
-				http.Error(w, "Failed to read gzip data", http.StatusBadRequest)
+				http.Error(w, ErrFailedToDecompressRequest.Error(), http.StatusBadRequest)
 				return
 			}
-			defer func() {
-				gzipReader.Close()
-			}()
-			r.Body = gzipReader
+			defer gzipReader.Close()
+			r.Body = io.NopCloser(gzipReader)
 		}
+
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			gzipWriter := gzip.NewWriter(w)
-			defer func() {
-				gzipWriter.Close()
-			}()
 			w.Header().Set("Content-Encoding", "gzip")
+			gzipWriter := gzip.NewWriter(w)
+			defer gzipWriter.Close()
+
 			grw := &gzipResponseWriter{
 				ResponseWriter: w,
 				Writer:         gzipWriter,
 			}
 			next.ServeHTTP(grw, r)
+			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }

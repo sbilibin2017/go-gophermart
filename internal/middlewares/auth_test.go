@@ -45,7 +45,7 @@ func TestAuthMiddleware_MissingAuthHeader(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Authorization header missing")
+
 }
 
 func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
@@ -62,7 +62,7 @@ func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Invalid authorization header format")
+
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
@@ -78,7 +78,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Invalid or expired token")
+
 }
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {

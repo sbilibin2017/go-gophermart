@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -12,31 +13,40 @@ type contextKey string
 
 const claimsContextKey contextKey = "claims"
 
+var (
+	ErrMissingAuthHeader     = errors.New("authorization header missing")
+	ErrInvalidAuthHeader     = errors.New("invalid authorization header format")
+	ErrInvalidOrExpiredToken = errors.New("invalid or expired token")
+)
+
 func AuthMiddleware(jwtKey []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+				http.Error(w, ErrMissingAuthHeader.Error(), http.StatusUnauthorized)
 				return
 			}
+
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
+				http.Error(w, ErrInvalidAuthHeader.Error(), http.StatusUnauthorized)
 				return
 			}
+
 			tokenStr := parts[1]
 			claims := &jwt.RegisteredClaims{}
 			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 				return jwtKey, nil
 			})
+
 			if err != nil || !token.Valid {
-				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+				http.Error(w, ErrInvalidOrExpiredToken.Error(), http.StatusUnauthorized)
 				return
 			}
+
 			ctx := context.WithValue(r.Context(), claimsContextKey, claims)
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

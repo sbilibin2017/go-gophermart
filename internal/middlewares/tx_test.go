@@ -1,108 +1,84 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"net/http/httptest"
-
 	"github.com/DATA-DOG/go-sqlmock"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestTxMiddleware(t *testing.T) {
+func TestTxMiddleware_BeginTxxError(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
-	txMiddleware := TxMiddleware(db)
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tx, ok := TxFromContext(r.Context())
-		if !ok {
-			http.Error(w, "no transaction found", http.StatusInternalServerError)
-			return
-		}
+	mock.ExpectBegin().WillReturnError(assert.AnError)
 
-		if r.URL.Query().Get("fail") == "true" {
-			_ = tx.Rollback()
-			http.Error(w, "transaction rolled back", http.StatusInternalServerError)
-			return
-		}
+	handler := TxMiddleware(sqlxDB)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Handler should not be called when BeginTxx fails")
+	}))
 
-		err := tx.Commit()
-		if err != nil {
-			http.Error(w, "failed to commit transaction", http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
 
-	middlewareHandler := txMiddleware(handler)
+	handler.ServeHTTP(rec, req)
 
-	t.Run("Success", func(t *testing.T) {
-		mock.ExpectBegin()
-		mock.ExpectCommit()
-
-		req, err := http.NewRequest(http.MethodGet, "http://localhost/?fail=false", nil)
-		require.NoError(t, err)
-		w := httptest.NewRecorder()
-
-		middlewareHandler.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
-
-	t.Run("Rollback", func(t *testing.T) {
-		mock.ExpectBegin()
-		mock.ExpectRollback()
-
-		req, err := http.NewRequest(http.MethodGet, "http://localhost/?fail=true", nil)
-		require.NoError(t, err)
-		w := httptest.NewRecorder()
-
-		middlewareHandler.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		assert.Contains(t, w.Body.String(), "transaction rolled back")
-	})
-
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), assert.AnError.Error())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestTxMiddleware_BeginError(t *testing.T) {
+func TestTxMiddleware_CommitsOnSuccess(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectBegin().WillReturnError(fmt.Errorf("failed to begin transaction"))
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
 
-	txMiddleware := TxMiddleware(db)
+	mock.ExpectBegin()
+	mock.ExpectCommit()
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tx, err := db.Begin()
-		if err != nil {
-			http.Error(w, "failed to begin transaction", http.StatusInternalServerError)
-			return
-		}
-		defer tx.Commit()
-	})
+	handler := TxMiddleware(sqlxDB)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tx := TxFromContext(r.Context())
+		assert.NotNil(t, tx)
+		w.WriteHeader(http.StatusOK)
+	}))
 
-	middlewareHandler := txMiddleware(handler)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
 
-	req, err := http.NewRequest(http.MethodGet, "http://localhost/", nil)
-	require.NoError(t, err)
-	w := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	middlewareHandler.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to begin transaction")
+func TestTxMiddleware_RollbackOnError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	handler := TxMiddleware(sqlxDB)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tx := TxFromContext(r.Context())
+		assert.NotNil(t, tx)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

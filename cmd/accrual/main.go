@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"net/http"
 	"os"
@@ -13,9 +12,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
+	"github.com/sbilibin2017/go-gophermart/internal/validation"
 )
 
 func main() {
@@ -45,61 +47,53 @@ func flags() {
 }
 
 func run() {
-	logger.Logger.Infof("Starting gophermart on address: %s", config.RunAddress)
-	logger.Logger.Infof("Database URI: %s", config.DatabaseURI)
-
-	db, err := sql.Open("pgx", config.DatabaseURI)
+	db, err := sqlx.Open("pgx", config.DatabaseURI)
 	if err != nil {
-		logger.Logger.Errorf("Failed to connect to database: %v", err)
-		return
-	}
-	err = db.Ping()
-	if err != nil {
-		logger.Logger.Errorf("Failed to ping database: %v", err)
 		return
 	}
 	defer db.Close()
 
-	rtr := chi.NewRouter()
+	reRepo := repositories.NewRewardExistsRepository(db)
+	rsRepo := repositories.NewRewardSaveRepository(db)
+
+	rsSvc := services.NewRewardSaveService(reRepo, rsRepo)
 
 	val := validator.New()
+	val.RegisterValidation("reward_type", validation.ValidateRewardType)
 
-	mws := []func(http.Handler) http.Handler{
+	rrH := handlers.RegisterRewardSaveHandler(val, rsSvc)
+
+	api := chi.NewRouter()
+
+	api.Use(
 		middlewares.LoggingMiddleware,
 		middlewares.GzipMiddleware,
 		middlewares.TxMiddleware(db),
-	}
+	)
 
-	rtr.Route("/api", func(api chi.Router) {
-		api.Use(mws...)
-
-		api.Get("/orders/{number}", nil)
-		api.Post("/orders", nil)
-		api.Post("/goods", handlers.RegisterGoodRewardHandler(val, nil))
+	api.Route("/api", func(r chi.Router) {
+		r.Get("/orders/{number}", nil)
+		r.Post("/orders", nil)
+		r.Post("/goods", rrH)
 	})
 
-	srv := &http.Server{Addr: config.RunAddress, Handler: rtr}
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	defer cancel()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	srv := &http.Server{Addr: config.RunAddress, Handler: api}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Logger.Errorf("Server error: %v", err)
-		}
+		srv.ListenAndServe()
 	}()
 
-	logger.Logger.Info("Server is running... Press Ctrl+C to stop.")
-
 	<-ctx.Done()
-	logger.Logger.Info("Shutting down server...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		logger.Logger.Errorf("Server shutdown failed: %v", err)
-	} else {
-		logger.Logger.Info("Server gracefully stopped.")
-	}
+	srv.Shutdown(shutdownCtx)
 }

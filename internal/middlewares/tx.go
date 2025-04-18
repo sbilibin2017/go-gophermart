@@ -2,47 +2,44 @@ package middlewares
 
 import (
 	"context"
-	"database/sql"
-	"log"
 	"net/http"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type txKeyType string
 
 const txKey txKeyType = "tx"
 
-func TxFromContext(ctx context.Context) (*sql.Tx, bool) {
-	tx, ok := ctx.Value(txKey).(*sql.Tx)
-	return tx, ok
+func TxFromContext(ctx context.Context) *sqlx.Tx {
+	tx, _ := ctx.Value(txKey).(*sqlx.Tx)
+	return tx
 }
 
-func TxMiddleware(db *sql.DB) func(http.Handler) http.Handler {
+func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tx, err := db.Begin()
+			rw := &responseWriter{
+				ResponseWriter: w,
+				statusCode:     http.StatusOK,
+			}
+
+			tx, err := db.BeginTxx(r.Context(), nil)
 			if err != nil {
-				http.Error(w, "failed to begin transaction", http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
-			ww := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+			defer func() {
+				if rw.statusCode >= 400 {
+					_ = tx.Rollback()
+				} else {
+					_ = tx.Commit()
+				}
+			}()
 
-			ctx := context.WithValue(r.Context(), txKey, tx)
-			r = r.WithContext(ctx)
-
-			next.ServeHTTP(ww, r)
-
-			if ww.statusCode >= http.StatusBadRequest {
-				log.Printf("Rolling back transaction due to status code: %d", ww.statusCode)
-				tx.Rollback()
-				return
-			}
-
-			if err := tx.Commit(); err != nil {
-				log.Printf("Failed to commit transaction: %v", err)
-				http.Error(w, "transaction commit error", http.StatusInternalServerError)
-				return
-			}
+			ctxWithTx := context.WithValue(r.Context(), txKey, tx)
+			next.ServeHTTP(rw, r.WithContext(ctxWithTx))
 		})
 	}
 }

@@ -9,20 +9,22 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/golang/mock/gomock"
-	"github.com/sbilibin2017/go-gophermart/internal/domain"
-	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
+	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/validation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func setupRegisterRewardTest(t *testing.T) (
 	*gomock.Controller,
-	*MockRegisterRewardService,
+	*MockRegisterGoodRewardService,
 	*validator.Validate,
 ) {
 	ctrl := gomock.NewController(t)
-	mockService := NewMockRegisterRewardService(ctrl)
+	mockService := NewMockRegisterGoodRewardService(ctrl)
 	validate := validator.New()
+	validate.RegisterValidation("reward_type", validation.ValidateRewardType)
 	return ctrl, mockService, validate
 }
 
@@ -44,7 +46,7 @@ func TestRegisterRewardHandler(t *testing.T) {
 		},
 		{
 			name: "Successful registration",
-			requestBody: RegisterGoodRewardRequest{
+			requestBody: types.Reward{
 				Match:      "Match1",
 				Reward:     10,
 				RewardType: "%",
@@ -56,7 +58,7 @@ func TestRegisterRewardHandler(t *testing.T) {
 		},
 		{
 			name: "Validation error - Missing required field",
-			requestBody: RegisterGoodRewardRequest{
+			requestBody: types.Reward{
 				Match:      "",
 				Reward:     10,
 				RewardType: "%",
@@ -66,7 +68,7 @@ func TestRegisterRewardHandler(t *testing.T) {
 		},
 		{
 			name: "Validation error - Invalid Reward value",
-			requestBody: RegisterGoodRewardRequest{
+			requestBody: types.Reward{
 				Match:      "Match1",
 				Reward:     0,
 				RewardType: "%",
@@ -76,27 +78,27 @@ func TestRegisterRewardHandler(t *testing.T) {
 		},
 		{
 			name: "Conflict - Reward already registered",
-			requestBody: RegisterGoodRewardRequest{
+			requestBody: types.Reward{
 				Match:      "Match1",
 				Reward:     10,
 				RewardType: "%",
 			},
 			mockServiceBehavior: func() {
-				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(domain.ErrRewardSearchKeyAlreadyRegistered)
+				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(services.ErrRewardAlreadyExists)
 			},
 			expectedStatusCode: http.StatusConflict,
 		},
 		{
-			name: "Internal Server Error",
-			requestBody: RegisterGoodRewardRequest{
+			name: "Reward is not registered",
+			requestBody: types.Reward{
 				Match:      "Match1",
 				Reward:     10,
 				RewardType: "%",
 			},
 			mockServiceBehavior: func() {
-				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(utils.ErrInternal)
+				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(services.ErrRewardIsNotRegistered)
 			},
-			expectedStatusCode: http.StatusInternalServerError,
+			expectedStatusCode: http.StatusBadRequest,
 		},
 	}
 
@@ -108,7 +110,7 @@ func TestRegisterRewardHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/register-reward", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
-			handler := RegisterGoodRewardHandler(validate, mockService)
+			handler := RegisterRewardSaveHandler(validate, mockService)
 			handler.ServeHTTP(rr, req)
 			assert.Equal(t, tt.expectedStatusCode, rr.Code)
 		})
