@@ -1,19 +1,18 @@
 package main
 
 import (
-	"context"
-	"database/sql"
 	"flag"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/sbilibin2017/go-gophermart/internal/configs"
+	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
-	"go.uber.org/zap/zapcore"
+	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
+	"github.com/sbilibin2017/go-gophermart/internal/routers"
+	"github.com/sbilibin2017/go-gophermart/internal/server"
+	"github.com/sbilibin2017/go-gophermart/internal/storage"
 )
 
 func main() {
@@ -21,78 +20,50 @@ func main() {
 	run()
 }
 
-func init() {
-	logger.Init(zapcore.InfoLevel)
-}
-
-var (
-	a string
-	d string
-)
+var config configs.AccrualConfig
 
 func flags() {
-	flag.StringVar(&a, "a", "", "run address")
-	flag.StringVar(&d, "d", "", "database uri")
+	flag.StringVar(&config.RunAddress, "a", "", "run address")
+	flag.StringVar(&config.DatabaseURI, "d", "", "database uri")
 
 	flag.Parse()
 
 	if envA := os.Getenv("RUN_ADDRESS"); envA != "" {
-		a = envA
+		config.RunAddress = envA
 	}
 	if envD := os.Getenv("DATABASE_URI"); envD != "" {
-		d = envD
+		config.RunAddress = envD
 	}
 }
 
 func run() {
 	logger.Logger.Infow("Starting application",
-		"address", a,
-		"databaseURI", d,
+		"address", config.RunAddress,
+		"databaseURI", config.DatabaseURI,
 	)
 
-	db, err := sql.Open("pgx", d)
+	db, err := storage.NewDB(config.DatabaseURI)
 	if err != nil {
-		logger.Logger.Errorw("Failed to connect to database", "error", err)
 		return
 	}
 	defer db.Close()
 
-	router := chi.NewRouter()
+	rtr := server.NewRouter()
 
-	server := &http.Server{
-		Addr:    a,
-		Handler: router,
+	mws := []func(http.Handler) http.Handler{
+		middlewares.LoggingMiddleware,
+		middlewares.GzipMiddleware,
+		middlewares.TxMiddleware(db, storage.WithTx),
 	}
 
-	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM,
-	)
-	defer stop()
+	routers.RegisterGetOrderByNumberRoute(rtr, nil, mws)
+	routers.RegisterOrdersRoute(rtr, nil, mws)
+	routers.RegisterGoodsRoute(rtr, nil, mws)
 
-	go func() {
-		logger.Logger.Infow("Starting HTTP server", "address", a)
-		if err := server.ListenAndServe(); err != nil &&
-			err != http.ErrServerClosed {
-			logger.Logger.Errorw("HTTP server error", "error", err)
-			stop()
-		}
-	}()
+	srv := server.NewServer(config.RunAddress, rtr)
 
-	<-ctx.Done()
-	logger.Logger.Infow("Shutdown signal received")
-
-	shutdownCtx, cancel := context.WithTimeout(
-		context.Background(),
-		5*time.Second,
-	)
+	ctx, cancel := contextutil.NewCancelContext()
 	defer cancel()
 
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Logger.Errorw("Error during server shutdown", "error", err)
-		return
-	}
-
-	logger.Logger.Infow("Server shutdown gracefully")
+	srv.Run(ctx)
 }

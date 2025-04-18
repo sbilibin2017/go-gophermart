@@ -20,28 +20,22 @@ func AuthMiddleware(jwtKey []byte) func(http.Handler) http.Handler {
 				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
 				return
 			}
-
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
 				return
 			}
-
 			tokenStr := parts[1]
-
 			claims := &jwt.RegisteredClaims{}
 			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 				return jwtKey, nil
 			})
-
 			if err != nil || !token.Valid {
 				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 				return
 			}
-
 			ctx := context.WithValue(r.Context(), claimsContextKey, claims)
 			r = r.WithContext(ctx)
-
 			next.ServeHTTP(w, r)
 		})
 	}

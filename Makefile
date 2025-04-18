@@ -28,9 +28,8 @@ migrate:
 lint:
 	staticcheck ./...
 
-mockgen:
-	@echo "Generating mock for: $(file)"
-	@mockgen -source=$(file) \
+mockgen:	
+	mockgen -source=$(file) \
 		-destination=$(dir $(file))$(notdir $(basename $(file)))_mock.go \
 		-package=$(shell basename $(dir $(file)))
 
@@ -42,3 +41,11 @@ docker-run:
 		-p $(POSTGRES_PORT):5432 \
 		--name postgres-gopohermart \
 		postgres:16
+
+test:
+	go test ./internal/... -v
+
+test-cov:
+	go test ./internal/... -coverprofile=coverage.out > /dev/null
+	go tool cover -func=coverage.out | grep total: | awk '{print "Total coverage:", $$3}'
+	rm coverage.out

@@ -20,7 +20,6 @@ func GzipMiddleware(next http.Handler) http.Handler {
 			}()
 			r.Body = gzipReader
 		}
-
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			gzipWriter := gzip.NewWriter(w)
 			defer func() {
@@ -33,9 +32,7 @@ func GzipMiddleware(next http.Handler) http.Handler {
 			}
 			next.ServeHTTP(grw, r)
 		}
-
 		next.ServeHTTP(w, r)
-
 	})
 }
 

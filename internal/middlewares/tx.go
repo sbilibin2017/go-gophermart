@@ -8,7 +8,7 @@ import (
 
 func TxMiddleware(
 	db *sql.DB,
-	txFactory func(db *sql.DB, op func(tx *sql.Tx) error) error, // txFactory теперь ожидает op как аргумент
+	txFactory func(db *sql.DB, op func(tx *sql.Tx) error) error,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
