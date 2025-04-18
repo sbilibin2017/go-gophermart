@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
-	"github.com/sbilibin2017/go-gophermart/internal/routers"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/storage"
 )
@@ -56,6 +56,7 @@ func run() {
 
 	db, err := storage.NewDB(config.DatabaseURI)
 	if err != nil {
+		logger.Logger.Errorw("failed to connect to database", "error", err)
 		return
 	}
 	defer db.Close()
@@ -68,16 +69,20 @@ func run() {
 		middlewares.TxMiddleware(db, storage.WithTx),
 	}
 
-	routers.RegisterUserRegisterRoute(rtr, nil, mws)
-	routers.RegisterUserLoginRoute(rtr, nil, mws)
+	rtr.Route("/api/user", func(api chi.Router) {
+		api.Use(mws...)
 
-	mws = append(mws, middlewares.AuthMiddleware(config.JWTSecretKey))
+		api.Post("/register", nil)
+		api.Post("/login", nil)
 
-	routers.RegisterUserOrdersUploadRoute(rtr, nil, mws)
-	routers.RegisterUserOrderListRoute(rtr, nil, mws)
-	routers.RegisterUserBalanceRoute(rtr, nil, mws)
-	routers.RegisterUserBalanceWithdrawRoute(rtr, nil, mws)
-	routers.RegisterUserWithdrawalsRoute(rtr, nil, mws)
+		api.Use(middlewares.AuthMiddleware(config.JWTSecretKey))
+
+		api.Post("/orders", nil)
+		api.Get("/orders", nil)
+		api.Get("/balance", nil)
+		api.Post("/balance/withdraw", nil)
+		api.Get("/withdrawals", nil)
+	})
 
 	srv := server.NewServer(config.RunAddress, rtr)
 

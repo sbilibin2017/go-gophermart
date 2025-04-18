@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sbilibin2017/go-gophermart/internal/configs"
 	"github.com/sbilibin2017/go-gophermart/internal/contextutil"
+	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
-	"github.com/sbilibin2017/go-gophermart/internal/routers"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/storage"
 )
@@ -44,11 +46,14 @@ func run() {
 
 	db, err := storage.NewDB(config.DatabaseURI)
 	if err != nil {
+		logger.Logger.Errorw("failed to connect to database", "error", err)
 		return
 	}
 	defer db.Close()
 
 	rtr := server.NewRouter()
+
+	val := validator.New()
 
 	mws := []func(http.Handler) http.Handler{
 		middlewares.LoggingMiddleware,
@@ -56,9 +61,13 @@ func run() {
 		middlewares.TxMiddleware(db, storage.WithTx),
 	}
 
-	routers.RegisterGetOrderByNumberRoute(rtr, nil, mws)
-	routers.RegisterOrdersRoute(rtr, nil, mws)
-	routers.RegisterGoodsRoute(rtr, nil, mws)
+	rtr.Route("/api", func(api chi.Router) {
+		api.Use(mws...)
+
+		api.Get("/orders/{number}", nil)
+		api.Post("/orders", nil)
+		api.Post("/goods", handlers.RegisterGoodRewardHandler(val, nil))
+	})
 
 	srv := server.NewServer(config.RunAddress, rtr)
 
