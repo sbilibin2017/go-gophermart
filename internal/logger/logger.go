@@ -7,9 +7,9 @@ import (
 
 var Logger *zap.SugaredLogger
 
-func Init(level zapcore.Level) {
+func init() {
 	zapConfig := zap.NewProductionConfig()
-	zapConfig.Level = zap.NewAtomicLevelAt(level)
+	zapConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	logInstance, _ := zapConfig.Build()
 	Logger = logInstance.Sugar()
 }
