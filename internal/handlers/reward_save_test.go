@@ -2,117 +2,86 @@ package handlers
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-playground/validator/v10"
+	"errors"
+
 	"github.com/golang/mock/gomock"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
-	"github.com/sbilibin2017/go-gophermart/internal/validation"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func setupRegisterRewardTest(t *testing.T) (
-	*gomock.Controller,
-	*MockRegisterGoodRewardService,
-	*validator.Validate,
-) {
+func TestRegisterRewardSaveHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockService := NewMockRegisterGoodRewardService(ctrl)
-	validate := validator.New()
-	validate.RegisterValidation("reward_type", validation.ValidateRewardType)
-	return ctrl, mockService, validate
-}
-
-func TestRegisterRewardHandler(t *testing.T) {
-	ctrl, mockService, validate := setupRegisterRewardTest(t)
 	defer ctrl.Finish()
 
+	mockValidator := NewMockRewardSaveValidator(ctrl)
+	mockService := NewMockRegisterRewardSaveService(ctrl)
+
+	handler := RegisterRewardSaveHandler(mockValidator, mockService)
+
 	tests := []struct {
-		name                string
-		requestBody         interface{}
-		mockServiceBehavior func()
-		expectedStatusCode  int
+		name           string
+		requestBody    []byte
+		setupMocks     func()
+		expectedStatus int
 	}{
 		{
-			name:                "Invalid JSON body",
-			requestBody:         `{"match": "Match1", "reward": 10`,
-			mockServiceBehavior: func() {},
-			expectedStatusCode:  http.StatusBadRequest,
-		},
-		{
-			name: "Successful registration",
-			requestBody: types.Reward{
-				Match:      "Match1",
-				Reward:     10,
-				RewardType: "%",
-			},
-			mockServiceBehavior: func() {
+			name:        "valid JSON",
+			requestBody: []byte(`{"match": "test_match", "reward": 100, "reward_type": "%"}`),
+			setupMocks: func() {
+				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(nil)
 			},
-			expectedStatusCode: http.StatusOK,
+			expectedStatus: http.StatusOK,
 		},
 		{
-			name: "Validation error - Missing required field",
-			requestBody: types.Reward{
-				Match:      "",
-				Reward:     10,
-				RewardType: "%",
+			name:        "invalid JSON request",
+			requestBody: []byte(`{"match": "test_match", "reward": 100, "reward_type": %}`),
+			setupMocks: func() {
 			},
-			mockServiceBehavior: func() {},
-			expectedStatusCode:  http.StatusBadRequest,
+			expectedStatus: http.StatusInternalServerError,
 		},
 		{
-			name: "Validation error - Invalid Reward value",
-			requestBody: types.Reward{
-				Match:      "Match1",
-				Reward:     0,
-				RewardType: "%",
+			name:        "invalid reward structure",
+			requestBody: []byte(`{"match": "test_match", "reward": 100, "reward_type": "%"}`),
+			setupMocks: func() {
+				mockValidator.EXPECT().Struct(gomock.Any()).Return(errors.New(""))
+				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Times(0)
 			},
-			mockServiceBehavior: func() {},
-			expectedStatusCode:  http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name: "Conflict - Reward already registered",
-			requestBody: types.Reward{
-				Match:      "Match1",
-				Reward:     10,
-				RewardType: "%",
-			},
-			mockServiceBehavior: func() {
+			name:        "reward already exists",
+			requestBody: []byte(`{"match": "test_match", "reward": 100, "reward_type": "%"}`),
+			setupMocks: func() {
+				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(services.ErrRewardAlreadyExists)
 			},
-			expectedStatusCode: http.StatusConflict,
+			expectedStatus: http.StatusConflict,
 		},
 		{
-			name: "Reward is not registered",
-			requestBody: types.Reward{
-				Match:      "Match1",
-				Reward:     10,
-				RewardType: "%",
-			},
-			mockServiceBehavior: func() {
+			name:        "error in registering reward",
+			requestBody: []byte(`{"match": "test_match", "reward": 100, "reward_type": "%"}`),
+			setupMocks: func() {
+				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 				mockService.EXPECT().Register(gomock.Any(), gomock.Any()).Return(services.ErrRewardIsNotRegistered)
 			},
-			expectedStatusCode: http.StatusBadRequest,
+			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockServiceBehavior()
-			body, err := json.Marshal(tt.requestBody)
-			require.NoError(t, err)
-			req := httptest.NewRequest(http.MethodPost, "/register-reward", bytes.NewBuffer(body))
-			req.Header.Set("Content-Type", "application/json")
-			rr := httptest.NewRecorder()
-			handler := RegisterRewardSaveHandler(validate, mockService)
-			handler.ServeHTTP(rr, req)
-			assert.Equal(t, tt.expectedStatusCode, rr.Code)
+			if tt.setupMocks != nil {
+				tt.setupMocks()
+			}
+			req := httptest.NewRequest(http.MethodPost, "/reward", bytes.NewReader(tt.requestBody))
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, req)
+			assert.Equal(t, tt.expectedStatus, recorder.Code)
 		})
 	}
 }

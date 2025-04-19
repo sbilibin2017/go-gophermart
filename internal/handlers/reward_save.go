@@ -28,7 +28,7 @@ func RegisterRewardSaveHandler(
 
 		decoder := json.NewDecoder(r.Body)
 		if err := decoder.Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusInternalServerError)
+			http.Error(w, ErrInvalidRequestBody.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -41,14 +41,18 @@ func RegisterRewardSaveHandler(
 		if err != nil {
 			switch err {
 			case services.ErrRewardAlreadyExists:
-				http.Error(w, "Reward with the same search key already exists", http.StatusConflict)
+				http.Error(w, capitalize(err.Error()), http.StatusConflict)
 			case services.ErrRewardIsNotRegistered:
-				http.Error(w, "Reward is not registered", http.StatusBadRequest)
+				http.Error(w, capitalize(err.Error()), http.StatusBadRequest)
 			}
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Reward registered successfully"))
+		w.Write([]byte(SuccessRewardRegistered))
 	}
 }
+
+const (
+	SuccessRewardRegistered = "Reward registered successfully"
+)

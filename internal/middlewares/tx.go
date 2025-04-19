@@ -32,9 +32,9 @@ func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 
 			defer func() {
 				if rw.statusCode >= 400 {
-					_ = tx.Rollback()
+					tx.Rollback()
 				} else {
-					_ = tx.Commit()
+					tx.Commit()
 				}
 			}()
 
