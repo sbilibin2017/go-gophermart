@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 )
 
@@ -52,7 +53,7 @@ func flags() {
 }
 
 func run() {
-	db, err := sqlx.Open("pgx", config.DatabaseURI)
+	db, err := sqlx.Connect("pgx", config.DatabaseURI)
 	if err != nil {
 		return
 	}

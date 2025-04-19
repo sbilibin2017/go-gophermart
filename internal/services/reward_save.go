@@ -17,7 +17,7 @@ type RewardExistsRepository interface {
 }
 
 type RewardSaveRepository interface {
-	Save(ctx context.Context, reward map[string]any) error
+	Save(ctx context.Context, data map[string]any) error
 }
 
 type RewardSaveService struct {
@@ -49,7 +49,7 @@ func (svc *RewardSaveService) Register(
 	err = svc.rs.Save(ctx, map[string]any{
 		"match":       reward.Match,
 		"reward":      reward.Reward,
-		"reward_type": reward.RewardType,
+		"reward_type": string(reward.RewardType),
 	})
 	if err != nil {
 		return ErrRewardIsNotRegistered

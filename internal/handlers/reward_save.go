@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
@@ -14,8 +13,12 @@ type RegisterRewardSaveService interface {
 	Register(ctx context.Context, reward *types.Reward) error
 }
 
+type RewardSaveValidator interface {
+	Struct(s any) error
+}
+
 func RegisterRewardSaveHandler(
-	val *validator.Validate,
+	val RewardSaveValidator,
 	svc RegisterRewardSaveService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -29,11 +32,9 @@ func RegisterRewardSaveHandler(
 			return
 		}
 
-		if val != nil {
-			if err := val.Struct(req); err != nil {
-				http.Error(w, capitalize(buildValidationError(err).Error()), http.StatusBadRequest)
-				return
-			}
+		if err := val.Struct(req); err != nil {
+			http.Error(w, capitalize(buildValidationError(err).Error()), http.StatusBadRequest)
+			return
 		}
 
 		err := svc.Register(r.Context(), req)

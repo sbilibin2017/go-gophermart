@@ -9,10 +9,10 @@ import (
 
 type txKeyType string
 
-const txKey txKeyType = "tx"
+const TxKey txKeyType = "tx"
 
 func TxFromContext(ctx context.Context) *sqlx.Tx {
-	tx, _ := ctx.Value(txKey).(*sqlx.Tx)
+	tx, _ := ctx.Value(TxKey).(*sqlx.Tx)
 	return tx
 }
 
@@ -38,7 +38,7 @@ func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 				}
 			}()
 
-			ctxWithTx := context.WithValue(r.Context(), txKey, tx)
+			ctxWithTx := context.WithValue(r.Context(), TxKey, tx)
 			next.ServeHTTP(rw, r.WithContext(ctxWithTx))
 		})
 	}

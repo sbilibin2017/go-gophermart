@@ -13,6 +13,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/sbilibin2017/go-gophermart/internal/engines"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
@@ -47,14 +49,17 @@ func flags() {
 }
 
 func run() {
-	db, err := sqlx.Open("pgx", config.DatabaseURI)
+	db, err := sqlx.Connect("pgx", config.DatabaseURI)
 	if err != nil {
 		return
 	}
 	defer db.Close()
 
-	reRepo := repositories.NewRewardExistsRepository(db)
-	rsRepo := repositories.NewRewardSaveRepository(db)
+	e := engines.NewDBExecutor(db, middlewares.TxFromContext)
+	q := engines.NewDBQuerier(db, middlewares.TxFromContext)
+
+	reRepo := repositories.NewRewardExistsRepository(q)
+	rsRepo := repositories.NewRewardSaveRepository(e)
 
 	rsSvc := services.NewRewardSaveService(reRepo, rsRepo)
 

@@ -35,5 +35,4 @@ func TestLoggingMiddleware(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rrError.Code)
 	assert.Contains(t, rrError.Body.String(), "error response")
 
-	logger.Info("Testing complete")
 }
