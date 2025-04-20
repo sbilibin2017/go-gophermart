@@ -1,61 +1,69 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"flag"
+	"net/http"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/zap"
 
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
-	"github.com/sbilibin2017/go-gophermart/internal/db"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 )
 
 func main() {
 	flags()
-	run()
+	err := run()
+	if err != nil {
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
 
-type Config struct {
-	RunAddress           string
-	DatabaseURI          string
-	AccrualSystemAddress string
-	JWTSecretKey         []byte
-	JWTExp               time.Duration
-}
-
-var config = Config{
-	JWTSecretKey: []byte("test"),
-	JWTExp:       time.Duration(365 * 24 * time.Hour),
-}
+var (
+	runAddress           string
+	databaseURI          string
+	accrualSystemAddress string
+	jwtSecretKey         = []byte("test")
+	// jwtExp               = time.Duration(365 * 24 * time.Hour)
+)
 
 func flags() {
-	flag.StringVar(&config.RunAddress, "a", "", "run address")
-	flag.StringVar(&config.DatabaseURI, "d", "", "database uri")
-	flag.StringVar(&config.AccrualSystemAddress, "r", "", "accrual system address")
+	flag.StringVar(&runAddress, "a", "", "run address")
+	flag.StringVar(&databaseURI, "d", "", "database uri")
+	flag.StringVar(&accrualSystemAddress, "r", "", "accrual system address")
 
 	flag.Parse()
 
 	if envA := os.Getenv("RUN_ADDRESS"); envA != "" {
-		config.RunAddress = envA
+		runAddress = envA
 	}
 	if envD := os.Getenv("DATABASE_URI"); envD != "" {
-		config.DatabaseURI = envD
+		databaseURI = envD
 	}
 	if envR := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); envR != "" {
-		config.AccrualSystemAddress = envR
+		accrualSystemAddress = envR
 	}
 }
 
-func run() {
-	dbConn, err := db.NewDB(config.DatabaseURI)
+func run() error {
+	logger.Logger.Info("Connecting to database", zap.String("database_uri", databaseURI))
+
+	db, err := sql.Open("pgx", databaseURI)
 	if err != nil {
-		return
+		logger.Logger.Error("Failed to open database", zap.Error(err))
+		return err
 	}
-	defer dbConn.Close()
+	defer db.Close()
+
+	logger.Logger.Info("Successfully connected to database")
 
 	api := chi.NewRouter()
 
@@ -63,14 +71,14 @@ func run() {
 		r.Use(
 			middlewares.LoggingMiddleware,
 			middlewares.GzipMiddleware,
-			middlewares.TxMiddleware(dbConn),
+			middlewares.TxMiddleware(db),
 		)
 
 		r.Post("/register", nil)
 		r.Post("/login", nil)
 
 		r.Use(
-			middlewares.AuthMiddleware(config.JWTSecretKey),
+			middlewares.AuthMiddleware(jwtSecretKey),
 		)
 
 		r.Post("/orders", nil)
@@ -80,10 +88,17 @@ func run() {
 		r.Get("/withdrawals", nil)
 	})
 
-	ctx, cancel := contextutils.NewCancelContext()
+	logger.Logger.Info("Starting server", zap.String("address", runAddress))
+
+	srv := &http.Server{Addr: runAddress}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	srv := server.NewServer(config.RunAddress)
+	err = server.Run(ctx, srv)
+	if err != nil {
+		return err
+	}
 
-	server.Run(ctx, srv)
+	return nil
 }

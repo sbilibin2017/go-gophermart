@@ -3,56 +3,61 @@ package server
 import (
 	"context"
 	"errors"
-	"net/http"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestRun_ServerStartAndShutdown(t *testing.T) {
+func TestRun_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockSrv := NewMockServer(ctrl)
-	mockSrv.EXPECT().ListenAndServe().DoAndReturn(func() error {
-		time.Sleep(100 * time.Millisecond)
-		return http.ErrServerClosed
-	})
-	mockSrv.EXPECT().Shutdown(gomock.Any()).Return(nil)
-	ctx, cancel := context.WithCancel(context.Background())
-	go Run(ctx, mockSrv)
-	time.Sleep(50 * time.Millisecond)
-	cancel()
-	time.Sleep(200 * time.Millisecond)
-}
-
-func TestRun_ServerStartError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockSrv := NewMockServer(ctrl)
-	mockErr := errors.New("unexpected failure")
-	mockSrv.EXPECT().ListenAndServe().Return(mockErr)
-	mockSrv.EXPECT().Shutdown(gomock.Any()).Return(nil)
+	mockServer := NewMockServer(ctrl)
+	mockServer.EXPECT().ListenAndServe().Return(nil).Times(1)
+	mockServer.EXPECT().Shutdown(gomock.Any()).Return(nil).Times(1)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go Run(ctx, mockSrv)
-	time.Sleep(200 * time.Millisecond)
+	go func() {
+		err := Run(ctx, mockServer)
+		require.NoError(t, err)
+	}()
 	cancel()
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func TestRun_ShutdownError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockSrv := NewMockServer(ctrl)
-	mockSrv.EXPECT().ListenAndServe().DoAndReturn(func() error {
-		time.Sleep(50 * time.Millisecond)
-		return http.ErrServerClosed
-	})
-	mockSrv.EXPECT().Shutdown(gomock.Any()).Return(errors.New("shutdown failed"))
+	mockServer := NewMockServer(ctrl)
+	mockServer.EXPECT().ListenAndServe().Return(nil).Times(1)
+	mockServer.EXPECT().Shutdown(gomock.Any()).Return(errors.New("shutdown failed")).Times(1)
 	ctx, cancel := context.WithCancel(context.Background())
-	go Run(ctx, mockSrv)
+	defer cancel()
+	go func() {
+		err := Run(ctx, mockServer)
+		require.Error(t, err)
+		assert.Equal(t, "shutdown failed", err.Error())
+	}()
+	cancel()
 	time.Sleep(100 * time.Millisecond)
+}
+
+func TestRun_ListenAndServeError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockServer := NewMockServer(ctrl)
+	mockServer.EXPECT().ListenAndServe().Return(errors.New("server failed")).Times(1)
+	mockServer.EXPECT().Shutdown(gomock.Any()).Return(nil).Times(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		err := Run(ctx, mockServer)
+		require.Error(t, err)
+		assert.Equal(t, "server failed", err.Error())
+	}()
 	cancel()
 	time.Sleep(100 * time.Millisecond)
 }

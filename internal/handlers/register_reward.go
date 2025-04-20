@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
+	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
@@ -27,16 +27,15 @@ func RegisterRewardHandler(
 	svc RegisterRewardService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req *RegisterRewardRequest
+		var req RegisterRewardRequest
 
-		decoder := json.NewDecoder(r.Body)
-		if err := decoder.Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusInternalServerError)
+		if err := utils.DecodeJSONBody(w, r, &req); err != nil {
+			utils.ErrorInternalServerResponse(w, err)
 			return
 		}
 
 		if err := val.Struct(req); err != nil {
-			http.Error(w, capitalize(buildValidationError(err).Error()), http.StatusBadRequest)
+			utils.ErrorBadRequestResponse(w, err)
 			return
 		}
 
@@ -44,15 +43,15 @@ func RegisterRewardHandler(
 		if err != nil {
 			switch err {
 			case services.ErrRewardAlreadyExists:
-				http.Error(w, capitalize(err.Error()), http.StatusConflict)
+				utils.ErrorConflictResponse(w, err)
 			case services.ErrRewardIsNotRegistered:
-				http.Error(w, capitalize(err.Error()), http.StatusBadRequest)
+				utils.ErrorBadRequestResponse(w, err)
+			default:
+				utils.ErrorInternalServerResponse(w, err)
 			}
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Reward registered successfully"))
+		utils.SendTextResponse(w, http.StatusOK, "Reward registered successfully")
 	}
 }

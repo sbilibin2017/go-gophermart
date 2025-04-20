@@ -2,29 +2,35 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 )
 
-type RewardExistsQuerier interface {
-	Query(ctx context.Context, dest any, query string, args map[string]any) error
-}
-
 type RewardExistsRepository struct {
-	q RewardExistsQuerier
+	db         *sql.DB
+	txProvider func(ctx context.Context) *sql.Tx
 }
 
-func NewRewardExistsRepository(q RewardExistsQuerier) *RewardExistsRepository {
-	return &RewardExistsRepository{q: q}
+func NewRewardExistsRepository(
+	db *sql.DB,
+	txProvider func(ctx context.Context) *sql.Tx,
+) *RewardExistsRepository {
+	return &RewardExistsRepository{db: db, txProvider: txProvider}
 }
 
 func (r *RewardExistsRepository) Exists(
 	ctx context.Context, match map[string]any,
 ) (bool, error) {
 	var exists bool
-	err := r.q.Query(ctx, &exists, rewardExistsQuery, match)
+	row, err := queryRowContext(ctx, r.db, r.txProvider, rewardExistsQuery, match["match"])
 	if err != nil {
+		return false, err
+	}
+	if err := scanRow(row, &exists); err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-const rewardExistsQuery = "SELECT EXISTS(SELECT 1 FROM rewards WHERE match = :match)"
+
+
+const rewardExistsQuery = "SELECT EXISTS(SELECT 1 FROM rewards WHERE match = $1)"

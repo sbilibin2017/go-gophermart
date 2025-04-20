@@ -34,14 +34,9 @@ func AuthMiddleware(jwtKey []byte) func(http.Handler) http.Handler {
 				return
 			}
 
-			tokenStr := parts[1]
-			claims := &jwt.RegisteredClaims{}
-			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-				return jwtKey, nil
-			})
-
-			if err != nil || !token.Valid {
-				http.Error(w, ErrInvalidOrExpiredToken.Error(), http.StatusUnauthorized)
+			claims, err := parseToken(parts[1], jwtKey)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
@@ -49,6 +44,19 @@ func AuthMiddleware(jwtKey []byte) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func parseToken(tokenStr string, jwtKey []byte) (*jwt.RegisteredClaims, error) {
+	claims := &jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, ErrInvalidOrExpiredToken
+	}
+
+	return claims, nil
 }
 
 func GetClaims(r *http.Request) (*jwt.RegisteredClaims, bool) {

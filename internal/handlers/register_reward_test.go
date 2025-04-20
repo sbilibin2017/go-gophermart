@@ -109,6 +109,20 @@ func TestRegisterRewardHandler(t *testing.T) {
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponse:   "Invalid request body",
 		},
+		{
+			name: "service error: unknown error",
+			request: &RegisterRewardRequest{
+				Match:      "match1",
+				Reward:     100,
+				RewardType: "type1",
+			},
+			setupMocks: func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {
+				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
+				mockService.EXPECT().Register(gomock.Any(), "match1", uint64(100), "type1").Return(errors.New("unexpected error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponse:   "Unexpected error",
+		},
 	}
 
 	for _, tt := range tests {

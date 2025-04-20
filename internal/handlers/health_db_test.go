@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,14 +14,12 @@ func TestHealthDBHandler_Healthy(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-
 	mock.ExpectPing().WillReturnError(nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/health/db", nil)
 	w := httptest.NewRecorder()
 
-	handler := HealthDBHandler(sqlxDB)
+	handler := HealthDBHandler(db)
 	handler(w, req)
 
 	resp := w.Result()
@@ -36,14 +33,12 @@ func TestHealthDBHandler_Unhealthy(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-
 	mock.ExpectPing().WillReturnError(assert.AnError)
 
 	req := httptest.NewRequest(http.MethodGet, "/health/db", nil)
 	w := httptest.NewRecorder()
 
-	handler := HealthDBHandler(sqlxDB)
+	handler := HealthDBHandler(db)
 	handler(w, req)
 
 	resp := w.Result()

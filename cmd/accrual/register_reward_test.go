@@ -137,28 +137,101 @@ func setupDB(db *sqlx.DB) error {
 	return nil
 }
 
-func (suite *GoodsHandlerTestSuite) TestRegisterRewardSuccess() {
-	log.Println("Running TestRegisterRewardSuccess...")
-
-	reqBody := map[string]interface{}{
-		"match":       "Bork",
-		"reward":      10,
-		"reward_type": "%",
+func (suite *GoodsHandlerTestSuite) TestRegisterReward() {
+	tests := []struct {
+		name         string
+		reqBody      []map[string]interface{}
+		expectedCode int
+	}{
+		{
+			name: "Valid registration of reward",
+			reqBody: []map[string]interface{}{
+				{
+					"match":       "Bork",
+					"reward":      10,
+					"reward_type": "%",
+				},
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name: "Empty match value",
+			reqBody: []map[string]interface{}{
+				{
+					"match":       "",
+					"reward":      10,
+					"reward_type": "%",
+				},
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "Invalid reward value (non-positive reward)",
+			reqBody: []map[string]interface{}{
+				{
+					"match":       "Bork",
+					"reward":      0,
+					"reward_type": "%",
+				},
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "Invalid reward type",
+			reqBody: []map[string]interface{}{
+				{
+					"match":       "Bork",
+					"reward":      10,
+					"reward_type": "invalid_type",
+				},
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "Invalid request format (unknown field)",
+			reqBody: []map[string]interface{}{
+				{
+					"unknown_field": "some_value",
+				},
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "Duplicate match registration attempt",
+			reqBody: []map[string]interface{}{
+				{
+					"match":       "Bork",
+					"reward":      10,
+					"reward_type": "%",
+				},
+				{
+					"match":       "Bork",
+					"reward":      10,
+					"reward_type": "%",
+				},
+			},
+			expectedCode: http.StatusConflict,
+		},
 	}
-	reqData, err := json.Marshal(reqBody)
-	suite.Require().NoError(err)
 
-	log.Printf("Request body: %s\n", string(reqData))
+	for _, tt := range tests {
+		suite.Run(tt.name, func() {
+			for _, req := range tt.reqBody {
+				reqData, err := json.Marshal(req)
+				suite.Require().NoError(err)
 
-	client := resty.New()
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(reqData).
-		Post(suite.serverAddress + "/api/goods")
+				client := resty.New()
+				resp, err := client.R().
+					SetHeader("Content-Type", "application/json").
+					SetBody(reqData).
+					Post(suite.serverAddress + "/api/goods")
 
-	log.Printf("Response status: %d\n", resp.StatusCode())
-	log.Printf("Response body: %s\n", resp.String())
+				log.Printf("Test: %s, Response status: %d\n", tt.name, resp.StatusCode())
+				log.Printf("Response body: %s\n", resp.String())
 
-	suite.Require().NoError(err)
-	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode())
+				suite.Require().NoError(err)
+				assert.Equal(suite.T(), tt.expectedCode, resp.StatusCode())
+			}
+		})
+	}
 }

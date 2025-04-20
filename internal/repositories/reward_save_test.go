@@ -2,59 +2,79 @@ package repositories
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
+func setupReewardSaveTestDB() (*sql.DB, func()) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		panic(err)
+	}
+	tearDown := func() {
+		if err := db.Close(); err != nil {
+			panic(err)
+		}
+	}
+	_, err = db.Exec(`
+		CREATE TABLE rewards (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			match TEXT NOT NULL,
+			reward TEXT NOT NULL,
+			reward_type TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP NOT NULL,
+			CONSTRAINT match_unique UNIQUE (match)
+		);
+	`)
+	if err != nil {
+		panic(err)
+	}
+	return db, tearDown
+}
+
 func TestRewardSaveRepository_Save(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	db, tearDown := setupReewardSaveTestDB()
+	defer tearDown()
+	repo := NewRewardSaveRepository(
+		db,
+		func(ctx context.Context) *sql.Tx {
+			return nil
+		},
+	)
 
-	mockExecutor := NewMockRewardSaveExecutor(ctrl)
-	repo := NewRewardSaveRepository(mockExecutor)
-
-	ctx := context.Background()
-	args := map[string]any{"match": "match_value", "reward": 100, "reward_type": "cash"}
-
-	tests := []struct {
-		name       string
-		mockReturn func()
-		err        error
+	testCases := []struct {
+		name        string
+		data        map[string]any
+		expectedErr bool
 	}{
 		{
-			name: "should save reward successfully",
-			mockReturn: func() {
-				mockExecutor.EXPECT().
-					Execute(ctx, rewardSaveQuery, args).
-					Return(nil)
-			},
-			err: nil,
+			name:        "Save new reward",
+			data:        map[string]any{"match": "match1", "reward": "reward1", "reward_type": "type1"},
+			expectedErr: false,
 		},
 		{
-			name: "should return error when execution fails",
-			mockReturn: func() {
-				mockExecutor.EXPECT().
-					Execute(ctx, rewardSaveQuery, args).
-					Return(errors.New("execution failed"))
-			},
-			err: errors.New("execution failed"),
+			name:        "Update existing reward",
+			data:        map[string]any{"match": "match1", "reward": "reward_updated", "reward_type": "type_updated"},
+			expectedErr: false,
+		},
+		{
+			name:        "Save duplicate match",
+			data:        map[string]any{"match": "match2", "reward": "reward2", "reward_type": "type2"},
+			expectedErr: false,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockReturn()
-			err := repo.Save(ctx, args)
-
-			if tt.err != nil {
-				require.Error(t, err)
-				assert.EqualError(t, err, tt.err.Error())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := repo.Save(context.Background(), tc.data)
+			if tc.expectedErr {
+				assert.Error(t, err)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}

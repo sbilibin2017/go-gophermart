@@ -6,6 +6,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
+	"go.uber.org/zap"
 )
 
 var (
@@ -17,26 +20,35 @@ func GzipMiddleware(next http.Handler) http.Handler {
 		if r.Header.Get("Content-Encoding") == "gzip" {
 			gzipReader, err := gzip.NewReader(r.Body)
 			if err != nil {
+				logger.Logger.Error("failed to create gzip reader for request body", zap.Error(err))
 				http.Error(w, ErrFailedToDecompressRequest.Error(), http.StatusBadRequest)
 				return
 			}
-			defer gzipReader.Close()
+			defer func() {
+				gzipReader.Close()
+			}()
 			r.Body = io.NopCloser(gzipReader)
+			logger.Logger.Info("request body decompressed with gzip")
 		}
 
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			w.Header().Set("Content-Encoding", "gzip")
 			gzipWriter := gzip.NewWriter(w)
-			defer gzipWriter.Close()
+			defer func() {
+				gzipWriter.Close()
+			}()
 
+			logger.Logger.Info("response will be compressed with gzip")
 			grw := &gzipResponseWriter{
 				ResponseWriter: w,
 				Writer:         gzipWriter,
 			}
 			next.ServeHTTP(grw, r)
+			logger.Logger.Info("GzipMiddleware: request processed with gzip response")
 			return
 		}
 
+		logger.Logger.Info("GzipMiddleware: no compression used")
 		next.ServeHTTP(w, r)
 	})
 }

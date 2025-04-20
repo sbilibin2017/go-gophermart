@@ -1,32 +1,43 @@
 package main
 
 import (
+	"errors"
+	"flag"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMain_CallsFlagsAndRun(t *testing.T) {
-	calledFlags := false
-	calledRun := false
-
-	originalFlags := flagsFunc
-	originalRun := runFunc
-
-	defer func() {
-		flagsFunc = originalFlags
-		runFunc = originalRun
+func TestMain_Success(t *testing.T) {
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	exitCalled := false
+	exitFunc = func(code int) {
+		exitCalled = (code == 0)
+	}
+	runFunc = func() error {
+		return nil
+	}
+	go func() {
+		main()
 	}()
+	time.Sleep(100 * time.Millisecond)
+	assert.True(t, exitCalled)
+}
 
-	flagsFunc = func() {
-		calledFlags = true
+func TestMain_Error(t *testing.T) {
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	exitCalled := false
+	exitFunc = func(code int) {
+		exitCalled = (code == 0)
 	}
-	runFunc = func() {
-		calledRun = true
+	runFunc = func() error {
+		return errors.New("err")
 	}
-
-	main()
-
-	assert.True(t, calledFlags, "flagsFunc should be called from main()")
-	assert.True(t, calledRun, "runFunc should be called from main()")
+	go func() {
+		main()
+	}()
+	time.Sleep(100 * time.Millisecond)
+	assert.True(t, exitCalled)
 }

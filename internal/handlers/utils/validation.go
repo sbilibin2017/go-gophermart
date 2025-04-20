@@ -1,4 +1,4 @@
-package handlers
+package utils
 
 import (
 	"errors"
@@ -58,11 +58,4 @@ func buildErrorMessages(fieldErrors map[string][]string) string {
 		result = result[:len(result)-2]
 	}
 	return result
-}
-
-func capitalize(s string) string {
-	if len(s) == 0 {
-		return s
-	}
-	return strings.ToUpper(string(s[0])) + s[1:]
 }
