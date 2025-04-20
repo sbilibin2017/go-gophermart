@@ -5,18 +5,11 @@ import (
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/db"
 )
 
-type txKeyType string
-
-const TxKey txKeyType = "tx"
-
-func TxFromContext(ctx context.Context) *sqlx.Tx {
-	tx, _ := ctx.Value(TxKey).(*sqlx.Tx)
-	return tx
-}
-
-func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
+// TxMiddleware manages database transactions within the request lifecycle
+func TxMiddleware(d *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			rw := &responseWriter{
@@ -24,22 +17,21 @@ func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 				statusCode:     http.StatusOK,
 			}
 
-			tx, err := db.BeginTxx(r.Context(), nil)
+			// Using WithTx to handle transaction lifecycle
+			err := db.WithTx(r.Context(), d, func(tx *sqlx.Tx) error {
+				// Store the transaction in the context for downstream handlers
+				ctxWithTx := context.WithValue(r.Context(), db.TxKey, tx)
+				next.ServeHTTP(rw, r.WithContext(ctxWithTx))
+				return nil
+			})
+
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
-			defer func() {
-				if rw.statusCode >= 400 {
-					tx.Rollback()
-				} else {
-					tx.Commit()
-				}
-			}()
-
-			ctxWithTx := context.WithValue(r.Context(), TxKey, tx)
-			next.ServeHTTP(rw, r.WithContext(ctxWithTx))
+			// If everything is fine, just write the response
+			rw.ResponseWriter.WriteHeader(rw.statusCode)
 		})
 	}
 }
@@ -49,6 +41,7 @@ type responseWriter struct {
 	statusCode int
 }
 
+// WriteHeader captures the status code
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)

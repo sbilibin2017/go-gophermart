@@ -4,16 +4,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var logger *zap.Logger
+var log *zap.Logger
 
 func init() {
-	zapConfig := zap.NewProductionConfig()
-	zapConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	logger, _ = zapConfig.Build()
+	log = logger.NewLogger(zapcore.InfoLevel)
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
@@ -23,13 +22,13 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 		duration := time.Since(startTime)
 
-		logger.Info("Request",
+		log.Info("Request",
 			zap.String("uri", r.RequestURI),
 			zap.String("method", r.Method),
 			zap.Duration("duration", duration),
 		)
 
-		logger.Info("Response",
+		log.Info("Response",
 			zap.Int("status", ww.statusCode),
 			zap.Int("response_size", ww.responseSize),
 		)

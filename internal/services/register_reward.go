@@ -3,8 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 var (
@@ -20,25 +18,25 @@ type RewardSaveRepository interface {
 	Save(ctx context.Context, data map[string]any) error
 }
 
-type RewardSaveService struct {
+type RegisterRewardSaveService struct {
 	re RewardExistsRepository
 	rs RewardSaveRepository
 }
 
-func NewRewardSaveService(
+func NewRegisterRewardSaveService(
 	re RewardExistsRepository,
 	rs RewardSaveRepository,
-) *RewardSaveService {
-	return &RewardSaveService{
+) *RegisterRewardSaveService {
+	return &RegisterRewardSaveService{
 		re: re,
 		rs: rs,
 	}
 }
 
-func (svc *RewardSaveService) Register(
-	ctx context.Context, reward *types.Reward,
+func (svc *RegisterRewardSaveService) Register(
+	ctx context.Context, match string, reward uint64, rewardType string,
 ) error {
-	exists, err := svc.re.Exists(ctx, map[string]any{"match": reward.Match})
+	exists, err := svc.re.Exists(ctx, map[string]any{"match": match})
 	if err != nil {
 		return ErrRewardIsNotRegistered
 	}
@@ -47,9 +45,9 @@ func (svc *RewardSaveService) Register(
 	}
 
 	err = svc.rs.Save(ctx, map[string]any{
-		"match":       reward.Match,
-		"reward":      reward.Reward,
-		"reward_type": string(reward.RewardType),
+		"match":       match,
+		"reward":      reward,
+		"reward_type": rewardType,
 	})
 	if err != nil {
 		return ErrRewardIsNotRegistered

@@ -57,7 +57,7 @@ func buildErrorMessages(fieldErrors map[string][]string) string {
 	if len(result) > 2 {
 		result = result[:len(result)-2]
 	}
-	return capitalize(result)
+	return result
 }
 
 func capitalize(s string) string {

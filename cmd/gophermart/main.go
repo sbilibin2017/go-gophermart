@@ -1,19 +1,17 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
 
+	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
+	"github.com/sbilibin2017/go-gophermart/internal/db"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
+	"github.com/sbilibin2017/go-gophermart/internal/server"
 )
 
 func main() {
@@ -53,47 +51,39 @@ func flags() {
 }
 
 func run() {
-	db, err := sqlx.Connect("pgx", config.DatabaseURI)
+	dbConn, err := db.NewDB(config.DatabaseURI)
 	if err != nil {
 		return
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
 	api := chi.NewRouter()
 
-	api.Use(
-		middlewares.LoggingMiddleware,
-		middlewares.GzipMiddleware,
-		middlewares.TxMiddleware(db),
-	)
-
 	api.Route("/api/user", func(r chi.Router) {
+		r.Use(
+			middlewares.LoggingMiddleware,
+			middlewares.GzipMiddleware,
+			middlewares.TxMiddleware(dbConn),
+		)
+
 		r.Post("/register", nil)
 		r.Post("/login", nil)
-		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Post("/orders", nil)
-		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/orders", nil)
-		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/balance", nil)
-		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Post("/balance/withdraw", nil)
-		r.With(middlewares.AuthMiddleware(config.JWTSecretKey)).Get("/withdrawals", nil)
+
+		r.Use(
+			middlewares.AuthMiddleware(config.JWTSecretKey),
+		)
+
+		r.Post("/orders", nil)
+		r.Get("/orders", nil)
+		r.Get("/balance", nil)
+		r.Post("/balance/withdraw", nil)
+		r.Get("/withdrawals", nil)
 	})
 
-	ctx, cancel := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM,
-	)
+	ctx, cancel := contextutils.NewCancelContext()
 	defer cancel()
 
-	srv := &http.Server{Addr: config.RunAddress, Handler: api}
+	srv := server.NewServer(config.RunAddress)
 
-	go func() {
-		srv.ListenAndServe()
-	}()
-
-	<-ctx.Done()
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	srv.Shutdown(shutdownCtx)
+	server.Run(ctx, srv)
 }
