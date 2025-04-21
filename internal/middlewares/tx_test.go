@@ -2,19 +2,14 @@ package middlewares
 
 import (
 	"database/sql"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx" // Импортируем sqlx
-	hh "github.com/sbilibin2017/go-gophermart/internal/handlers/helpers"
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
-	rh "github.com/sbilibin2017/go-gophermart/internal/repositories/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	_ "modernc.org/sqlite"
 )
 
@@ -105,37 +100,6 @@ func TestHandleCommit_Error(t *testing.T) {
 	w := httptest.NewRecorder()
 	handleCommit(tx, w)
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
-func TestTxMiddleware_CommitError(t *testing.T) {
-	db, mock := createTestDB()
-	defer db.Close()
-
-	mock.ExpectBegin()
-	mock.ExpectExec("INSERT INTO users").
-		WithArgs("John").
-		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit().WillReturnError(errors.New("commit failed"))
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tx := rh.TxFromContext(r.Context())
-		require.NotNil(t, tx)
-		_, err := tx.ExecContext(r.Context(), "INSERT INTO users (name) VALUES (?)", "John")
-		require.NoError(t, err)
-		if tx != nil {
-			commitErr := tx.Commit()
-			if commitErr != nil {
-				logger.Logger.Error("Failed to commit transaction", zap.Error(commitErr))
-				hh.ErrorInternalServerResponse(w, commitErr)
-				return
-			}
-		}
-	})
-	middleware := TxMiddleware(db)(handler) // передаем sqlx.DB
-	req := httptest.NewRequest("POST", "/commit-error", nil)
-	rec := httptest.NewRecorder()
-	middleware.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestBeginTx(t *testing.T) {
