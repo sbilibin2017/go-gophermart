@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
+	"github.com/sbilibin2017/go-gophermart/internal/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
@@ -28,11 +28,11 @@ func createTestDB(t *testing.T) *sql.DB {
 }
 
 func TestTxMiddleware(t *testing.T) {
-	db := createTestDB(t)
-	defer db.Close()
-	txMiddleware := TxMiddleware(db)
+	dbMock := createTestDB(t)
+	defer dbMock.Close()
+	txMiddleware := TxMiddleware(dbMock)
 	handler := txMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tx, ok := contextutils.GetTx(r.Context())
+		tx, ok := db.GetTx(r.Context())
 		if !ok || tx == nil {
 			http.Error(w, "Transaction not found in context", http.StatusInternalServerError)
 			return
@@ -54,7 +54,7 @@ func TestTxMiddleware(t *testing.T) {
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", "John Doe").Scan(&count)
+	err = dbMock.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", "John Doe").Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query the database: %v", err)
 	}
@@ -62,11 +62,11 @@ func TestTxMiddleware(t *testing.T) {
 }
 
 func TestTxMiddleware_Rollback(t *testing.T) {
-	db := createTestDB(t)
-	defer db.Close()
-	txMiddleware := TxMiddleware(db)
+	dbMock := createTestDB(t)
+	defer dbMock.Close()
+	txMiddleware := TxMiddleware(dbMock)
 	handler := txMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tx, ok := contextutils.GetTx(r.Context())
+		tx, ok := db.GetTx(r.Context())
 		if !ok || tx == nil {
 			http.Error(w, "Transaction not found in context", http.StatusInternalServerError)
 			return
@@ -88,7 +88,7 @@ func TestTxMiddleware_Rollback(t *testing.T) {
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", "Jane Doe").Scan(&count)
+	err = dbMock.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", "Jane Doe").Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query the database: %v", err)
 	}
@@ -96,14 +96,14 @@ func TestTxMiddleware_Rollback(t *testing.T) {
 }
 
 func TestTxMiddleware_RollbackError(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	dbMock, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create mock database: %v", err)
 	}
-	defer db.Close()
+	defer dbMock.Close()
 	mock.ExpectBegin()
 	mock.ExpectRollback().WillReturnError(fmt.Errorf("mock rollback failure"))
-	txMiddleware := TxMiddleware(db)
+	txMiddleware := TxMiddleware(dbMock)
 	handler := txMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Simulated error", http.StatusInternalServerError)
 	}))
@@ -121,14 +121,14 @@ func TestTxMiddleware_RollbackError(t *testing.T) {
 }
 
 func TestTxMiddleware_CommitError(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	dbMock, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer dbMock.Close()
 	mock.ExpectBegin()
 	mock.ExpectCommit().WillReturnError(fmt.Errorf("mock commit failure"))
-	middleware := TxMiddleware(db)
+	middleware := TxMiddleware(dbMock)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tx, _ := contextutils.GetTx(r.Context())
+		tx, _ := db.GetTx(r.Context())
 		assert.NotNil(t, tx)
 		_, _ = w.Write([]byte("OK"))
 	}))
@@ -140,11 +140,11 @@ func TestTxMiddleware_CommitError(t *testing.T) {
 }
 
 func TestTxMiddleware_BeginError(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	dbMock, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer dbMock.Close()
 	mock.ExpectBegin().WillReturnError(errors.New("mock begin failure"))
-	middleware := TxMiddleware(db)
+	middleware := TxMiddleware(dbMock)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler should not be called on begin error")
 	}))

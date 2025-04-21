@@ -1,4 +1,4 @@
-package contextutils
+package db
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	_ "modernc.org/sqlite"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -21,20 +20,6 @@ func setupTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func TestSetTxAndGetTx(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-	tx, err := db.Begin()
-	if err != nil {
-		t.Fatalf("failed to begin transaction: %v", err)
-	}
-	ctx := context.Background()
-	ctxWithTx := SetTx(ctx, tx)
-	retrievedTx, ok := GetTx(ctxWithTx)
-	assert.True(t, ok)
-	assert.Equal(t, tx, retrievedTx)
-}
-
 func TestGetExecutorWithTx(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
@@ -44,7 +29,7 @@ func TestGetExecutorWithTx(t *testing.T) {
 	}
 	ctx := SetTx(context.Background(), tx)
 	executor := GetExecutor(ctx, db)
-	txExecutor, ok := executor.(*TxExecutor)
+	txExecutor, ok := executor.(*txExecutor)
 	assert.True(t, ok)
 	assert.Equal(t, tx, txExecutor.tx)
 }
@@ -54,7 +39,7 @@ func TestGetExecutorWithDB(t *testing.T) {
 	defer db.Close()
 	ctx := context.Background()
 	executor := GetExecutor(ctx, db)
-	dbExecutor, ok := executor.(*DBExecutor)
+	dbExecutor, ok := executor.(*dbExecutor)
 	assert.True(t, ok)
 	assert.Equal(t, db, dbExecutor.db)
 }
@@ -62,7 +47,7 @@ func TestGetExecutorWithDB(t *testing.T) {
 func TestDBExecutorMethods(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	dbExecutor := &DBExecutor{db: db}
+	dbExecutor := &dbExecutor{db: db}
 	_, err := dbExecutor.ExecContext(context.Background(), "INSERT INTO users (name) VALUES (?)", "John")
 	assert.NoError(t, err)
 	var name string
@@ -87,7 +72,7 @@ func TestTxExecutorMethods(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to begin transaction: %v", err)
 	}
-	txExecutor := &TxExecutor{tx: tx}
+	txExecutor := &txExecutor{tx: tx}
 	_, err = txExecutor.ExecContext(context.Background(), "INSERT INTO users (name) VALUES (?)", "Alice")
 	assert.NoError(t, err)
 	var name string
