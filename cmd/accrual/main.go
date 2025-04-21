@@ -17,17 +17,13 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var exitFunc = os.Exit
-
-var runFunc = run
-
 func main() {
 	flags()
-	err := runFunc()
+	err := run()
 	if err != nil {
-		exitFunc(1)
+		os.Exit(1)
 	}
-	exitFunc(0)
+	os.Exit(0)
 }
 
 var (

@@ -5,48 +5,25 @@ import (
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/handlers/helpers"
-	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 type RegisterRewardService interface {
-	Register(ctx context.Context, reward *types.RegisterRewardRequest) error
+	Register(ctx context.Context, reward *types.RegisterRewardRequest) (*string, *types.APIError)
 }
 
-type RegisterRewardValidator interface {
-	Struct(s any) error
-}
-
-func RegisterRewardHandler(
-	val RegisterRewardValidator,
-	svc RegisterRewardService,
-) http.HandlerFunc {
+func RegisterRewardHandler(svc RegisterRewardService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.RegisterRewardRequest
-
-		if err := helpers.DecodeJSONBody(w, r, &req); err != nil {
-			helpers.ErrorInternalServerResponse(w, err)
+		if err := helpers.DecodeRequestBody(w, r, &req); err != nil {
 			return
 		}
-
-		if err := val.Struct(req); err != nil {
-			helpers.ErrorBadRequestResponse(w, err)
-			return
-		}
-
-		err := svc.Register(r.Context(), &req)
+		msg, err := svc.Register(r.Context(), &req)
 		if err != nil {
-			switch err {
-			case services.ErrRewardAlreadyExists:
-				helpers.ErrorConflictResponse(w, err)
-			case services.ErrRewardIsNotRegistered:
-				helpers.ErrorBadRequestResponse(w, err)
-			default:
-				helpers.ErrorInternalServerResponse(w, err)
-			}
+			http.Error(w, err.Message, err.Status)
 			return
 		}
+		helpers.SendTextResponse(w, *msg, http.StatusOK)
 
-		helpers.SendTextResponse(w, http.StatusOK, "Reward registered successfully")
 	}
 }

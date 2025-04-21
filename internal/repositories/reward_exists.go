@@ -22,12 +22,12 @@ func NewRewardExistsRepository(
 func (r *RewardExistsRepository) Exists(
 	ctx context.Context, filter map[string]any,
 ) (bool, error) {
-	var exists bool
 	row, err := helpers.QueryRowContext(ctx, r.db, r.txProvider, rewardExistsQuery, filter)
 	if err != nil {
 		return false, err
 	}
-	if err := row.Scan(&exists); err != nil {
+	exists, err := helpers.Scan[bool](row)
+	if err != nil {
 		return false, err
 	}
 	return exists, nil

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
@@ -20,16 +21,23 @@ type RegisterRewardSaveRepository interface {
 	Save(ctx context.Context, data map[string]any) error
 }
 
+type RegisterRewardValidator interface {
+	Struct(s any) error
+}
+
 type RegisterRewardService struct {
+	v  RegisterRewardValidator
 	re RegisterRewardExistsRepository
 	rs RegisterRewardSaveRepository
 }
 
 func NewRegisterRewardService(
+	v RegisterRewardValidator,
 	re RegisterRewardExistsRepository,
 	rs RegisterRewardSaveRepository,
 ) *RegisterRewardService {
 	return &RegisterRewardService{
+		v:  v,
 		re: re,
 		rs: rs,
 	}
@@ -37,13 +45,17 @@ func NewRegisterRewardService(
 
 func (svc *RegisterRewardService) Register(
 	ctx context.Context, reward *types.RegisterRewardRequest,
-) error {
+) (*string, *types.APIError) {
+	if err := svc.v.Struct(reward); err != nil {
+		return nil, types.NewValidationErrorResponse(err)
+	}
+
 	exists, err := svc.re.Exists(ctx, map[string]any{"reward_id": reward.Match})
 	if err != nil {
-		return ErrRewardIsNotRegistered
+		return nil, types.NewInternalError()
 	}
 	if exists {
-		return ErrRewardAlreadyExists
+		return nil, types.NewAPIError(ErrRewardAlreadyExists.Error(), http.StatusConflict)
 	}
 
 	err = svc.rs.Save(ctx, map[string]any{
@@ -52,8 +64,9 @@ func (svc *RegisterRewardService) Register(
 		"reward_type": reward.RewardType,
 	})
 	if err != nil {
-		return ErrRewardIsNotRegistered
+		return nil, types.NewInternalError()
 	}
 
-	return nil
+	s := "Reward registered successfully"
+	return &s, nil
 }

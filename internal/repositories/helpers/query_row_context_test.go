@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/stretchr/testify/assert"
 	_ "modernc.org/sqlite"
 )
@@ -51,9 +52,9 @@ func TestQueryRowContextWithTransaction(t *testing.T) {
 	query := "SELECT name FROM test_table WHERE id = :id"
 	args := map[string]any{"id": 1}
 	tx := txProvider(context.Background())
-	ctxWithTx := TxToContext(context.Background(), tx)
+	ctxWithTx := contextutils.TxToContext(context.Background(), tx)
 	row, err := QueryRowContext(ctxWithTx, db, func(ctx context.Context) *sqlx.Tx {
-		return TxFromContext(ctx)
+		return contextutils.TxFromContext(ctx)
 	}, query, args)
 	assert.NoError(t, err)
 	assert.NotNil(t, row)
@@ -103,9 +104,9 @@ func TestQueryRowContextWithTransactionNoResult(t *testing.T) {
 	query := "SELECT name FROM test_table WHERE id = :id"
 	args := map[string]any{"id": 999} // ID не существует
 	tx := txProvider(context.Background())
-	ctxWithTx := TxToContext(context.Background(), tx)
+	ctxWithTx := contextutils.TxToContext(context.Background(), tx)
 	row, err := QueryRowContext(ctxWithTx, db, func(ctx context.Context) *sqlx.Tx {
-		return TxFromContext(ctx)
+		return contextutils.TxFromContext(ctx)
 	}, query, args)
 	assert.NoError(t, err)
 	assert.NotNil(t, row)

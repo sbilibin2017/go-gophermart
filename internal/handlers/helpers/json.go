@@ -2,17 +2,30 @@ package helpers
 
 import (
 	"encoding/json"
-	"errors"
+	"io"
 	"net/http"
 )
 
-var ErrInvalidRequestBody = errors.New("invalid request body")
+func DecodeRequestBody(w http.ResponseWriter, r *http.Request, v interface{}) error {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		if err == io.EOF {
+			http.Error(w, "Request body is empty", http.StatusBadRequest)
+		} else {
+			http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		}
+		defer r.Body.Close()
+		return err
+	}
+	defer r.Body.Close()
+	return nil
+}
 
-func DecodeJSONBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(dst)
-	if err != nil {
-		return ErrInvalidRequestBody
+func EncodeResponseBody(w http.ResponseWriter, v interface{}, status int) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return err
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
@@ -24,18 +25,25 @@ type RegisterOrderSaveRepository interface {
 	Save(ctx context.Context, data map[string]any) error
 }
 
+type RegisterOrderValidator interface {
+	Struct(s any) error
+}
+
 type RegisterOrderService struct {
+	v  RegisterOrderValidator
 	rf RegisterOrderRewardFilterRepository
 	oe RegisterOrderExistsRepository
 	os RegisterOrderSaveRepository
 }
 
 func NewRegisterOrderService(
+	v RegisterOrderValidator,
 	rf RegisterOrderRewardFilterRepository,
 	oe RegisterOrderExistsRepository,
 	os RegisterOrderSaveRepository,
 ) *RegisterOrderService {
 	return &RegisterOrderService{
+		v:  v,
 		rf: rf,
 		oe: oe,
 		os: os,
@@ -44,16 +52,20 @@ func NewRegisterOrderService(
 
 func (svc *RegisterOrderService) Register(
 	ctx context.Context, order *types.RegisterOrderRequest,
-) error {
-	orderExists, err := svc.oe.Exists(ctx, map[string]any{"order_id": order.Order})
-	if err != nil {
-		return ErrRegisterOrderIsNotRegistered
-	}
-	if orderExists {
-		return ErrRegisterOrderAlreadyExists
+) (*string, *types.APIError) {
+	if err := svc.v.Struct(order); err != nil {
+		return nil, types.NewValidationErrorResponse(err)
 	}
 
-	price := int64(0)
+	orderExists, err := svc.oe.Exists(ctx, map[string]any{"order_id": order.Order})
+	if err != nil {
+		return nil, types.NewInternalError()
+	}
+	if orderExists {
+		return nil, types.NewAPIError(ErrRegisterOrderAlreadyExists.Error(), http.StatusConflict)
+	}
+
+	accrual := int64(0)
 	for _, good := range order.Goods {
 		reward, err := svc.rf.Filter(
 			ctx, map[string]any{
@@ -62,27 +74,29 @@ func (svc *RegisterOrderService) Register(
 			[]string{"reward", "reward_type"},
 		)
 		if err != nil {
-			return ErrRegisterOrderIsNotRegistered
+			return nil, types.NewInternalError()
 		}
 		if reward == nil {
-			return ErrRegisterOrderIsNotRegistered
+			return nil, types.NewInternalError()
 		}
-		price += applyReward(good.Price, reward["reward_type"], reward["reward"])
+		accrual += calcAccrual(good.Price, reward["reward_type"], reward["reward"])
 	}
 
 	orderData := map[string]any{
 		"order_id": order.Order,
-		"price":    price,
+		"status":   types.OrderStatusRegistered,
+		"accrual":  accrual,
 	}
 	err = svc.os.Save(ctx, orderData)
 	if err != nil {
-		return ErrRegisterOrderIsNotRegistered
+		return nil, types.NewInternalError()
 	}
 
-	return nil
+	s := "Order registered successfully"
+	return &s, nil
 }
 
-func applyReward(goodPrice int64, rewardType any, rewardValue any) int64 {
+func calcAccrual(goodPrice int64, rewardType any, rewardValue any) int64 {
 	var price int64
 
 	switch rewardType {

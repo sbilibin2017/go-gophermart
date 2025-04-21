@@ -13,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
+	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
@@ -71,7 +72,7 @@ func run() error {
 		r.Use(
 			middlewares.LoggingMiddleware,
 			middlewares.GzipMiddleware,
-			middlewares.TxMiddleware(db),
+			middlewares.TxMiddleware(db, contextutils.TxToContext),
 		)
 
 		r.Post("/register", nil)

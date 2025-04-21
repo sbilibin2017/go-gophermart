@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/stretchr/testify/assert"
 	_ "modernc.org/sqlite"
 )
@@ -47,9 +48,9 @@ func TestExecContextWithTransaction(t *testing.T) {
 	query := "INSERT INTO test_table (name) VALUES (:name)"
 	args := map[string]any{"name": "transaction_test"}
 	tx := txProvider(context.Background())
-	ctxWithTx := TxToContext(context.Background(), tx)
+	ctxWithTx := contextutils.TxToContext(context.Background(), tx)
 	result, err := ExecContext(ctxWithTx, db, func(ctx context.Context) *sqlx.Tx {
-		return TxFromContext(ctx)
+		return contextutils.TxFromContext(ctx)
 	}, query, args)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
