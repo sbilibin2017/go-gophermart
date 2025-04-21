@@ -9,20 +9,20 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type RegisterRewardService interface {
-	Register(ctx context.Context, reward *types.RegisterRewardRequest) error
+type RegisterOrderService interface {
+	Register(ctx context.Context, order *types.RegisterOrderRequest) error
 }
 
-type RegisterRewardValidator interface {
+type RegisterOrderValidator interface {
 	Struct(s any) error
 }
 
-func RegisterRewardHandler(
-	val RegisterRewardValidator,
-	svc RegisterRewardService,
+func RegisterOrderHandler(
+	val RegisterOrderValidator,
+	svc RegisterOrderService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.RegisterRewardRequest
+		var req types.RegisterOrderRequest
 
 		if err := helpers.DecodeJSONBody(w, r, &req); err != nil {
 			helpers.ErrorInternalServerResponse(w, err)
@@ -37,9 +37,9 @@ func RegisterRewardHandler(
 		err := svc.Register(r.Context(), &req)
 		if err != nil {
 			switch err {
-			case services.ErrRewardAlreadyExists:
+			case services.ErrRegisterOrderAlreadyExists:
 				helpers.ErrorConflictResponse(w, err)
-			case services.ErrRewardIsNotRegistered:
+			case services.ErrRegisterOrderIsNotRegistered:
 				helpers.ErrorBadRequestResponse(w, err)
 			default:
 				helpers.ErrorInternalServerResponse(w, err)
@@ -47,6 +47,6 @@ func RegisterRewardHandler(
 			return
 		}
 
-		helpers.SendTextResponse(w, http.StatusOK, "Reward registered successfully")
+		helpers.SendTextResponse(w, http.StatusOK, "Order registered successfully")
 	}
 }

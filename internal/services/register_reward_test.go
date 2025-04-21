@@ -5,23 +5,24 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/sbilibin2017/go-gophermart/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func setupRegisterRewardTest(t *testing.T) (
 	*gomock.Controller,
-	*MockRewardExistsRepository,
-	*MockRewardSaveRepository,
-	*RegisterRewardSaveService,
+	*MockRegisterRewardExistsRepository,
+	*MockRegisterRewardSaveRepository,
+	*RegisterRewardService,
 ) {
 	ctrl := gomock.NewController(t)
-	mockRewardExistsRepository := NewMockRewardExistsRepository(ctrl)
-	mockRewardSaveRepository := NewMockRewardSaveRepository(ctrl)
-	service := NewRegisterRewardSaveService(mockRewardExistsRepository, mockRewardSaveRepository)
+	mockRewardExistsRepository := NewMockRegisterRewardExistsRepository(ctrl)
+	mockRewardSaveRepository := NewMockRegisterRewardSaveRepository(ctrl)
+	service := NewRegisterRewardService(mockRewardExistsRepository, mockRewardSaveRepository)
 	return ctrl, mockRewardExistsRepository, mockRewardSaveRepository, service
 }
 
-func TestRegisterRewardSaveService_Register(t *testing.T) {
+func TestRegisterRewardService_Register(t *testing.T) {
 	ctrl, mockRewardExistsRepository, mockRewardSaveRepository, service := setupRegisterRewardTest(t)
 	defer ctrl.Finish()
 
@@ -85,7 +86,15 @@ func TestRegisterRewardSaveService_Register(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setup()
-			err := service.Register(context.Background(), "testMatch", 100, "testType")
+
+			// Используем правильный тип для RegisterRewardRequest
+			req := &types.RegisterRewardRequest{
+				Match:      "testMatch",
+				Reward:     100,
+				RewardType: "testType",
+			}
+
+			err := service.Register(context.Background(), req)
 			assert.Equal(t, tt.expectedError, err)
 		})
 	}

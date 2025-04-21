@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/apps"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
@@ -51,7 +51,7 @@ func flags() {
 func run() error {
 	logger.Logger.Info("Connecting to database", zap.String("database_uri", databaseURI))
 
-	db, err := sql.Open("pgx", databaseURI)
+	db, err := sqlx.Connect("pgx", databaseURI)
 	if err != nil {
 		logger.Logger.Fatal("Failed to open database", zap.Error(err))
 		return err

@@ -2,35 +2,39 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories/helpers"
 )
 
 type RewardExistsRepository struct {
-	db         *sql.DB
-	txProvider func(ctx context.Context) *sql.Tx
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) *sqlx.Tx
 }
 
 func NewRewardExistsRepository(
-	db *sql.DB,
-	txProvider func(ctx context.Context) *sql.Tx,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) *sqlx.Tx,
 ) *RewardExistsRepository {
 	return &RewardExistsRepository{db: db, txProvider: txProvider}
 }
 
 func (r *RewardExistsRepository) Exists(
-	ctx context.Context, match map[string]any,
+	ctx context.Context, filter map[string]any,
 ) (bool, error) {
 	var exists bool
-	row, err := queryRowContext(ctx, r.db, r.txProvider, rewardExistsQuery, match["match"])
+	row, err := helpers.QueryRowContext(ctx, r.db, r.txProvider, rewardExistsQuery, filter)
 	if err != nil {
 		return false, err
 	}
-	if err := scanRow(row, &exists); err != nil {
+	if err := row.Scan(&exists); err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-
-
-const rewardExistsQuery = "SELECT EXISTS(SELECT 1 FROM rewards WHERE match = $1)"
+const rewardExistsQuery = `
+	SELECT EXISTS(
+		SELECT 1 FROM rewards WHERE reward_id = :reward_id
+	)
+`

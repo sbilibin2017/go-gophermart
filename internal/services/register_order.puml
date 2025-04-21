@@ -1,0 +1,36 @@
+@startuml
+|RegisterOrderService|
+start
+:Check if order already exists;
+|RegisterOrderExistsRepository|
+:Exists(ctx, filter);
+|RegisterOrderService|
+if (Order exists?) then (yes)
+  :Return ErrRegisterOrderAlreadyExists;
+  stop
+else (no)
+  :Iterate over goods in the order;
+  :Filter reward for each good;
+|RegisterOrderRewardFilterRepository|
+:Filter(ctx, filter, fields);
+|RegisterOrderService|
+if (Reward found?) then (yes)
+  :Apply reward to good price;
+else (no)
+  :Return ErrRegisterOrderIsNotRegistered;
+  stop
+  end
+  :Accumulate total price;
+  :Save order to repository;
+|RegisterOrderSaveRepository|
+:Save(ctx, orderData);
+|RegisterOrderService|
+if (Save successful?) then (yes)
+  :Return success (nil);
+  stop
+else (no)
+  :Return ErrRegisterOrderIsNotRegistered;
+  stop
+end
+end
+@enduml

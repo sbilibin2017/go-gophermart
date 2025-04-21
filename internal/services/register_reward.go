@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"errors"
+
+	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 var (
@@ -10,33 +12,33 @@ var (
 	ErrRewardIsNotRegistered = errors.New("reward is not registered")
 )
 
-type RewardExistsRepository interface {
+type RegisterRewardExistsRepository interface {
 	Exists(ctx context.Context, filter map[string]any) (bool, error)
 }
 
-type RewardSaveRepository interface {
+type RegisterRewardSaveRepository interface {
 	Save(ctx context.Context, data map[string]any) error
 }
 
-type RegisterRewardSaveService struct {
-	re RewardExistsRepository
-	rs RewardSaveRepository
+type RegisterRewardService struct {
+	re RegisterRewardExistsRepository
+	rs RegisterRewardSaveRepository
 }
 
-func NewRegisterRewardSaveService(
-	re RewardExistsRepository,
-	rs RewardSaveRepository,
-) *RegisterRewardSaveService {
-	return &RegisterRewardSaveService{
+func NewRegisterRewardService(
+	re RegisterRewardExistsRepository,
+	rs RegisterRewardSaveRepository,
+) *RegisterRewardService {
+	return &RegisterRewardService{
 		re: re,
 		rs: rs,
 	}
 }
 
-func (svc *RegisterRewardSaveService) Register(
-	ctx context.Context, match string, reward uint64, rewardType string,
+func (svc *RegisterRewardService) Register(
+	ctx context.Context, reward *types.RegisterRewardRequest,
 ) error {
-	exists, err := svc.re.Exists(ctx, map[string]any{"match": match})
+	exists, err := svc.re.Exists(ctx, map[string]any{"reward_id": reward.Match})
 	if err != nil {
 		return ErrRewardIsNotRegistered
 	}
@@ -45,9 +47,9 @@ func (svc *RegisterRewardSaveService) Register(
 	}
 
 	err = svc.rs.Save(ctx, map[string]any{
-		"match":       match,
-		"reward":      reward,
-		"reward_type": rewardType,
+		"reward_id":   reward.Match,
+		"reward":      reward.Reward,
+		"reward_type": reward.RewardType,
 	})
 	if err != nil {
 		return ErrRewardIsNotRegistered

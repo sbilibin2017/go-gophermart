@@ -1,34 +1,24 @@
 package middlewares
 
 import (
-	"context"
-	"database/sql"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/handlers/utils"
+	"github.com/jmoiron/sqlx"
+	hh "github.com/sbilibin2017/go-gophermart/internal/handlers/helpers"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
+	rh "github.com/sbilibin2017/go-gophermart/internal/repositories/helpers"
 	"go.uber.org/zap"
 )
 
-type txKeyType string
-
-const txKey txKeyType = "tx"
-
-func TxFromContext(ctx context.Context) *sql.Tx {
-	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
-		return tx
-	}
-	return nil
-}
-
-func TxMiddleware(db *sql.DB) func(http.Handler) http.Handler {
+func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tx, err := beginTx(db, w, r)
 			if err != nil {
+				logger.Logger.Error("Failed to begin transaction", zap.Error(err))
 				return
 			}
-			ctxWithTx := context.WithValue(r.Context(), txKey, tx)
+			ctxWithTx := rh.TxToContext(r.Context(), tx)
 			r = r.WithContext(ctxWithTx)
 			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 			next.ServeHTTP(rw, r)
@@ -37,17 +27,17 @@ func TxMiddleware(db *sql.DB) func(http.Handler) http.Handler {
 	}
 }
 
-func beginTx(db *sql.DB, w http.ResponseWriter, r *http.Request) (*sql.Tx, error) {
-	tx, err := db.BeginTx(r.Context(), nil)
+func beginTx(db *sqlx.DB, w http.ResponseWriter, r *http.Request) (*sqlx.Tx, error) {
+	tx, err := db.BeginTxx(r.Context(), nil)
 	if err != nil {
 		logger.Logger.Error("Failed to begin transaction", zap.Error(err))
-		utils.ErrorInternalServerResponse(w, err)
+		hh.ErrorInternalServerResponse(w, err)
 		return nil, err
 	}
 	return tx, nil
 }
 
-func handleTransactionEnd(tx *sql.Tx, statusCode int, w http.ResponseWriter) {
+func handleTransactionEnd(tx *sqlx.Tx, statusCode int, w http.ResponseWriter) {
 	if tx == nil {
 		return
 	}
@@ -58,7 +48,7 @@ func handleTransactionEnd(tx *sql.Tx, statusCode int, w http.ResponseWriter) {
 	handleCommit(tx, w)
 }
 
-func handleRollback(tx *sql.Tx) {
+func handleRollback(tx *sqlx.Tx) {
 	rollbackErr := tx.Rollback()
 	if rollbackErr != nil {
 		logger.Logger.Error("Failed to rollback transaction", zap.Error(rollbackErr))
@@ -67,11 +57,11 @@ func handleRollback(tx *sql.Tx) {
 	}
 }
 
-func handleCommit(tx *sql.Tx, w http.ResponseWriter) {
+func handleCommit(tx *sqlx.Tx, w http.ResponseWriter) {
 	commitErr := tx.Commit()
 	if commitErr != nil {
 		logger.Logger.Error("Failed to commit transaction", zap.Error(commitErr))
-		utils.ErrorInternalServerResponse(w, commitErr)
+		hh.ErrorInternalServerResponse(w, commitErr)
 	}
 }
 

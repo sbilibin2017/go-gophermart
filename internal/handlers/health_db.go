@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func HealthDBHandler(db *sql.DB) http.HandlerFunc {
+func HealthDBHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := db.Ping()
 		if err != nil {

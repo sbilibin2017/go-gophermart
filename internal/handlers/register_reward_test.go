@@ -10,13 +10,12 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-
 	"github.com/sbilibin2017/go-gophermart/internal/services"
-
+	"github.com/sbilibin2017/go-gophermart/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func sendRegisterRewardRequest(t *testing.T, handler http.HandlerFunc, requestBody *RegisterRewardRequest) *httptest.ResponseRecorder {
+func sendRegisterRewardRequest(t *testing.T, handler http.HandlerFunc, requestBody *types.RegisterRewardRequest) *httptest.ResponseRecorder {
 	reqBody, err := json.Marshal(requestBody)
 	if err != nil {
 		t.Fatalf("could not marshal request body: %v", err)
@@ -40,28 +39,32 @@ func TestRegisterRewardHandler(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		request            *RegisterRewardRequest
+		request            *types.RegisterRewardRequest
 		setupMocks         func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService)
 		expectedStatusCode int
 		expectedResponse   string
 	}{
 		{
 			name: "successful reward registration",
-			request: &RegisterRewardRequest{
+			request: &types.RegisterRewardRequest{
 				Match:      "match1",
 				Reward:     100,
 				RewardType: "type1",
 			},
 			setupMocks: func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {
 				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
-				mockService.EXPECT().Register(gomock.Any(), "match1", uint64(100), "type1").Return(nil)
+				mockService.EXPECT().Register(gomock.Any(), &types.RegisterRewardRequest{
+					Match:      "match1",
+					Reward:     100,
+					RewardType: "type1",
+				}).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponse:   "Reward registered successfully",
 		},
 		{
 			name: "validation error",
-			request: &RegisterRewardRequest{
+			request: &types.RegisterRewardRequest{
 				Match:      "",
 				Reward:     100,
 				RewardType: "type1",
@@ -74,51 +77,61 @@ func TestRegisterRewardHandler(t *testing.T) {
 		},
 		{
 			name: "service error: reward already exists",
-			request: &RegisterRewardRequest{
+			request: &types.RegisterRewardRequest{
 				Match:      "match1",
 				Reward:     100,
 				RewardType: "type1",
 			},
 			setupMocks: func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {
 				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
-				mockService.EXPECT().Register(gomock.Any(), "match1", uint64(100), "type1").Return(services.ErrRewardAlreadyExists)
+				mockService.EXPECT().Register(gomock.Any(), &types.RegisterRewardRequest{
+					Match:      "match1",
+					Reward:     100,
+					RewardType: "type1",
+				}).Return(services.ErrRewardAlreadyExists)
 			},
 			expectedStatusCode: http.StatusConflict,
 			expectedResponse:   "Reward already exists",
 		},
 		{
 			name: "service error: reward not registered",
-			request: &RegisterRewardRequest{
+			request: &types.RegisterRewardRequest{
 				Match:      "match1",
 				Reward:     100,
 				RewardType: "type1",
 			},
 			setupMocks: func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {
 				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
-				mockService.EXPECT().Register(gomock.Any(), "match1", uint64(100), "type1").Return(services.ErrRewardIsNotRegistered)
+				mockService.EXPECT().Register(gomock.Any(), &types.RegisterRewardRequest{
+					Match:      "match1",
+					Reward:     100,
+					RewardType: "type1",
+				}).Return(services.ErrRewardIsNotRegistered)
 			},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse:   "Reward is not registered",
 		},
 		{
-			name:    "invalid request body (decoding error)",
-			request: nil,
-			setupMocks: func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {
-
-			},
+			name:               "invalid request body (decoding error)",
+			request:            nil,
+			setupMocks:         func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponse:   "Invalid request body",
 		},
 		{
 			name: "service error: unknown error",
-			request: &RegisterRewardRequest{
+			request: &types.RegisterRewardRequest{
 				Match:      "match1",
 				Reward:     100,
 				RewardType: "type1",
 			},
 			setupMocks: func(mockValidator *MockRegisterRewardValidator, mockService *MockRegisterRewardService) {
 				mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
-				mockService.EXPECT().Register(gomock.Any(), "match1", uint64(100), "type1").Return(errors.New("unexpected error"))
+				mockService.EXPECT().Register(gomock.Any(), &types.RegisterRewardRequest{
+					Match:      "match1",
+					Reward:     100,
+					RewardType: "type1",
+				}).Return(errors.New("unexpected error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponse:   "Unexpected error",

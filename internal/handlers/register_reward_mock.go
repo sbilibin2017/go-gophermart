@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	types "github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 // MockRegisterRewardService is a mock of RegisterRewardService interface.
@@ -35,17 +36,17 @@ func (m *MockRegisterRewardService) EXPECT() *MockRegisterRewardServiceMockRecor
 }
 
 // Register mocks base method.
-func (m *MockRegisterRewardService) Register(ctx context.Context, match string, reward uint64, rewardType string) error {
+func (m *MockRegisterRewardService) Register(ctx context.Context, reward *types.RegisterRewardRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Register", ctx, match, reward, rewardType)
+	ret := m.ctrl.Call(m, "Register", ctx, reward)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Register indicates an expected call of Register.
-func (mr *MockRegisterRewardServiceMockRecorder) Register(ctx, match, reward, rewardType interface{}) *gomock.Call {
+func (mr *MockRegisterRewardServiceMockRecorder) Register(ctx, reward interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockRegisterRewardService)(nil).Register), ctx, match, reward, rewardType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockRegisterRewardService)(nil).Register), ctx, reward)
 }
 
 // MockRegisterRewardValidator is a mock of RegisterRewardValidator interface.

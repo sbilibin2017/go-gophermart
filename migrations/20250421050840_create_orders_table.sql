@@ -1,9 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE rewards (
-    reward_id VARCHAR(255) PRIMARY KEY,
-    reward BIGINT NOT NULL,
-    reward_type VARCHAR(255) NOT NULL,
+CREATE TABLE orders (
+    order_id VARCHAR(255) PRIMARY KEY,
+    price BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -11,5 +10,5 @@ CREATE TABLE rewards (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE rewards;
+DROP TABLE orders;
 -- +goose StatementEnd

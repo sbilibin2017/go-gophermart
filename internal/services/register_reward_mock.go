@@ -11,31 +11,31 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockRewardExistsRepository is a mock of RewardExistsRepository interface.
-type MockRewardExistsRepository struct {
+// MockRegisterRewardExistsRepository is a mock of RegisterRewardExistsRepository interface.
+type MockRegisterRewardExistsRepository struct {
 	ctrl     *gomock.Controller
-	recorder *MockRewardExistsRepositoryMockRecorder
+	recorder *MockRegisterRewardExistsRepositoryMockRecorder
 }
 
-// MockRewardExistsRepositoryMockRecorder is the mock recorder for MockRewardExistsRepository.
-type MockRewardExistsRepositoryMockRecorder struct {
-	mock *MockRewardExistsRepository
+// MockRegisterRewardExistsRepositoryMockRecorder is the mock recorder for MockRegisterRewardExistsRepository.
+type MockRegisterRewardExistsRepositoryMockRecorder struct {
+	mock *MockRegisterRewardExistsRepository
 }
 
-// NewMockRewardExistsRepository creates a new mock instance.
-func NewMockRewardExistsRepository(ctrl *gomock.Controller) *MockRewardExistsRepository {
-	mock := &MockRewardExistsRepository{ctrl: ctrl}
-	mock.recorder = &MockRewardExistsRepositoryMockRecorder{mock}
+// NewMockRegisterRewardExistsRepository creates a new mock instance.
+func NewMockRegisterRewardExistsRepository(ctrl *gomock.Controller) *MockRegisterRewardExistsRepository {
+	mock := &MockRegisterRewardExistsRepository{ctrl: ctrl}
+	mock.recorder = &MockRegisterRewardExistsRepositoryMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRewardExistsRepository) EXPECT() *MockRewardExistsRepositoryMockRecorder {
+func (m *MockRegisterRewardExistsRepository) EXPECT() *MockRegisterRewardExistsRepositoryMockRecorder {
 	return m.recorder
 }
 
 // Exists mocks base method.
-func (m *MockRewardExistsRepository) Exists(ctx context.Context, filter map[string]any) (bool, error) {
+func (m *MockRegisterRewardExistsRepository) Exists(ctx context.Context, filter map[string]any) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Exists", ctx, filter)
 	ret0, _ := ret[0].(bool)
@@ -44,36 +44,36 @@ func (m *MockRewardExistsRepository) Exists(ctx context.Context, filter map[stri
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockRewardExistsRepositoryMockRecorder) Exists(ctx, filter interface{}) *gomock.Call {
+func (mr *MockRegisterRewardExistsRepositoryMockRecorder) Exists(ctx, filter interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockRewardExistsRepository)(nil).Exists), ctx, filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockRegisterRewardExistsRepository)(nil).Exists), ctx, filter)
 }
 
-// MockRewardSaveRepository is a mock of RewardSaveRepository interface.
-type MockRewardSaveRepository struct {
+// MockRegisterRewardSaveRepository is a mock of RegisterRewardSaveRepository interface.
+type MockRegisterRewardSaveRepository struct {
 	ctrl     *gomock.Controller
-	recorder *MockRewardSaveRepositoryMockRecorder
+	recorder *MockRegisterRewardSaveRepositoryMockRecorder
 }
 
-// MockRewardSaveRepositoryMockRecorder is the mock recorder for MockRewardSaveRepository.
-type MockRewardSaveRepositoryMockRecorder struct {
-	mock *MockRewardSaveRepository
+// MockRegisterRewardSaveRepositoryMockRecorder is the mock recorder for MockRegisterRewardSaveRepository.
+type MockRegisterRewardSaveRepositoryMockRecorder struct {
+	mock *MockRegisterRewardSaveRepository
 }
 
-// NewMockRewardSaveRepository creates a new mock instance.
-func NewMockRewardSaveRepository(ctrl *gomock.Controller) *MockRewardSaveRepository {
-	mock := &MockRewardSaveRepository{ctrl: ctrl}
-	mock.recorder = &MockRewardSaveRepositoryMockRecorder{mock}
+// NewMockRegisterRewardSaveRepository creates a new mock instance.
+func NewMockRegisterRewardSaveRepository(ctrl *gomock.Controller) *MockRegisterRewardSaveRepository {
+	mock := &MockRegisterRewardSaveRepository{ctrl: ctrl}
+	mock.recorder = &MockRegisterRewardSaveRepositoryMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockRewardSaveRepository) EXPECT() *MockRewardSaveRepositoryMockRecorder {
+func (m *MockRegisterRewardSaveRepository) EXPECT() *MockRegisterRewardSaveRepositoryMockRecorder {
 	return m.recorder
 }
 
 // Save mocks base method.
-func (m *MockRewardSaveRepository) Save(ctx context.Context, data map[string]any) error {
+func (m *MockRegisterRewardSaveRepository) Save(ctx context.Context, data map[string]any) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Save", ctx, data)
 	ret0, _ := ret[0].(error)
@@ -81,7 +81,7 @@ func (m *MockRewardSaveRepository) Save(ctx context.Context, data map[string]any
 }
 
 // Save indicates an expected call of Save.
-func (mr *MockRewardSaveRepositoryMockRecorder) Save(ctx, data interface{}) *gomock.Call {
+func (mr *MockRegisterRewardSaveRepositoryMockRecorder) Save(ctx, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockRewardSaveRepository)(nil).Save), ctx, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockRegisterRewardSaveRepository)(nil).Save), ctx, data)
 }
