@@ -27,25 +27,25 @@ type GoodRewardValidator interface {
 	Struct(v any) error
 }
 
-type GoodRewardService struct {
+type RewardService struct {
 	v  GoodRewardValidator
 	re GoodRewardExistsRepository
 	rs GoodRewardSaveRepository
 }
 
-func NewGoodRewardService(
+func NewRewardService(
 	v GoodRewardValidator,
 	re GoodRewardExistsRepository,
 	rs GoodRewardSaveRepository,
-) *GoodRewardService {
-	return &GoodRewardService{
+) *RewardService {
+	return &RewardService{
 		v:  v,
 		re: re,
 		rs: rs,
 	}
 }
 
-func (svc *GoodRewardService) Register(
+func (svc *RewardService) Register(
 	ctx context.Context, req *types.GoodRewardRegisterRequest,
 ) (*types.APIStatus, error) {
 	if err := svc.v.Struct(req); err != nil {
