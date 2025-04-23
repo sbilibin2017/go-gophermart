@@ -9,12 +9,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 )
 
 func TestRunWithGracefulShutdown(t *testing.T) {
-	logger.Init()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -37,7 +36,6 @@ func TestRunWithGracefulShutdown(t *testing.T) {
 }
 
 func TestRunWithGracefulShutdown_ServerListenAndServeSucceeds_ShutdownFails(t *testing.T) {
-	logger.Init()
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

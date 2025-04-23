@@ -111,12 +111,12 @@ func TestDBQuerier_Query_ScanError(t *testing.T) {
 	mock.ExpectQuery("SELECT name FROM test_table WHERE name = ?").
 		WithArgs("tx_name").
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).AddRow("tx_name"))
-	querier := DBQuerier{
-		db: db,
-		txProvider: func(ctx context.Context) (*sqlx.Tx, bool) {
+	querier := NewDBQuerier(
+		db,
+		func(ctx context.Context) (*sqlx.Tx, bool) {
 			return nil, false
 		},
-	}
+	)
 	var result struct {
 		Age int `db:"name"`
 	}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,8 +16,6 @@ import (
 func setupTestDB(t *testing.T) *sqlx.DB {
 	db, err := sqlx.Open("sqlite", ":memory:")
 	require.NoError(t, err)
-
-	logger.Init()
 
 	schema := `
 	CREATE TABLE test_table (
@@ -35,12 +32,12 @@ func TestDBExecutor_Execute_WithoutTransaction(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 
-	executor := DBExecutor{
-		db: db,
-		txProvider: func(ctx context.Context) (*sqlx.Tx, bool) {
+	executor := NewDBExecutor(
+		db,
+		func(ctx context.Context) (*sqlx.Tx, bool) {
 			return nil, false
 		},
-	}
+	)
 
 	query := `INSERT INTO test_table (name) VALUES (:name)`
 	args := map[string]any{"name": "test_name"}
@@ -88,8 +85,6 @@ func setupMockDB(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock) {
 	require.NoError(t, err)
 
 	sqlxDB := sqlx.NewDb(db, "sqlite3")
-
-	logger.Init()
 
 	return sqlxDB, mock
 }

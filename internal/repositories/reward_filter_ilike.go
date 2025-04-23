@@ -41,9 +41,9 @@ func (r *RewardFilterILikeRepository) FilterILike(
 	return result, nil
 }
 
-func buildGoodRewardFilterILikeQuery(reward_id string, fields []string) (string, map[string]any) {
+func buildGoodRewardFilterILikeQuery(rewardID string, fields []string) (string, map[string]any) {
 	argMap := make(map[string]any)
-	argMap["reward_id"] = "%" + reward_id + "%"
+	argMap["reward_id"] = "%" + rewardID + "%"
 	fieldsQuery := strings.Join(fields, ", ")
 	query := fmt.Sprintf(goodRewardFilterILikeQuery, fieldsQuery)
 	return query, argMap

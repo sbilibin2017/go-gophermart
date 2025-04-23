@@ -54,6 +54,15 @@ func (q *DBQuerier) Query(
 			}
 		}
 
+		if err := rows.Err(); err != nil {
+			logger.Logger.Error("Error iterating over rows in transaction",
+				zap.String("query", query),
+				zap.Any("args", argMap),
+				zap.Error(err),
+			)
+			return err
+		}
+
 		return nil
 	}
 
@@ -78,6 +87,15 @@ func (q *DBQuerier) Query(
 			)
 			return err
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Logger.Error("Error iterating over rows outside transaction",
+			zap.String("query", query),
+			zap.Any("args", argMap),
+			zap.Error(err),
+		)
+		return err
 	}
 
 	return nil

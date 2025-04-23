@@ -29,7 +29,6 @@ var (
 )
 
 func flags() *configs.AccrualConfig {
-
 	flag.StringVar(&runAddress, "a", "", "run address")
 	flag.StringVar(&databaseURI, "d", "", "database uri")
 	flag.Parse()
@@ -48,8 +47,6 @@ func flags() *configs.AccrualConfig {
 }
 
 func run(config *configs.AccrualConfig) error {
-	logger.Init()
-
 	db, err := sqlx.Connect("pgx", config.DatabaseURI)
 	if err != nil {
 		return err
