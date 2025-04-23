@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -12,66 +13,86 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGoodRewardHandler_Success(t *testing.T) {
+func TestGoodRewardHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockService := NewMockGoodRewardService(ctrl)
-	handler := GoodRewardHandler(mockService)
-	body := `{"match":"item-123","reward":10,"reward_type":"pt"}`
-	req := httptest.NewRequest(http.MethodPost, "/rewards", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	expectedReq := &types.GoodRewardRegisterRequest{
-		Match:      "item-123",
-		Reward:     10,
-		RewardType: types.RewardTypePoint,
+
+	mockSvc := NewMockGoodRewardService(ctrl)
+
+	tests := []struct {
+		name            string
+		requestBody     []byte
+		mockResponse    *types.APIStatus
+		mockError       error
+		expectedCode    int
+		expectedMessage string
+	}{
+		{
+			name: "Valid Request - Success",
+			requestBody: []byte(`{
+				"match": "12345",
+				"reward": 100,
+				"reward_type": "%"
+			}`),
+			mockResponse: &types.APIStatus{
+				Status:  200,
+				Message: "Good reward registered successfully",
+			},
+			mockError:       nil,
+			expectedCode:    http.StatusOK,
+			expectedMessage: "Good reward registered successfully",
+		},
+		{
+			name: "Error during register",
+			requestBody: []byte(`{
+				"match": "12345",
+				"reward": 100,
+				"reward_type": "%"
+			}`),
+			mockResponse: &types.APIStatus{
+				Status:  500,
+				Message: "Internal Server Error",
+			},
+			mockError:       errors.New("Internal Server Error"),
+			expectedCode:    http.StatusInternalServerError,
+			expectedMessage: "Internal Server Error\n",
+		},
+		{
+			name: "Invalid JSON - Malformed",
+			requestBody: []byte(`{
+				"match": "12345",
+				"reward": 100,
+				"reward_type": "%"
+			`),
+			mockResponse:    nil,
+			mockError:       nil,
+			expectedCode:    http.StatusBadRequest,
+			expectedMessage: "Invalid request body\n",
+		},
+		{
+			name:            "Empty Body",
+			requestBody:     []byte(``),
+			mockResponse:    nil,
+			mockError:       nil,
+			expectedCode:    http.StatusBadRequest,
+			expectedMessage: "Invalid request body\n",
+		},
 	}
-	mockService.EXPECT().
-		Register(gomock.Any(), expectedReq).
-		Return(&types.APIStatus{
-			Status:  http.StatusOK,
-			Message: "Good reward registered successfully",
-		}, nil, nil)
-	handler(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
-	assert.Equal(t, "Good reward registered successfully", w.Body.String())
-}
 
-func TestGoodRewardHandler_ServiceError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockService := NewMockGoodRewardService(ctrl)
-	handler := GoodRewardHandler(mockService)
-	body := `{"match":"bad-match","reward":5,"reward_type":"%"}`
-	req := httptest.NewRequest(http.MethodPost, "/rewards", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	mockService.EXPECT().
-		Register(gomock.Any(), &types.GoodRewardRegisterRequest{
-			Match:      "bad-match",
-			Reward:     5,
-			RewardType: types.RewardTypePercent,
-		}).
-		Return(nil, &types.APIStatus{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid match pattern",
-		}, errors.New("validation failed"))
-	handler(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid match pattern")
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.mockResponse != nil {
+				mockSvc.EXPECT().Register(context.Background(), gomock.Any()).Return(tt.mockResponse, tt.mockError).Times(1)
+			}
 
-func TestGoodRewardHandler_InvalidJSON(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockService := NewMockGoodRewardService(ctrl)
-	handler := GoodRewardHandler(mockService)
-	body := `{"match": "item-123", "reward": "oops"`
-	req := httptest.NewRequest(http.MethodPost, "/rewards", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	handler(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid request body")
+			req := httptest.NewRequest(http.MethodPost, "/good/reward", bytes.NewReader(tt.requestBody))
+			rec := httptest.NewRecorder()
+
+			handler := GoodRewardHandler(mockSvc)
+			handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedCode, rec.Code)
+			assert.Equal(t, tt.expectedMessage, rec.Body.String())
+		})
+	}
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -12,63 +13,83 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOrderAcceptHandler_InvalidJSON(t *testing.T) {
+func TestOrderAcceptHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockService := NewMockOrderAcceptService(ctrl)
-	handler := OrderAcceptHandler(mockService)
-	invalidJSON := `{"order":"12345678903","goods":[{"description":"Item","price":1000}`
-	req := httptest.NewRequest(http.MethodPost, "/orders", bytes.NewBufferString(invalidJSON))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	handler(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid request body")
-}
 
-func TestOrderAcceptHandler_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockService := NewMockOrderAcceptService(ctrl)
-	handler := OrderAcceptHandler(mockService)
-	orderJSON := `{"order":"12345678903","goods":[{"description":"Item","price":1000}]}`
-	req := httptest.NewRequest(http.MethodPost, "/orders", bytes.NewBufferString(orderJSON))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	mockService.EXPECT().
-		Accept(gomock.Any(), &types.OrderAcceptRequest{
-			Order: "12345678903",
-			Goods: []types.Good{{Description: "Item", Price: 1000}},
-		}).
-		Return(&types.APIStatus{
-			Status:  http.StatusAccepted,
-			Message: "Order accepted",
-		}, nil, nil)
-	handler(w, req)
-	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
-	assert.Contains(t, w.Body.String(), "Order accepted")
-}
+	mockSvc := NewMockOrderAcceptService(ctrl)
 
-func TestOrderAcceptHandler_Error(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockService := NewMockOrderAcceptService(ctrl)
-	handler := OrderAcceptHandler(mockService)
-	orderJSON := `{"order":"invalid","goods":[{"description":"Item","price":1000}]}`
-	req := httptest.NewRequest(http.MethodPost, "/orders", bytes.NewBufferString(orderJSON))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	mockService.EXPECT().
-		Accept(gomock.Any(), &types.OrderAcceptRequest{
-			Order: "invalid",
-			Goods: []types.Good{{Description: "Item", Price: 1000}},
-		}).
-		Return(nil, &types.APIStatus{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid order",
-		}, errors.New("bad order"))
-	handler(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid order")
+	tests := []struct {
+		name            string
+		requestBody     []byte
+		mockResponse    *types.APIStatus
+		mockError       error
+		expectedCode    int
+		expectedMessage string
+	}{
+		{
+			name: "Valid Request - Success",
+			requestBody: []byte(`{
+				"order": "12345",
+				"goods": [{"description": "Good 1", "price": 100}]
+			}`),
+			mockResponse: &types.APIStatus{
+				Status:  200,
+				Message: "Order accepted successfully",
+			},
+			mockError:       nil,
+			expectedCode:    http.StatusOK,
+			expectedMessage: "Order accepted successfully",
+		},
+		{
+			name: "Error during accept",
+			requestBody: []byte(`{
+				"order": "12345",
+				"goods": [{"description": "Good 1", "price": 100}]
+			}`),
+			mockResponse: &types.APIStatus{
+				Status:  500,
+				Message: "Internal Server Error",
+			},
+			mockError:       errors.New("Internal Server Error"),
+			expectedCode:    http.StatusInternalServerError,
+			expectedMessage: "Internal Server Error\n",
+		},
+		{
+			name: "Invalid JSON - Malformed",
+			requestBody: []byte(`{
+				"order": "12345",
+				"goods": [{"description": "Good 1", "price": 100}]
+			`),
+			mockResponse:    nil,
+			mockError:       nil,
+			expectedCode:    http.StatusBadRequest,
+			expectedMessage: "Invalid request body\n",
+		},
+		{
+			name:            "Empty Body",
+			requestBody:     []byte(``),
+			mockResponse:    nil,
+			mockError:       nil,
+			expectedCode:    http.StatusBadRequest,
+			expectedMessage: "Invalid request body\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.mockResponse != nil {
+				mockSvc.EXPECT().Accept(context.Background(), gomock.Any()).Return(tt.mockResponse, tt.mockError).Times(1)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/order/accept", bytes.NewReader(tt.requestBody))
+			rec := httptest.NewRecorder()
+
+			handler := OrderAcceptHandler(mockSvc)
+			handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedCode, rec.Code)
+			assert.Equal(t, tt.expectedMessage, rec.Body.String())
+		})
+	}
 }

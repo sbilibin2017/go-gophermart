@@ -15,25 +15,32 @@ import (
 func TestOrderGetHandler_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
 	mockService := NewMockOrderGetService(ctrl)
 	handler := OrderGetHandler(mockService)
-	expectedResp := &types.OrderGetResponse{
+
+	expectedResp := &types.OrderGetByIDResponse{
 		Order:  "12345678903",
 		Status: types.OrderStatusProcessed,
 		Accrual: func() *int64 {
-			var val int64 = 150
+			val := int64(150)
 			return &val
 		}(),
 	}
+
 	mockService.
 		EXPECT().
-		Get(gomock.Any(), &types.OrderGetRequest{Number: "12345678903"}).
+		GetByID(gomock.Any(), &types.OrderGetByIDRequest{Number: "12345678903"}).
 		Return(expectedResp, nil, nil)
+
 	r := chi.NewRouter()
 	r.Get("/orders/{number}", handler)
+
 	req := httptest.NewRequest("GET", "/orders/12345678903", nil)
 	w := httptest.NewRecorder()
+
 	r.ServeHTTP(w, req)
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"order":"12345678903"`)
 	assert.Contains(t, w.Body.String(), `"status":"PROCESSED"`)
@@ -43,20 +50,26 @@ func TestOrderGetHandler_Success(t *testing.T) {
 func TestOrderGetHandler_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
 	mockService := NewMockOrderGetService(ctrl)
 	handler := OrderGetHandler(mockService)
+
 	mockService.
 		EXPECT().
-		Get(gomock.Any(), &types.OrderGetRequest{Number: "invalid"}).
+		GetByID(gomock.Any(), &types.OrderGetByIDRequest{Number: "invalid"}).
 		Return(nil, &types.APIStatus{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid order number",
 		}, errors.New("validation failed"))
+
 	r := chi.NewRouter()
 	r.Get("/orders/{number}", handler)
+
 	req := httptest.NewRequest("GET", "/orders/invalid", nil)
 	w := httptest.NewRecorder()
+
 	r.ServeHTTP(w, req)
+
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid order number")
 }

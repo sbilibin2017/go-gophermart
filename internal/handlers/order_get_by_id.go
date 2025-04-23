@@ -8,14 +8,14 @@ import (
 )
 
 type OrderGetService interface {
-	Get(ctx context.Context, req *types.OrderGetRequest) (*types.OrderGetResponse, *types.APIStatus, error)
+	GetByID(ctx context.Context, req *types.OrderGetByIDRequest) (*types.OrderGetByIDResponse, *types.APIStatus, error)
 }
 
 func OrderGetHandler(svc OrderGetService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		number := getPathParam(r, "number")
 
-		resp, status, err := svc.Get(r.Context(), &types.OrderGetRequest{Number: number})
+		resp, status, err := svc.GetByID(r.Context(), &types.OrderGetByIDRequest{Number: number})
 		if err != nil {
 			http.Error(w, status.Message, status.Status)
 			return

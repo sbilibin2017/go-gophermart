@@ -8,7 +8,7 @@ import (
 )
 
 type OrderAcceptService interface {
-	Accept(ctx context.Context, order *types.OrderAcceptRequest) (*types.APIStatus, *types.APIStatus, error)
+	Accept(ctx context.Context, order *types.OrderAcceptRequest) (*types.APIStatus, error)
 }
 
 func OrderAcceptHandler(svc OrderAcceptService) http.HandlerFunc {
@@ -17,9 +17,9 @@ func OrderAcceptHandler(svc OrderAcceptService) http.HandlerFunc {
 		if err := decodeRequest(w, r, &req); err != nil {
 			return
 		}
-		resp, status, err := svc.Accept(r.Context(), &req)
+		resp, err := svc.Accept(r.Context(), &req)
 		if err != nil {
-			http.Error(w, status.Message, status.Status)
+			http.Error(w, resp.Message, resp.Status)
 			return
 		}
 		writeTextPlainResponse(w, resp.Status, resp.Message)

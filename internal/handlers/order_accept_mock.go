@@ -36,13 +36,12 @@ func (m *MockOrderAcceptService) EXPECT() *MockOrderAcceptServiceMockRecorder {
 }
 
 // Accept mocks base method.
-func (m *MockOrderAcceptService) Accept(ctx context.Context, order *types.OrderAcceptRequest) (*types.APIStatus, *types.APIStatus, error) {
+func (m *MockOrderAcceptService) Accept(ctx context.Context, order *types.OrderAcceptRequest) (*types.APIStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Accept", ctx, order)
 	ret0, _ := ret[0].(*types.APIStatus)
-	ret1, _ := ret[1].(*types.APIStatus)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Accept indicates an expected call of Accept.

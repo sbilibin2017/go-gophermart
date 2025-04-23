@@ -8,7 +8,7 @@ import (
 )
 
 type GoodRewardService interface {
-	Register(ctx context.Context, req *types.GoodRewardRegisterRequest) (*types.APIStatus, *types.APIStatus, error)
+	Register(ctx context.Context, req *types.GoodRewardRegisterRequest) (*types.APIStatus, error)
 }
 
 func GoodRewardHandler(svc GoodRewardService) http.HandlerFunc {
@@ -17,9 +17,9 @@ func GoodRewardHandler(svc GoodRewardService) http.HandlerFunc {
 		if err := decodeRequest(w, r, &req); err != nil {
 			return
 		}
-		resp, status, err := svc.Register(r.Context(), &req)
+		resp, err := svc.Register(r.Context(), &req)
 		if err != nil {
-			http.Error(w, status.Message, status.Status)
+			http.Error(w, resp.Message, resp.Status)
 			return
 		}
 		writeTextPlainResponse(w, resp.Status, resp.Message)
