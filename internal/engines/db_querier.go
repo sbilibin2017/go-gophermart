@@ -27,16 +27,16 @@ func (q *DBQuerier) Query(
 	ctx context.Context,
 	dest any,
 	query string,
-	argMap map[string]any,
+	args any,
 ) error {
 	tx, ok := q.txProvider(ctx)
 	if ok {
 		logger.Logger.Info("Executing named query inside transaction")
-		rows, err := tx.NamedQuery(query, argMap)
+		rows, err := tx.NamedQuery(query, args)
 		if err != nil {
 			logger.Logger.Error("Error executing named query in transaction",
 				zap.String("query", query),
-				zap.Any("args", argMap),
+				zap.Any("args", args),
 				zap.Error(err),
 			)
 			return err
@@ -47,7 +47,7 @@ func (q *DBQuerier) Query(
 			if err := rows.StructScan(dest); err != nil {
 				logger.Logger.Error("Error scanning result from named query",
 					zap.String("query", query),
-					zap.Any("args", argMap),
+					zap.Any("args", args),
 					zap.Error(err),
 				)
 				return err
@@ -57,7 +57,7 @@ func (q *DBQuerier) Query(
 		if err := rows.Err(); err != nil {
 			logger.Logger.Error("Error iterating over rows in transaction",
 				zap.String("query", query),
-				zap.Any("args", argMap),
+				zap.Any("args", args),
 				zap.Error(err),
 			)
 			return err
@@ -67,11 +67,11 @@ func (q *DBQuerier) Query(
 	}
 
 	logger.Logger.Info("Executing named query outside transaction")
-	rows, err := q.db.NamedQueryContext(ctx, query, argMap)
+	rows, err := q.db.NamedQueryContext(ctx, query, args)
 	if err != nil {
 		logger.Logger.Error("Error executing named query outside transaction",
 			zap.String("query", query),
-			zap.Any("args", argMap),
+			zap.Any("args", args),
 			zap.Error(err),
 		)
 		return err
@@ -82,7 +82,7 @@ func (q *DBQuerier) Query(
 		if err := rows.StructScan(dest); err != nil {
 			logger.Logger.Error("Error scanning result from named query",
 				zap.String("query", query),
-				zap.Any("args", argMap),
+				zap.Any("args", args),
 				zap.Error(err),
 			)
 			return err
@@ -92,7 +92,7 @@ func (q *DBQuerier) Query(
 	if err := rows.Err(); err != nil {
 		logger.Logger.Error("Error iterating over rows outside transaction",
 			zap.String("query", query),
-			zap.Any("args", argMap),
+			zap.Any("args", args),
 			zap.Error(err),
 		)
 		return err

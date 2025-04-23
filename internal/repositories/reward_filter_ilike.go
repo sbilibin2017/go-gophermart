@@ -13,7 +13,7 @@ type RewardFilterILikeQuerier interface {
 		ctx context.Context,
 		dest any,
 		query string,
-		argMap map[string]any,
+		args any,
 	) error
 }
 
@@ -28,9 +28,9 @@ func NewRewardFilterILikeRepository(
 }
 
 func (r *RewardFilterILikeRepository) FilterILike(
-	ctx context.Context, rewardID string, fields []string,
+	ctx context.Context, filter *RewardFilterILike, // принимаем указатель на фильтр
 ) (*types.RewardDB, error) {
-	query, argMap := buildGoodRewardFilterILikeQuery(rewardID, fields)
+	query, argMap := buildGoodRewardFilterILikeQuery(filter)
 
 	var result *types.RewardDB
 	err := r.q.Query(ctx, &result, query, argMap)
@@ -41,12 +41,24 @@ func (r *RewardFilterILikeRepository) FilterILike(
 	return result, nil
 }
 
-func buildGoodRewardFilterILikeQuery(rewardID string, fields []string) (string, map[string]any) {
+type RewardFilterILike struct {
+	RewardID string   `db:"reward_id"`
+	Fields   []string // поля для запроса
+}
+
+func buildGoodRewardFilterILikeQuery(filter *RewardFilterILike) (string, map[string]any) {
 	argMap := make(map[string]any)
-	argMap["reward_id"] = "%" + rewardID + "%"
-	fieldsQuery := strings.Join(fields, ", ")
+	argMap["reward_id"] = "%" + filter.RewardID + "%" // используем фильтр как указатель
+	fieldsQuery := "*"
+	if len(filter.Fields) > 0 {
+		fieldsQuery = strings.Join(filter.Fields, ", ")
+	}
 	query := fmt.Sprintf(goodRewardFilterILikeQuery, fieldsQuery)
 	return query, argMap
 }
 
-const goodRewardFilterILikeQuery = "SELECT %s FROM rewards WHERE reward_id ILIKE :reward_id"
+const goodRewardFilterILikeQuery = `
+	SELECT %s 
+	FROM rewards 
+	WHERE reward_id ILIKE :reward_id
+`

@@ -8,7 +8,7 @@ type OrderExecutor interface {
 	Execute(
 		ctx context.Context,
 		query string,
-		argMap map[string]any,
+		args any,
 	) error
 }
 
@@ -23,19 +23,19 @@ func NewOrderSaveRepository(
 }
 
 func (r *OrderSaveRepository) Save(
-	ctx context.Context, orderID string, status string, accrual int64,
+	ctx context.Context, order *OrderSave,
 ) error {
-	argMap := map[string]any{
-		"order_id": orderID,
-		"status":   status,
-		"accrual":  accrual,
-	}
-	err := r.e.Execute(ctx, orderSaveQuery, argMap)
+	err := r.e.Execute(ctx, orderSaveQuery, order)
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+type OrderSave struct {
+	OrderID string `db:"order_id"`
+	Status  string `db:"status"`
+	Accrual int64  `db:"accrual"`
 }
 
 const orderSaveQuery = `

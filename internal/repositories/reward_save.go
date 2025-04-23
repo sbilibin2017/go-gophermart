@@ -8,7 +8,7 @@ type RewardExecutor interface {
 	Execute(
 		ctx context.Context,
 		query string,
-		argMap map[string]any,
+		arg any,
 	) error
 }
 
@@ -23,19 +23,20 @@ func NewRewardSaveRepository(
 }
 
 func (r *RewardSaveRepository) Save(
-	ctx context.Context, rewardID string, reward int64, rewardType string,
+	ctx context.Context, rewardSave *RewardSave,
 ) error {
-	argMap := map[string]any{
-		"reward_id":   rewardID,
-		"reward":      reward,
-		"reward_type": rewardType,
-	}
-	err := r.e.Execute(ctx, rewardSaveQuery, argMap)
+	err := r.e.Execute(ctx, rewardSaveQuery, rewardSave) // Передаем структуру напрямую
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+type RewardSave struct {
+	RewardID   string `db:"reward_id"`
+	Reward     int64  `db:"reward"`
+	RewardType string `db:"reward_type"`
 }
 
 const rewardSaveQuery = `

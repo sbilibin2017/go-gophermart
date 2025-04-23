@@ -26,16 +26,16 @@ func NewDBExecutor(
 func (d *DBExecutor) Execute(
 	ctx context.Context,
 	query string,
-	argMap map[string]any,
+	args any,
 ) error {
 	tx, ok := d.txProvider(ctx)
 	if ok {
 		logger.Logger.Info("Executing named query inside transaction")
-		_, err := tx.NamedExecContext(ctx, query, argMap)
+		_, err := tx.NamedExecContext(ctx, query, args)
 		if err != nil {
 			logger.Logger.Error("Error executing named query in transaction",
 				zap.String("query", query),
-				zap.Any("args", argMap),
+				zap.Any("args", args),
 				zap.Error(err),
 			)
 			return err
@@ -44,11 +44,11 @@ func (d *DBExecutor) Execute(
 	}
 
 	logger.Logger.Info("Executing named query outside transaction")
-	_, err := d.db.NamedExecContext(ctx, query, argMap)
+	_, err := d.db.NamedExecContext(ctx, query, args)
 	if err != nil {
 		logger.Logger.Error("Error executing named query outside transaction",
 			zap.String("query", query),
-			zap.Any("args", argMap),
+			zap.Any("args", args),
 			zap.Error(err),
 		)
 		return err

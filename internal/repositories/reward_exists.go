@@ -9,7 +9,7 @@ type RewardExistsQuerier interface {
 		ctx context.Context,
 		dest any,
 		query string,
-		argMap map[string]any,
+		args any,
 	) error
 }
 
@@ -24,17 +24,24 @@ func NewRewardExistsRepository(
 }
 
 func (r *RewardExistsRepository) Exists(
-	ctx context.Context, rewardID string,
+	ctx context.Context, filter *RewardExistsFilter, // принимаем указатель на фильтр
 ) (bool, error) {
-	argMap := map[string]any{
-		"reward_id": rewardID,
-	}
 	var exists bool
-	err := r.q.Query(ctx, &exists, rewardExistsByIDQuery, argMap)
+	err := r.q.Query(ctx, &exists, rewardExistsByIDQuery, filter)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-var rewardExistsByIDQuery = `SELECT EXISTS(SELECT 1 FROM rewards WHERE reward_id = :reward_id)`
+type RewardExistsFilter struct {
+	RewardID string `db:"reward_id"`
+}
+
+var rewardExistsByIDQuery = `
+	SELECT EXISTS(
+		SELECT 1
+		FROM rewards
+		WHERE reward_id = :reward_id
+	)
+`
