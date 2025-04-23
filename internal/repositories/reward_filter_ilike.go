@@ -29,10 +29,10 @@ func NewRewardFilterILikeRepository(
 
 func (r *RewardFilterILikeRepository) FilterILike(
 	ctx context.Context, rewardID string, fields []string,
-) (*types.GoodRewardDB, error) {
+) (*types.RewardDB, error) {
 	query, argMap := buildGoodRewardFilterILikeQuery(rewardID, fields)
 
-	var result *types.GoodRewardDB
+	var result *types.RewardDB
 	err := r.q.Query(ctx, &result, query, argMap)
 	if err != nil {
 		return nil, err

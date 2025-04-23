@@ -88,7 +88,7 @@ func TestGoodRewardHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/good/reward", bytes.NewReader(tt.requestBody))
 			rec := httptest.NewRecorder()
 
-			handler := GoodRewardHandler(mockSvc)
+			handler := RewardHandler(mockSvc)
 			handler.ServeHTTP(rec, req)
 
 			assert.Equal(t, tt.expectedCode, rec.Code)

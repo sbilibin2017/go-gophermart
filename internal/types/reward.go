@@ -1,23 +1,17 @@
 package types
 
 import (
-	"net/http"
 	"time"
 )
 
-type GoodRewardRegisterRequest struct {
+type RewardRegisterRequest struct {
 	Match      string     `json:"match" validate:"required"`
 	Reward     int64      `json:"reward" validate:"required,gt=0"`
 	RewardType RewardType `json:"reward_type" validate:"required,reward_type"`
 }
 
-var GoodRewardRegisterResponse = APIStatus{
-	Status:  http.StatusOK,
-	Message: "Good reward registered successfully",
-}
-
-type GoodRewardDB struct {
-	Match      string     `db:"match"`
+type RewardDB struct {
+	RewardID   string     `db:"reward_id"`
 	Reward     int64      `db:"reward"`
 	RewardType RewardType `db:"reward_type"`
 	CreatedAt  time.Time  `db:"created_at"`

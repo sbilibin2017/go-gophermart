@@ -23,7 +23,7 @@ func TestRewardFilterILikeRepository_FilterILike_Success(t *testing.T) {
 	expectedQuery := "SELECT reward_id, reward, reward_type FROM rewards WHERE reward_id ILIKE :reward_id"
 	expectedArgMap := map[string]any{"reward_id": "%bonus%"}
 
-	expectedResult := &types.GoodRewardDB{
+	expectedResult := &types.RewardDB{
 		RewardID:   "123",
 		Reward:     100,
 		RewardType: "bonus",
@@ -32,7 +32,7 @@ func TestRewardFilterILikeRepository_FilterILike_Success(t *testing.T) {
 	mockQuerier.EXPECT().
 		Query(ctx, gomock.AssignableToTypeOf(&expectedResult), expectedQuery, expectedArgMap).
 		DoAndReturn(func(_ context.Context, dest any, _ string, _ map[string]any) error {
-			ptr := dest.(**types.GoodRewardDB)
+			ptr := dest.(**types.RewardDB)
 			*ptr = expectedResult
 			return nil
 		})

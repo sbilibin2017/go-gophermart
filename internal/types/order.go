@@ -2,11 +2,11 @@ package types
 
 import "time"
 
-type OrderGetRequest struct {
+type OrderGetByIDRequest struct {
 	Number string `json:"number" validate:"required,luhn"`
 }
 
-type OrderGetResponse struct {
+type OrderGetByIDResponse struct {
 	Order   string      `json:"order"`
 	Status  OrderStatus `json:"status"`
 	Accrual *int64      `json:"accrual,omitempty"`

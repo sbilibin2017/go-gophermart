@@ -7,13 +7,13 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type GoodRewardService interface {
-	Register(ctx context.Context, req *types.GoodRewardRegisterRequest) (*types.APIStatus, error)
+type RewardService interface {
+	Register(ctx context.Context, req *types.RewardRegisterRequest) (*types.APIStatus, error)
 }
 
-func GoodRewardHandler(svc GoodRewardService) http.HandlerFunc {
+func RewardHandler(svc RewardService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GoodRewardRegisterRequest
+		var req types.RewardRegisterRequest
 		if err := decodeRequest(w, r, &req); err != nil {
 			return
 		}

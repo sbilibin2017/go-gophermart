@@ -59,7 +59,7 @@ func TestOrderAcceptService_Accept_SaveError(t *testing.T) {
 
 	mockValidator.EXPECT().Struct(req).Return(nil).Times(1)
 	mockOrderExistsRepo.EXPECT().Exists(context.Background(), req.Order).Return(false, nil).Times(1)
-	mockRewardFilterRepo.EXPECT().FilterILike(context.Background(), "test good", []string{"reward_type", "reward"}).Return(&types.GoodRewardDB{
+	mockRewardFilterRepo.EXPECT().FilterILike(context.Background(), "test good", []string{"reward_type", "reward"}).Return(&types.RewardDB{
 		Reward:     10,
 		RewardType: types.RewardTypePercent,
 	}, nil).Times(1)
@@ -155,7 +155,7 @@ func TestOrderAcceptService_Accept_Success(t *testing.T) {
 	}
 	mockValidator.EXPECT().Struct(req).Return(nil).Times(1)
 	mockOrderExistsRepo.EXPECT().Exists(context.Background(), req.Order).Return(false, nil).Times(1)
-	mockRewardFilterRepo.EXPECT().FilterILike(context.Background(), "test good", []string{"reward_type", "reward"}).Return(&types.GoodRewardDB{
+	mockRewardFilterRepo.EXPECT().FilterILike(context.Background(), "test good", []string{"reward_type", "reward"}).Return(&types.RewardDB{
 		Reward:     10,
 		RewardType: types.RewardTypePercent,
 	}, nil).Times(1)

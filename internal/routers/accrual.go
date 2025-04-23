@@ -7,14 +7,14 @@ import (
 )
 
 func NewAccrualRouter(
-	goodRewardHandler http.HandlerFunc,
+	RewardHandler http.HandlerFunc,
 	orderAcceptHandler http.HandlerFunc,
 	orderGetHandler http.HandlerFunc,
 	middlewares []func(http.Handler) http.Handler,
 ) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares...)
-	r.Post("/goods", goodRewardHandler)
+	r.Post("/goods", RewardHandler)
 	r.Post("/orders", orderAcceptHandler)
 	r.Get("/orders/{number}", orderGetHandler)
 	return r

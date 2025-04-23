@@ -27,7 +27,7 @@ type OrderAcceptOrderSaveRepository interface {
 }
 
 type OrderAcceptGoodRewardFilterILikeRepository interface {
-	FilterILike(ctx context.Context, match string, fields []string) (*types.GoodRewardDB, error)
+	FilterILike(ctx context.Context, match string, fields []string) (*types.RewardDB, error)
 }
 
 type OrderAcceptValidator interface {
@@ -92,7 +92,7 @@ func (svc *OrderAcceptService) Accept(
 
 		accrual += calcAccrual(
 			good.Price,
-			filtered.Reward,                       // Assuming filtered is a pointer to GoodRewardDB and contains Reward
+			filtered.Reward,                       // Assuming filtered is a pointer to RewardDB and contains Reward
 			types.RewardType(filtered.RewardType), // Assuming filtered.RewardType is a string
 		)
 	}

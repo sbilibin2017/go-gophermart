@@ -36,7 +36,7 @@ func (m *MockGoodRewardService) EXPECT() *MockGoodRewardServiceMockRecorder {
 }
 
 // Register mocks base method.
-func (m *MockGoodRewardService) Register(ctx context.Context, req *types.GoodRewardRegisterRequest) (*types.APIStatus, error) {
+func (m *MockGoodRewardService) Register(ctx context.Context, req *types.RewardRegisterRequest) (*types.APIStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", ctx, req)
 	ret0, _ := ret[0].(*types.APIStatus)

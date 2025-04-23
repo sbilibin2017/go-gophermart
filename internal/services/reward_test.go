@@ -21,7 +21,7 @@ func TestGoodRewardService_Register_ValidRequest(t *testing.T) {
 	mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 	mockExistsRepo.EXPECT().Exists(gomock.Any(), "match_123").Return(false, nil)
 	mockSaveRepo.EXPECT().Save(gomock.Any(), "match_123", int64(100), "type_a").Return(nil)
-	req := &types.GoodRewardRegisterRequest{
+	req := &types.RewardRegisterRequest{
 		Match:      "match_123",
 		Reward:     100,
 		RewardType: "type_a",
@@ -40,7 +40,7 @@ func TestGoodRewardService_Register_InvalidRequest(t *testing.T) {
 	mockSaveRepo := NewMockGoodRewardSaveRepository(ctrl)
 	svc := NewRewardService(mockValidator, mockExistsRepo, mockSaveRepo)
 	mockValidator.EXPECT().Struct(gomock.Any()).Return(errors.New("invalid struct"))
-	req := &types.GoodRewardRegisterRequest{
+	req := &types.RewardRegisterRequest{
 		Match:      "match_123",
 		Reward:     100,
 		RewardType: "type_a",
@@ -60,7 +60,7 @@ func TestGoodRewardService_Register_RewardAlreadyExists(t *testing.T) {
 	svc := NewRewardService(mockValidator, mockExistsRepo, mockSaveRepo)
 	mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 	mockExistsRepo.EXPECT().Exists(gomock.Any(), "match_123").Return(true, nil)
-	req := &types.GoodRewardRegisterRequest{
+	req := &types.RewardRegisterRequest{
 		Match:      "match_123",
 		Reward:     100,
 		RewardType: "type_a",
@@ -81,7 +81,7 @@ func TestGoodRewardService_Register_FailedToSaveReward(t *testing.T) {
 	mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 	mockExistsRepo.EXPECT().Exists(gomock.Any(), "match_123").Return(false, nil)
 	mockSaveRepo.EXPECT().Save(gomock.Any(), "match_123", int64(100), "type_a").Return(errors.New("failed to save"))
-	req := &types.GoodRewardRegisterRequest{
+	req := &types.RewardRegisterRequest{
 		Match:      "match_123",
 		Reward:     100,
 		RewardType: "type_a",
@@ -101,7 +101,7 @@ func TestGoodRewardService_Register_InternalServerErrorWhenCheckingExistence(t *
 	svc := NewRewardService(mockValidator, mockExistsRepo, mockSaveRepo)
 	mockValidator.EXPECT().Struct(gomock.Any()).Return(nil)
 	mockExistsRepo.EXPECT().Exists(gomock.Any(), "match_123").Return(false, errors.New("db error"))
-	req := &types.GoodRewardRegisterRequest{
+	req := &types.RewardRegisterRequest{
 		Match:      "match_123",
 		Reward:     100,
 		RewardType: "type_a",

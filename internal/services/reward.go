@@ -46,7 +46,7 @@ func NewRewardService(
 }
 
 func (svc *RewardService) Register(
-	ctx context.Context, req *types.GoodRewardRegisterRequest,
+	ctx context.Context, req *types.RewardRegisterRequest,
 ) (*types.APIStatus, error) {
 	if err := svc.v.Struct(req); err != nil {
 		return &types.APIStatus{

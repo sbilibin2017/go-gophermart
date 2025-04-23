@@ -111,10 +111,10 @@ func (m *MockOrderAcceptGoodRewardFilterILikeRepository) EXPECT() *MockOrderAcce
 }
 
 // FilterILike mocks base method.
-func (m *MockOrderAcceptGoodRewardFilterILikeRepository) FilterILike(ctx context.Context, match string, fields []string) (*types.GoodRewardDB, error) {
+func (m *MockOrderAcceptGoodRewardFilterILikeRepository) FilterILike(ctx context.Context, match string, fields []string) (*types.RewardDB, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FilterILike", ctx, match, fields)
-	ret0, _ := ret[0].(*types.GoodRewardDB)
+	ret0, _ := ret[0].(*types.RewardDB)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
