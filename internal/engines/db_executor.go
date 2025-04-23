@@ -13,6 +13,16 @@ type DBExecutor struct {
 	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
+func NewDBExecutor(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *DBExecutor {
+	return &DBExecutor{
+		db:         db,
+		txProvider: txProvider,
+	}
+}
+
 func (d *DBExecutor) Execute(
 	ctx context.Context,
 	query string,

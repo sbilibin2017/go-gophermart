@@ -19,7 +19,7 @@ func TestOrderSaveRepository_SaveSuccess(t *testing.T) {
 	ctx := context.Background()
 	orderID := "12345"
 	status := "PROCESSED"
-	accrual := 100.5
+	accrual := int64(100)
 
 	argMap := map[string]any{
 		"order_id": orderID,
@@ -45,7 +45,7 @@ func TestOrderSaveRepository_SaveError(t *testing.T) {
 	ctx := context.Background()
 	orderID := "12345"
 	status := "PROCESSED"
-	accrual := 100.5
+	accrual := int64(100)
 
 	expectedErr := errors.New("db error")
 

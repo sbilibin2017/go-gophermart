@@ -23,7 +23,7 @@ func NewOrderSaveRepository(
 }
 
 func (r *OrderSaveRepository) Save(
-	ctx context.Context, orderID string, status string, accrual float64,
+	ctx context.Context, orderID string, status string, accrual int64,
 ) error {
 	argMap := map[string]any{
 		"order_id": orderID,

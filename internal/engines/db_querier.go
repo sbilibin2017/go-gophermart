@@ -13,6 +13,16 @@ type DBQuerier struct {
 	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
+func NewDBQuerier(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *DBQuerier {
+	return &DBQuerier{
+		db:         db,
+		txProvider: txProvider,
+	}
+}
+
 func (q *DBQuerier) Query(
 	ctx context.Context,
 	dest any,
