@@ -5,14 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
-
-	logger.Init()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

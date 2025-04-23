@@ -8,12 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGzipMiddleware_RequestCompression(t *testing.T) {
-	logger.Init()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World"))
 	})
@@ -37,7 +35,7 @@ func TestGzipMiddleware_RequestCompression(t *testing.T) {
 }
 
 func TestGzipMiddleware_ResponseCompression(t *testing.T) {
-	logger.Init()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World"))
 	})
@@ -64,7 +62,7 @@ func TestGzipMiddleware_ResponseCompression(t *testing.T) {
 }
 
 func TestGzipMiddleware_NoCompression(t *testing.T) {
-	logger.Init()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World"))
 	})
@@ -82,7 +80,7 @@ func TestGzipMiddleware_NoCompression(t *testing.T) {
 }
 
 func TestGzipMiddleware_DecompressionError(t *testing.T) {
-	logger.Init()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World"))
 	})

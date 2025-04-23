@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +31,6 @@ func generateValidToken() string {
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	logger.Init()
 	tests := []struct {
 		name           string
 		authHeader     string
