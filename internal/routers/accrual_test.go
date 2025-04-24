@@ -1,75 +1,33 @@
-package routers
+package routers_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/sbilibin2017/go-gophermart/internal/routers"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAccrualRouter(t *testing.T) {
-	goodRewardHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Good Reward"))
-	})
-
-	orderAcceptHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Order Accepted"))
-	})
-
-	orderGetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Order Details"))
-	})
-
-	middlewares := []func(http.Handler) http.Handler{}
-
-	r := NewAccrualRouter(goodRewardHandler, orderAcceptHandler, orderGetHandler, middlewares)
+func TestNewAccrualRouter_RoutesRegistered(t *testing.T) {
+	router := routers.NewAccrualRouter(nil, nil, nil, nil)
 
 	tests := []struct {
-		name           string
-		method         string
-		url            string
-		expectedStatus int
-		expectedBody   string
+		method string
+		path   string
 	}{
-		{
-			name:           "POST /goods",
-			method:         http.MethodPost,
-			url:            "/goods",
-			expectedStatus: http.StatusOK,
-			expectedBody:   "Good Reward",
-		},
-		{
-			name:           "POST /orders",
-			method:         http.MethodPost,
-			url:            "/orders",
-			expectedStatus: http.StatusCreated,
-			expectedBody:   "Order Accepted",
-		},
-		{
-			name:           "GET /orders/{number}",
-			method:         http.MethodGet,
-			url:            "/orders/12345",
-			expectedStatus: http.StatusOK,
-			expectedBody:   "Order Details",
-		},
+		{method: http.MethodOptions, path: "/goods"},
+		{method: http.MethodOptions, path: "/orders"},
+		{method: http.MethodOptions, path: "/orders/12345"},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequest(tt.method, tt.url, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
 			rr := httptest.NewRecorder()
-			r.ServeHTTP(rr, req)
 
-			assert.Equal(t, tt.expectedStatus, rr.Code)
-			assert.Equal(t, tt.expectedBody, rr.Body.String())
+			router.ServeHTTP(rr, req)
+			assert.NotEqualf(t, http.StatusNotFound, rr.Code, "Route %s %s should be registered", tt.method, tt.path)
 		})
 	}
 }

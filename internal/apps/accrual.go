@@ -1,52 +1,40 @@
 package apps
 
-import (
-	"net/http"
+// import (
+// 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/engines"
-	"github.com/sbilibin2017/go-gophermart/internal/handlers"
-	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
-	"github.com/sbilibin2017/go-gophermart/internal/repositories"
-	"github.com/sbilibin2017/go-gophermart/internal/routers"
-	"github.com/sbilibin2017/go-gophermart/internal/services"
-	"github.com/sbilibin2017/go-gophermart/internal/validators"
-)
+// 	"github.com/go-chi/chi/v5"
+// 	"github.com/go-playground/validator/v10"
+// 	"github.com/jmoiron/sqlx"
 
-func ConfigureAccrualServer(db *sqlx.DB, srv *http.Server) {
-	e := engines.NewDBExecutor(db, middlewares.GetTx)
-	q := engines.NewDBQuerier(db, middlewares.GetTx)
+// 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
+// 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
+// 	"github.com/sbilibin2017/go-gophermart/internal/routers"
+// 	"github.com/sbilibin2017/go-gophermart/internal/services"
+// 	"github.com/sbilibin2017/go-gophermart/internal/validators"
+// )
 
-	rsRepo := repositories.NewRewardSaveRepository(e)
-	rfRepo := repositories.NewRewardFilterILikeRepository(q)
-	repoRewardExists := repositories.NewRewardExistsRepository(q)
+// func ConfigureAccrualServer(db *sqlx.DB, srv *http.Server) {
 
-	oeRepo := repositories.NewOrderExistsRepository(q)
-	ofRepo := repositories.NewOrderGetByIDRepository(q)
-	osRepo := repositories.NewOrderSaveRepository(e)
+// 	rsRepo := repositories.NewRewardSaveRepository(e)
+// 	rfRepo := repositories.NewRewardFilterILikeRepository(q)
+// 	repoRewardExists := repositories.NewRewardExistsRepository(q)
 
-	val := validator.New()
-	validators.RegisterLuhnValidator(val)
-	validators.RegisterRewardTypeValidator(val)
+// 	oeRepo := repositories.NewOrderExistsRepository(q)
+// 	ofRepo := repositories.NewOrderGetRepository(q)
+// 	osRepo := repositories.NewOrderSaveRepository(e)
 
-	rrSvc := services.NewRewardService(val, repoRewardExists, rsRepo)
-	roSvc := services.NewOrderAcceptService(val, oeRepo, osRepo, rfRepo)
-	ogSvc := services.NewOrderGetService(val, ofRepo)
+// 	val := validator.New()
+// 	validators.RegisterLuhnValidator(val)
+// 	validators.RegisterRewardTypeValidator(val)
 
-	rrH := handlers.RewardHandler(rrSvc)
-	oaH := handlers.OrderAcceptHandler(roSvc)
-	ogH := handlers.OrderGetHandler(ogSvc)
+// 	rrSvc := services.NewRewardRegisterService(val, repoRewardExists, rsRepo)
+// 	oaSvc := services.NewOrderAcceptService(val, oeRepo, osRepo, rfRepo)
+// 	ogSvc := services.NewOrderGetService(val, ofRepo)
 
-	mws := []func(http.Handler) http.Handler{
-		middlewares.LoggingMiddleware,
-		middlewares.GzipMiddleware,
-		middlewares.TxMiddleware(db, middlewares.SetTx),
-	}
+// 	r := chi.NewRouter()
+// 	accrualR := routers.NewAccrualRouter(db, rrSvc, oaSvc, ogSvc)
+// 	r.Mount("/api", accrualR)
 
-	router := chi.NewRouter()
-	router.Mount("/api", routers.NewAccrualRouter(rrH, oaH, ogH, mws))
-
-	srv.Handler = router
-}
+// 	srv.Handler = r
+// }

@@ -2,46 +2,29 @@ package repositories
 
 import (
 	"context"
+
+	"github.com/jmoiron/sqlx"
 )
 
-type RewardExistsQuerier interface {
-	Query(
-		ctx context.Context,
-		dest any,
-		query string,
-		args any,
-	) error
-}
-
 type RewardExistsRepository struct {
-	q RewardExistsQuerier
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) *sqlx.Tx
 }
 
 func NewRewardExistsRepository(
-	q RewardExistsQuerier,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) *sqlx.Tx,
 ) *RewardExistsRepository {
-	return &RewardExistsRepository{q: q}
+	return &RewardExistsRepository{db: db, txProvider: txProvider}
 }
 
-func (r *RewardExistsRepository) Exists(
-	ctx context.Context, filter *RewardExistsFilter, // принимаем указатель на фильтр
-) (bool, error) {
+func (r *RewardExistsRepository) Exists(ctx context.Context, match string) (bool, error) {
 	var exists bool
-	err := r.q.Query(ctx, &exists, rewardExistsByIDQuery, filter)
+	err := query(ctx, r.db, r.txProvider, &exists, rewardExistsByIDQuery, match)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-type RewardExistsFilter struct {
-	RewardID string `db:"reward_id"`
-}
-
-var rewardExistsByIDQuery = `
-	SELECT EXISTS(
-		SELECT 1
-		FROM rewards
-		WHERE reward_id = :reward_id
-	)
-`
+const rewardExistsByIDQuery = `SELECT EXISTS (SELECT 1	FROM rewards WHERE match = ?)`

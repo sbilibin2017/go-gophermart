@@ -3,62 +3,39 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/jmoiron/sqlx"
 )
 
-type RewardFilterILikeQuerier interface {
-	Query(
-		ctx context.Context,
-		dest any,
-		query string,
-		args any,
-	) error
-}
-
 type RewardFilterILikeRepository struct {
-	q RewardFilterILikeQuerier
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) *sqlx.Tx
 }
 
-func NewRewardFilterILikeRepository(
-	q RewardFilterILikeQuerier,
-) *RewardFilterILikeRepository {
-	return &RewardFilterILikeRepository{q: q}
+func NewRewardFilterILikeRepository(db *sqlx.DB, txProvider func(ctx context.Context) *sqlx.Tx) *RewardFilterILikeRepository {
+	return &RewardFilterILikeRepository{db: db, txProvider: txProvider}
 }
 
 func (r *RewardFilterILikeRepository) FilterILike(
-	ctx context.Context, filter *RewardFilterILike, // принимаем указатель на фильтр
-) (*types.RewardDB, error) {
-	query, argMap := buildGoodRewardFilterILikeQuery(filter)
-
-	var result *types.RewardDB
-	err := r.q.Query(ctx, &result, query, argMap)
+	ctx context.Context,
+	description string,
+	fields []string,
+) (map[string]any, error) {
+	columns := getColumns(fields)
+	params := map[string]any{
+		"description": "%" + description + "%",
+	}
+	query := fmt.Sprintf(rewardFilterILikeQueryTemplate, columns)
+	result, err := queryNamed(ctx, r.db, r.txProvider, query, params)
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
-type RewardFilterILike struct {
-	RewardID string   `db:"reward_id"`
-	Fields   []string // поля для запроса
-}
-
-func buildGoodRewardFilterILikeQuery(filter *RewardFilterILike) (string, map[string]any) {
-	argMap := make(map[string]any)
-	argMap["reward_id"] = "%" + filter.RewardID + "%" // используем фильтр как указатель
-	fieldsQuery := "*"
-	if len(filter.Fields) > 0 {
-		fieldsQuery = strings.Join(filter.Fields, ", ")
-	}
-	query := fmt.Sprintf(goodRewardFilterILikeQuery, fieldsQuery)
-	return query, argMap
-}
-
-const goodRewardFilterILikeQuery = `
+const rewardFilterILikeQueryTemplate = `
 	SELECT %s 
 	FROM rewards 
-	WHERE reward_id ILIKE :reward_id
+	WHERE match ILIKE :description
+	LIMIT 1
 `

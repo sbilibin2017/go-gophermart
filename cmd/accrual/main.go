@@ -15,6 +15,7 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
@@ -47,6 +48,8 @@ func flags() *configs.AccrualConfig {
 }
 
 func run(config *configs.AccrualConfig) error {
+	logger.Init(zapcore.InfoLevel)
+
 	db, err := sqlx.Connect("pgx", config.DatabaseURI)
 	if err != nil {
 		return err

@@ -5,10 +5,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func init() {
-	Init(zapcore.InfoLevel)
-}
-
 var Logger *zap.Logger
 
 func Init(level zapcore.Level) {

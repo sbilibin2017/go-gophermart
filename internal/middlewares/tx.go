@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
+
 	"go.uber.org/zap"
 )
 
@@ -15,41 +16,71 @@ func TxMiddleware(
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Logger.Info("Starting a new transaction")
-
-			tx, err := db.Beginx()
-			if err != nil {
-				logger.Logger.Error("Failed to start transaction", zap.Error(err))
-				handleError(w)
-				return
+			if logger.Logger != nil {
+				logger.Logger.Info("Starting a new transaction")
 			}
 
-			ctx := txSetter(r.Context(), tx)
+			var tx *sqlx.Tx
+			var err error
+			if db != nil {
+				tx, err = db.Beginx()
+				if err != nil {
+					if logger.Logger != nil {
+						logger.Logger.Error("Failed to start transaction", zap.Error(err))
+					}
+					handleError(w)
+					return
+				}
+
+			}
+
+			var ctx context.Context
+			if tx != nil {
+				ctx = txSetter(r.Context(), tx)
+			} else {
+				ctx = r.Context()
+			}
 
 			rw := newBufferedResponseWriter(w)
 
 			next.ServeHTTP(rw, r.WithContext(ctx))
 
-			logger.Logger.Info("Request completed", zap.Int("status", rw.status))
+			if logger.Logger != nil {
+				logger.Logger.Info("Request completed", zap.Int("status", rw.status))
+			}
 
-			if rw.status >= 400 {
-				logger.Logger.Warn("Rolling back transaction due to client or server error", zap.Int("status", rw.status))
-				if rollbackErr := tx.Rollback(); rollbackErr != nil {
-					logger.Logger.Error("Failed to rollback transaction", zap.Error(rollbackErr))
-					handleError(w)
-					return
+			if tx != nil {
+				if rw.status >= 400 {
+					if logger.Logger != nil {
+						logger.Logger.Warn("Rolling back transaction due to client or server error", zap.Int("status", rw.status))
+					}
+					if rollbackErr := tx.Rollback(); rollbackErr != nil {
+						if logger.Logger != nil {
+							logger.Logger.Error("Failed to rollback transaction", zap.Error(rollbackErr))
+						}
+						handleError(w)
+						return
+					}
+					if logger.Logger != nil {
+						logger.Logger.Info("Transaction rolled back successfully")
+					}
+					rw.FlushToUnderlying()
+				} else {
+					if logger.Logger != nil {
+						logger.Logger.Info("Committing transaction")
+					}
+					if commitErr := tx.Commit(); commitErr != nil {
+						if logger.Logger != nil {
+							logger.Logger.Error("Failed to commit transaction", zap.Error(commitErr))
+						}
+						handleError(w)
+						return
+					}
+					if logger.Logger != nil {
+						logger.Logger.Info("Transaction committed successfully")
+					}
+					rw.FlushToUnderlying()
 				}
-				logger.Logger.Info("Transaction rolled back successfully")
-				rw.FlushToUnderlying()
-			} else {
-				logger.Logger.Info("Committing transaction")
-				if commitErr := tx.Commit(); commitErr != nil {
-					logger.Logger.Error("Failed to commit transaction", zap.Error(commitErr))
-					handleError(w)
-					return
-				}
-				logger.Logger.Info("Transaction committed successfully")
-				rw.FlushToUnderlying()
 			}
 		})
 	}
@@ -67,9 +98,9 @@ func SetTx(ctx context.Context, tx *sqlx.Tx) context.Context {
 	return context.WithValue(ctx, txKey, tx)
 }
 
-func GetTx(ctx context.Context) (*sqlx.Tx, bool) {
-	tx, ok := ctx.Value(txKey).(*sqlx.Tx)
-	return tx, ok
+func GetTx(ctx context.Context) *sqlx.Tx {
+	tx, _ := ctx.Value(txKey).(*sqlx.Tx)
+	return tx
 }
 
 type bufferedResponseWriter struct {

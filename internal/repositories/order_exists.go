@@ -2,45 +2,29 @@ package repositories
 
 import (
 	"context"
+
+	"github.com/jmoiron/sqlx"
 )
 
-type OrderExistsQuerier interface {
-	Query(
-		ctx context.Context,
-		dest any,
-		query string,
-		args any,
-	) error
-}
-
 type OrderExistsRepository struct {
-	q OrderExistsQuerier
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) *sqlx.Tx
 }
 
-func NewOrderExistsRepository(q OrderExistsQuerier) *OrderExistsRepository {
-	return &OrderExistsRepository{q: q}
+func NewOrderExistsRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) *sqlx.Tx,
+) *OrderExistsRepository {
+	return &OrderExistsRepository{db: db, txProvider: txProvider}
 }
 
-func (r *OrderExistsRepository) Exists(
-	ctx context.Context,
-	filter *OrderExistsFilter, // Передаём указатель на OrderExistsFilter
-) (bool, error) {
+func (r *OrderExistsRepository) Exists(ctx context.Context, number string) (bool, error) {
 	var exists bool
-	err := r.q.Query(ctx, &exists, orderExistsByIDQuery, filter)
+	err := query(ctx, r.db, r.txProvider, &exists, orderExistsByIDQuery, number)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-type OrderExistsFilter struct {
-	OrderID string `db:"order_id"`
-}
-
-const orderExistsByIDQuery = `
-	SELECT EXISTS (
-		SELECT 1
-		FROM orders
-		WHERE order_id = :order_id
-	)
-`
+const orderExistsByIDQuery = `SELECT EXISTS (SELECT 1 FROM orders WHERE number = ?)`

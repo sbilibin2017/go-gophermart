@@ -3,55 +3,33 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/jmoiron/sqlx"
 )
 
-type OrderGetByIDQuerier interface {
-	Query(
-		ctx context.Context,
-		dest any,
-		query string,
-		args any,
-	) error
+type OrderGetRepository struct {
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) *sqlx.Tx
 }
 
-type OrderGetByIDRepository struct {
-	q OrderGetByIDQuerier
+func NewOrderGetRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) *sqlx.Tx,
+) *OrderGetRepository {
+	return &OrderGetRepository{db: db, txProvider: txProvider}
 }
 
-func NewOrderGetByIDRepository(q OrderGetByIDQuerier) *OrderGetByIDRepository {
-	return &OrderGetByIDRepository{q: q}
-}
-
-func (r *OrderGetByIDRepository) GetByID(
-	ctx context.Context,
-	filter *OrderGetByIDFilter, // Передаём указатель на OrderGetByIDFilter
-) (*types.OrderDB, error) {
-	query := buildGetOrderByIDQuery(filter.Fields)
-
-	result := new(types.OrderDB)
-	err := r.q.Query(ctx, result, query, filter)
+func (r *OrderGetRepository) Get(
+	ctx context.Context, number string, fields []string,
+) (map[string]any, error) {
+	columns := getColumns(fields)
+	q := fmt.Sprintf(orderGetQuery, columns)
+	var order map[string]any
+	err := query(ctx, r.db, r.txProvider, &order, q, number)
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	return order, nil
 }
 
-type OrderGetByIDFilter struct {
-	OrderID string   `db:"order_id"`
-	Fields  []string // оставляем как обычный срез
-}
-
-func buildGetOrderByIDQuery(fields []string) string {
-	fieldsQuery := "*"
-	if len(fields) > 0 {
-		fieldsQuery = strings.Join(fields, ", ")
-	}
-	return fmt.Sprintf(orderGetByIDQueryTemplate, fieldsQuery)
-}
-
-const orderGetByIDQueryTemplate = `
-	SELECT %s FROM orders WHERE order_id = :order_id
-`
+const orderGetQuery = "SELECT %s FROM orders WHERE number = ?"

@@ -7,27 +7,16 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-// Константы для сообщений об ошибках
-const (
-	ErrInvalidRewardRequest           = "Invalid reward request"
-	ErrInternalServerError            = "Internal server error"
-	ErrInternalServerErrorFilter      = "Internal server error while filtering reward information"
-	ErrOrderAlreadyProcessed          = "Order has already been processed"
-	ErrFailedToSaveOrder              = "Failed to save the order"
-	SuccessOrderAcceptedForProcessing = "Order accepted for processing"
-)
-
-// Интерфейсы
-type OrderAcceptOrderExistsByIDRepository interface {
-	Exists(ctx context.Context, orderID string) (bool, error)
+type OrderAcceptOrderExistsRepository interface {
+	Exists(ctx context.Context, number string) (bool, error)
 }
 
 type OrderAcceptOrderSaveRepository interface {
-	Save(ctx context.Context, orderID string, status string, accrual int64) error
+	Save(ctx context.Context, order map[string]any) error
 }
 
 type OrderAcceptGoodRewardFilterILikeRepository interface {
-	FilterILike(ctx context.Context, match string, fields []string) (*types.RewardDB, error)
+	FilterILike(ctx context.Context, description string, fields []string) (map[string]any, error)
 }
 
 type OrderAcceptValidator interface {
@@ -36,92 +25,104 @@ type OrderAcceptValidator interface {
 
 type OrderAcceptService struct {
 	v  OrderAcceptValidator
-	oe OrderAcceptOrderExistsByIDRepository
+	oe OrderAcceptOrderExistsRepository
 	os OrderAcceptOrderSaveRepository
 	rf OrderAcceptGoodRewardFilterILikeRepository
 }
 
 func NewOrderAcceptService(
 	v OrderAcceptValidator,
-	oe OrderAcceptOrderExistsByIDRepository,
+	oe OrderAcceptOrderExistsRepository,
 	os OrderAcceptOrderSaveRepository,
 	rf OrderAcceptGoodRewardFilterILikeRepository,
+
 ) *OrderAcceptService {
 	return &OrderAcceptService{
-		v:  v,
 		oe: oe,
 		os: os,
 		rf: rf,
+		v:  v,
 	}
 }
 
 func (svc *OrderAcceptService) Accept(
 	ctx context.Context, req *types.OrderAcceptRequest,
-) (*types.APIStatus, error) {
-	if err := svc.v.Struct(req); err != nil {
-		return &types.APIStatus{
+) (*types.APIStatus, *types.APIStatus) {
+	err := svc.v.Struct(req)
+	if err != nil {
+		return nil, &types.APIStatus{
 			Status:  http.StatusBadRequest,
-			Message: ErrInvalidRewardRequest,
-		}, nil
+			Message: "Invalid request format",
+		}
 	}
 
 	exists, err := svc.oe.Exists(ctx, req.Order)
 	if err != nil {
-		return &types.APIStatus{
+		return nil, &types.APIStatus{
 			Status:  http.StatusInternalServerError,
-			Message: ErrInternalServerError,
-		}, nil
+			Message: "Internal server error",
+		}
 	}
 	if exists {
-		return &types.APIStatus{
+		return nil, &types.APIStatus{
 			Status:  http.StatusConflict,
-			Message: ErrOrderAlreadyProcessed,
-		}, nil
+			Message: "Order already accepted",
+		}
 	}
 
 	var accrual int64
-
 	for _, good := range req.Goods {
-		filtered, err := svc.rf.FilterILike(ctx, good.Description, []string{"reward_type", "reward"})
+		filtered, err := svc.rf.FilterILike(
+			ctx,
+			good.Description,
+			[]string{"reward", "reward_type"},
+		)
 		if err != nil {
-			return &types.APIStatus{
+			return nil, &types.APIStatus{
 				Status:  http.StatusInternalServerError,
-				Message: ErrInternalServerErrorFilter,
-			}, nil
+				Message: "Internal server error",
+			}
 		}
 
-		accrual += calcAccrual(
-			good.Price,
-			filtered.Reward,                       // Assuming filtered is a pointer to RewardDB and contains Reward
-			types.RewardType(filtered.RewardType), // Assuming filtered.RewardType is a string
-		)
+		a := calcAccrual(good.Price, filtered["reward"].(int64), filtered["reward_type"].(string))
+		if a == nil {
+			return nil, &types.APIStatus{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal server error",
+			}
+		}
+		accrual += *a
 	}
 
-	err = svc.os.Save(ctx,
-		req.Order,
-		string(types.OrderStatusRegistered),
-		accrual,
-	)
+	orderData := map[string]any{
+		"order":   req.Order,
+		"status":  string(types.OrderStatusRegistered),
+		"accrual": accrual,
+	}
+
+	err = svc.os.Save(ctx, orderData)
 	if err != nil {
-		return &types.APIStatus{
+		return nil, &types.APIStatus{
 			Status:  http.StatusInternalServerError,
-			Message: ErrFailedToSaveOrder,
-		}, nil
+			Message: "Internal server error",
+		}
 	}
 
 	return &types.APIStatus{
 		Status:  http.StatusAccepted,
-		Message: SuccessOrderAcceptedForProcessing,
+		Message: "Order successfully accepted for processing",
 	}, nil
 }
 
-func calcAccrual(price int64, reward int64, rewardType types.RewardType) int64 {
+func calcAccrual(price int64, reward int64, rewardType string) *int64 {
 	switch rewardType {
-	case types.RewardTypePercent:
-		return int64(price * reward / 100)
-	case types.RewardTypePoint:
-		return reward
+	case string(types.RewardTypePercent):
+		p := price * reward / 100
+		return &p
+	case string(types.RewardTypePoint):
+		p := reward
+		return &p
 	default:
-		return 0
+		return nil
 	}
 }

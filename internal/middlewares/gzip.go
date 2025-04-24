@@ -20,7 +20,9 @@ func GzipMiddleware(next http.Handler) http.Handler {
 		if r.Header.Get("Content-Encoding") == "gzip" {
 			gzipReader, err := gzip.NewReader(r.Body)
 			if err != nil {
-				logger.Logger.Error("failed to create gzip reader for request body", zap.Error(err))
+				if logger.Logger != nil {
+					logger.Logger.Error("failed to create gzip reader for request body", zap.Error(err))
+				}
 				http.Error(w, ErrFailedToDecompressRequest.Error(), http.StatusBadRequest)
 				return
 			}
@@ -28,7 +30,9 @@ func GzipMiddleware(next http.Handler) http.Handler {
 				gzipReader.Close()
 			}()
 			r.Body = io.NopCloser(gzipReader)
-			logger.Logger.Info("request body decompressed with gzip")
+			if logger.Logger != nil {
+				logger.Logger.Info("request body decompressed with gzip")
+			}
 		}
 
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -38,17 +42,25 @@ func GzipMiddleware(next http.Handler) http.Handler {
 				gzipWriter.Close()
 			}()
 
-			logger.Logger.Info("response will be compressed with gzip")
+			if logger.Logger != nil {
+				logger.Logger.Info("response will be compressed with gzip")
+			}
+
 			grw := &gzipResponseWriter{
 				ResponseWriter: w,
 				Writer:         gzipWriter,
 			}
 			next.ServeHTTP(grw, r)
-			logger.Logger.Info("GzipMiddleware: request processed with gzip response")
+
+			if logger.Logger != nil {
+				logger.Logger.Info("GzipMiddleware: request processed with gzip response")
+			}
 			return
 		}
 
-		logger.Logger.Info("GzipMiddleware: no compression used")
+		if logger.Logger != nil {
+			logger.Logger.Info("GzipMiddleware: no compression used")
+		}
 		next.ServeHTTP(w, r)
 	})
 }

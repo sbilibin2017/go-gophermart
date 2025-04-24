@@ -15,16 +15,18 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 		duration := time.Since(startTime)
 
-		logger.Logger.Info("Request",
-			zap.String("uri", r.RequestURI),
-			zap.String("method", r.Method),
-			zap.Duration("duration", duration),
-		)
+		if logger.Logger != nil {
+			logger.Logger.Info("Request",
+				zap.String("uri", r.RequestURI),
+				zap.String("method", r.Method),
+				zap.Duration("duration", duration),
+			)
 
-		logger.Logger.Info("Response",
-			zap.Int("status", ww.statusCode),
-			zap.Int("response_size", ww.responseSize),
-		)
+			logger.Logger.Info("Response",
+				zap.Int("status", ww.statusCode),
+				zap.Int("response_size", ww.responseSize),
+			)
+		}
 	})
 }
 
