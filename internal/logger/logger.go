@@ -7,8 +7,12 @@ import (
 
 var Logger *zap.Logger
 
-func Init(level zapcore.Level) {
+func initLogger(level zapcore.Level) {
 	zapConfig := zap.NewProductionConfig()
 	zapConfig.Level = zap.NewAtomicLevelAt(level)
 	Logger, _ = zapConfig.Build()
+}
+
+func InitWithInfoLevel() {
+	initLogger(zapcore.InfoLevel)
 }

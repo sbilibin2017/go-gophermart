@@ -4,11 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 type OrderGetRepository interface {
-	Get(ctx context.Context, number string, fields []string) (map[string]any, error)
+	Get(ctx context.Context, filter *repositories.OrderGetFilter) (*repositories.OrderGetDB, error)
 }
 
 type OrderGetValidator interface {
@@ -31,9 +32,9 @@ func NewOrderGetService(
 }
 
 func (svc *OrderGetService) Get(
-	ctx context.Context, order string,
-) (*types.OrderResponse, *types.APIStatus) {
-	err := svc.v.Struct(order)
+	ctx context.Context, number string,
+) (*OrderResponse, *types.APIStatus) {
+	err := svc.v.Struct(number)
 	if err != nil {
 		return nil, &types.APIStatus{
 			Status:  http.StatusBadRequest,
@@ -41,28 +42,28 @@ func (svc *OrderGetService) Get(
 		}
 	}
 
-	data, err := svc.ogr.Get(ctx, order, []string{"order", "status", "accrual"})
+	order, err := svc.ogr.Get(ctx, &repositories.OrderGetFilter{Number: number})
 	if err != nil {
 		return nil, &types.APIStatus{
 			Status:  http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 	}
-	if data == nil {
+	if order == nil {
 		return nil, &types.APIStatus{
 			Status:  http.StatusNotFound,
 			Message: "Order not found",
 		}
 	}
+	return &OrderResponse{
+		Order:   order.Number,
+		Status:  order.Status,
+		Accrual: order.Accrual,
+	}, nil
+}
 
-	var response types.OrderResponse
-	err = convertToStruct(&response, data)
-	if err != nil {
-		return nil, &types.APIStatus{
-			Status:  http.StatusInternalServerError,
-			Message: "Error converting data to structure",
-		}
-	}
-
-	return &response, nil
+type OrderResponse struct {
+	Order   string `json:"order" `
+	Status  string `json:"status"`
+	Accrual *int64 `json:"accrual"`
 }

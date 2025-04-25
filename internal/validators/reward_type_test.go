@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,12 +19,12 @@ func TestRewardTypeValidator(t *testing.T) {
 	}{
 		{
 			name:     "Valid reward type - percent",
-			input:    string(types.RewardTypePercent),
+			input:    constants.REWARD_TYPE_PERCENT,
 			expected: nil,
 		},
 		{
 			name:     "Valid reward type - point",
-			input:    string(types.RewardTypePoint),
+			input:    constants.REWARD_TYPE_POINT,
 			expected: nil,
 		},
 		{

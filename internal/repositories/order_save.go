@@ -18,8 +18,14 @@ func NewOrderSaveRepository(
 	return &OrderSaveRepository{db: db, txProvider: txProvider}
 }
 
-func (r *OrderSaveRepository) Save(ctx context.Context, order map[string]any) error {
-	return exec(ctx, r.db, r.txProvider, orderSaveQuery, order)
+func (r *OrderSaveRepository) Save(ctx context.Context, order *OrderSave) error {
+	return command(ctx, r.db, r.txProvider, orderSaveQuery, order)
+}
+
+type OrderSave struct {
+	Number  string `db:"number"`
+	Status  string `db:"status"`
+	Accrual *int64 `db:"accrual"`
 }
 
 const orderSaveQuery = `

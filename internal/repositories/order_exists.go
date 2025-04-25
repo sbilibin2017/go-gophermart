@@ -18,13 +18,17 @@ func NewOrderExistsRepository(
 	return &OrderExistsRepository{db: db, txProvider: txProvider}
 }
 
-func (r *OrderExistsRepository) Exists(ctx context.Context, number string) (bool, error) {
+func (r *OrderExistsRepository) Exists(ctx context.Context, order *OrderExistsNumber) (bool, error) {
 	var exists bool
-	err := query(ctx, r.db, r.txProvider, &exists, orderExistsByIDQuery, number)
+	err := query(ctx, r.db, r.txProvider, &exists, orderExistsByIDQuery, order)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-const orderExistsByIDQuery = `SELECT EXISTS (SELECT 1 FROM orders WHERE number = ?)`
+type OrderExistsNumber struct {
+	Number string `db:"number"`
+}
+
+const orderExistsByIDQuery = `SELECT EXISTS (SELECT 1 FROM orders WHERE number = :number)`

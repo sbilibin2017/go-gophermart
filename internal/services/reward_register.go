@@ -4,15 +4,16 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 type RewardExistsRepository interface {
-	Exists(ctx context.Context, match string) (bool, error)
+	Exists(ctx context.Context, match *repositories.RewardExistsMatch) (bool, error)
 }
 
 type RewardSaveRepository interface {
-	Save(ctx context.Context, data map[string]any) error
+	Save(ctx context.Context, reward *repositories.RewardSave) error
 }
 
 type RewardRegisterValidator interface {
@@ -38,7 +39,7 @@ func NewRewardRegisterService(
 }
 
 func (svc *RewardRegisterService) Register(
-	ctx context.Context, req *types.RewardRegisterRequest,
+	ctx context.Context, req *RewardRegisterRequest,
 ) (*types.APIStatus, *types.APIStatus) {
 	err := svc.v.Struct(req)
 	if err != nil {
@@ -47,8 +48,9 @@ func (svc *RewardRegisterService) Register(
 			Message: "Reward is not valid",
 		}
 	}
-
-	exists, err := svc.re.Exists(ctx, req.Match)
+	exists, err := svc.re.Exists(ctx, &repositories.RewardExistsMatch{
+		Match: req.Match,
+	})
 	if err != nil {
 		return nil, &types.APIStatus{
 			Status:  http.StatusInternalServerError,
@@ -61,17 +63,25 @@ func (svc *RewardRegisterService) Register(
 			Message: "Reward already exists",
 		}
 	}
-
-	err = svc.rs.Save(ctx, convertToMap(req))
+	err = svc.rs.Save(ctx, &repositories.RewardSave{
+		Match:      req.Match,
+		Reward:     req.Reward,
+		RewardType: req.RewardType,
+	})
 	if err != nil {
 		return nil, &types.APIStatus{
 			Status:  http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 	}
-
 	return &types.APIStatus{
 		Status:  http.StatusOK,
 		Message: "Reward registered successfully",
 	}, nil
+}
+
+type RewardRegisterRequest struct {
+	Match      string `json:"match" validate:"required"`
+	Reward     int64  `json:"reward" validate:"required,gte=0"`
+	RewardType string `json:"reward_type" validate:"required,reward_type"`
 }

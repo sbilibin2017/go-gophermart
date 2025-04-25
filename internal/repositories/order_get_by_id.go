@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -20,16 +20,26 @@ func NewOrderGetRepository(
 }
 
 func (r *OrderGetRepository) Get(
-	ctx context.Context, number string, fields []string,
-) (map[string]any, error) {
-	columns := getColumns(fields)
-	q := fmt.Sprintf(orderGetQuery, columns)
-	var order map[string]any
-	err := query(ctx, r.db, r.txProvider, &order, q, number)
+	ctx context.Context, filter *OrderGetFilter,
+) (*OrderGetDB, error) {
+	var order OrderGetDB
+	err := query(ctx, r.db, r.txProvider, &order, orderGetQuery, filter)
 	if err != nil {
 		return nil, err
 	}
-	return order, nil
+	return &order, nil
 }
 
-const orderGetQuery = "SELECT %s FROM orders WHERE number = ?"
+type OrderGetFilter struct {
+	Number string `db:"number"`
+}
+
+type OrderGetDB struct {
+	Number    string    `db:"number"`
+	Status    string    `db:"status"`
+	Accrual   *int64    `db:"accrual"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+const orderGetQuery = "SELECT * FROM orders WHERE number = :number"

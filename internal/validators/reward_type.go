@@ -2,7 +2,7 @@ package validators
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/constants"
 )
 
 func RegisterRewardTypeValidator(validate *validator.Validate) {
@@ -15,7 +15,7 @@ func rewardTypeValidator(fl validator.FieldLevel) bool {
 }
 
 func validateRewardType(rewardType string) bool {
-	if rewardType == string(types.RewardTypePercent) || rewardType == string(types.RewardTypePoint) {
+	if rewardType == constants.REWARD_TYPE_PERCENT || rewardType == constants.REWARD_TYPE_POINT {
 		return true
 	}
 	return false

@@ -4,23 +4,21 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type OrderAcceptService interface {
-	Accept(ctx context.Context, req *types.OrderAcceptRequest) (*types.APIStatus, *types.APIStatus)
+type RewardRegisterService interface {
+	Register(ctx context.Context, req *services.RewardRegisterRequest) (*types.APIStatus, *types.APIStatus)
 }
 
-func OrderAcceptHandler(svc OrderAcceptService) http.HandlerFunc {
+func RewardRegisterHandler(svc RewardRegisterService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if svc == nil {
-			return
-		}
-		var req types.OrderAcceptRequest
+		var req services.RewardRegisterRequest
 		if err := decodeJSONRequest(w, r, &req); err != nil {
 			return
 		}
-		resp, err := svc.Accept(r.Context(), &req)
+		resp, err := svc.Register(r.Context(), &req)
 		if err != nil {
 			handleErrorResponse(w, err.Message, err.Status)
 			return

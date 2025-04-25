@@ -37,3 +37,7 @@ func writeTextPlainResponse(w http.ResponseWriter, message string, statusCode in
 func handleErrorResponse(w http.ResponseWriter, message string, statusCode int) {
 	http.Error(w, message, statusCode)
 }
+
+func setAuthorizationHeader(w http.ResponseWriter, token string) {
+	w.Header().Set("Authorization", "Bearer "+token)
+}

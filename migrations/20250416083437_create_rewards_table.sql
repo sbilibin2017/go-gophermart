@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE rewards (
-    reward_id VARCHAR(255) PRIMARY KEY,
+    match VARCHAR(255) PRIMARY KEY,
     reward BIGINT NOT NULL,
     reward_type VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
