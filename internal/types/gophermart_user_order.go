@@ -2,7 +2,18 @@ package types
 
 import "time"
 
-type GophermartUserOrder struct {
+type GophermartUserOrderUploadRequest struct {
+	Number string `json:"number"`
+}
+
+type GophermartUserOrdersResponse struct {
+	Number     string    `json:"number"`
+	Status     string    `json:"status"`
+	Accrual    *int64    `json:"accrual,omitempty"`
+	UploadedAt time.Time `json:"uploaded_at"`
+}
+
+type GophermartUserOrderDB struct {
 	Login      string    `db:"login"`
 	Number     string    `db:"number"`
 	Status     string    `db:"status"`

@@ -2,12 +2,22 @@ package types
 
 import "time"
 
-// GophermartUserBalanceWithdrawal - модель для таблицы gophermart_user_balance_withdrawal
-type GophermartUserBalanceWithdrawal struct {
-	Login       string    `db:"login"`        // references gophermart_user(login)
-	Number      string    `db:"number"`       // primary key part 1
-	Sum         int64     `db:"sum"`          // not null
-	ProcessedAt time.Time `db:"processed_at"` // not null
-	CreatedAt   time.Time `db:"created_at"`   // not null
-	UpdatedAt   time.Time `db:"updated_at"`   // not null
+type GophermartUserBalanceWithdrawalRequest struct {
+	Order string `json:"order"`
+	Sum   int64  `json:"sum"`
+}
+
+type GophermartUserBalanceWithdrawalsResponse struct {
+	Order       string    `json:"order"`
+	Sum         int64     `json:"sum"`
+	ProcessedAt time.Time `json:"processed_at"`
+}
+
+type GophermartUserBalanceWithdrawalDB struct {
+	Login       string    `db:"login"`
+	Number      string    `db:"number"`
+	Sum         int64     `db:"sum"`
+	ProcessedAt time.Time `db:"processed_at"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
 }
