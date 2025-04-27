@@ -9,7 +9,7 @@ import (
 )
 
 type AccrualOrderRegisterExistsRepository interface {
-	Exists(ctx context.Context, number string) (bool, error)
+	ExistsByNumber(ctx context.Context, number string) (bool, error)
 }
 
 type AccrualOrderRegisterSaveRepository interface {
@@ -55,7 +55,7 @@ func (svc *AccrualOrderRegisterService) Register(
 		}
 	}
 
-	exists, err := svc.ro.Exists(ctx, req.Order)
+	exists, err := svc.ro.ExistsByNumber(ctx, req.Order)
 	if err != nil {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusInternalServerError,

@@ -8,7 +8,7 @@ import (
 )
 
 type AccrualRewardMechanicRegisterExistsRepository interface {
-	Exists(ctx context.Context, match string) (bool, error)
+	ExistsByMatch(ctx context.Context, match string) (bool, error)
 }
 
 type AccrualRewardMechanicRegisterSaveRepository interface {
@@ -37,14 +37,16 @@ func NewAccrualRewardMechanicRegisterService(
 	}
 }
 
-func (s *AccrualRewardMechanicRegisterService) Register(ctx context.Context, req *types.AccrualRewardMechanicRegisterRequest) (*types.APIStatus, *types.APIStatus) {
+func (s *AccrualRewardMechanicRegisterService) Register(
+	ctx context.Context, req *types.AccrualRewardMechanicRegisterRequest,
+) (*types.APIStatus, *types.APIStatus) {
 	if err := s.v.Struct(req); err != nil {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusBadRequest,
 			Message:    "Reward mechanic data is invalid",
 		}
 	}
-	exists, err := s.re.Exists(ctx, req.Match)
+	exists, err := s.re.ExistsByMatch(ctx, req.Match)
 	if err != nil {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusInternalServerError,

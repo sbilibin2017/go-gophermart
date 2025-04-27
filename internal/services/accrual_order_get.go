@@ -51,15 +51,15 @@ func (svc *AccrualOrderGetService) Get(
 			Message:    "Order is not registered",
 		}
 	}
-	var response types.AccrualOrderGetResponse
-	err = mapToStruct(&response, order)
+	var response *types.AccrualOrderGetResponse
+	err = mapToStruct(response, order)
 	if err != nil {
 		return nil, nil, &types.APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Error mapping accrual data",
 		}
 	}
-	return &response, &types.APIStatus{
+	return response, &types.APIStatus{
 		StatusCode: http.StatusOK,
 		Message:    "Success",
 	}, nil
