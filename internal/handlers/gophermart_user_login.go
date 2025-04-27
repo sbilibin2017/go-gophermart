@@ -8,12 +8,12 @@ import (
 )
 
 type GophermartUserLoginService interface {
-	Login(ctx context.Context, req *types.GophermartUserUserRegisterRequest) (*types.GophermartUserUserRegisterResponse, *types.APIStatus, *types.APIStatus)
+	Login(ctx context.Context, req *types.GophermartUserRegisterRequest) (*types.GophermartUserRegisterResponse, *types.APIStatus, *types.APIStatus)
 }
 
 func GophermartUserLoginHandler(svc GophermartUserLoginService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GophermartUserUserRegisterRequest
+		var req types.GophermartUserRegisterRequest
 		if err := decodeJSONRequest(w, r, &req); err != nil {
 			return
 		}
