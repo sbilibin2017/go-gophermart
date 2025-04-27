@@ -1,19 +1,19 @@
 package types
 
-type GophermartUserUserRegisterRequest struct {
+type GophermartUserRegisterRequest struct {
 	Login    string `json:"login" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
-type GophermartUserUserRegisterResponse struct {
+type GophermartUserRegisterResponse struct {
 	Token string `json:"token"`
 }
 
-type GophermartUserUserLoginRequest struct {
+type GophermartUserLoginRequest struct {
 	Login    string `json:"login" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
-type GophermartUserUserLoginResponse struct {
+type GophermartUserLoginResponse struct {
 	Token string `json:"token"`
 }
