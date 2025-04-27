@@ -15,7 +15,7 @@ func NewAccrualRewardMechanicSaveRepository(db *sqlx.DB) *AccrualRewardMechanicS
 	return &AccrualRewardMechanicSaveRepository{db: db}
 }
 
-func (r *AccrualRewardMechanicSaveRepository) Save(
+func (repo *AccrualRewardMechanicSaveRepository) Save(
 	ctx context.Context,
 	match string,
 	reward int64,
@@ -26,7 +26,7 @@ func (r *AccrualRewardMechanicSaveRepository) Save(
 		"reward":      reward,
 		"reward_type": rewardType,
 	}
-	return exec(ctx, r.db, saveAccrualRewardMechanicQuery, args)
+	return exec(ctx, repo.db, saveAccrualRewardMechanicQuery, args)
 }
 
 const saveAccrualRewardMechanicQuery = `

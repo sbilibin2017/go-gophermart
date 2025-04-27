@@ -14,12 +14,12 @@ func NewAccrualRewardMechanicExistsRepository(db *sqlx.DB) *AccrualRewardMechani
 	return &AccrualRewardMechanicExistsRepository{db: db}
 }
 
-func (r *AccrualRewardMechanicExistsRepository) Exists(
+func (repo *AccrualRewardMechanicExistsRepository) Exists(
 	ctx context.Context,
 	match string,
 ) (bool, error) {
 	var exists bool
-	err := query(ctx, r.db, checkAccrualRewardMechanicExistsQuery, &exists, match)
+	err := query(ctx, repo.db, checkAccrualRewardMechanicExistsQuery, &exists, match)
 	if err != nil {
 		return false, err
 	}

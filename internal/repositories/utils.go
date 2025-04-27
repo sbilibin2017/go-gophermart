@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
@@ -166,4 +167,11 @@ func unpackArgs(args any) []any {
 		return unpackedArgs
 	}
 	return []any{args}
+}
+
+func buildColumnsString(fields []string) string {
+	if len(fields) > 0 {
+		return strings.Join(fields, ", ")
+	}
+	return "*"
 }

@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 type AccrualOrderGetRequest struct {
 	Order string `json:"order" validate:"required,luhn"`
 }
@@ -18,12 +16,4 @@ type AccrualOrderRegisterRequest struct {
 		Description string `json:"description" validate:"required"`
 		Price       int64  `json:"price" validate:"required,gt=0"`
 	} `json:"goods" validate:"required,min=1"`
-}
-
-type AccrualOrderDB struct {
-	Number    string    `db:"number"`
-	Status    string    `db:"status"`
-	Accrual   int64     `db:"accrual"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
 }
