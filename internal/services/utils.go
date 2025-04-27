@@ -57,36 +57,31 @@ func mapToStruct(result any, m map[string]any) error {
 }
 
 func mapListToStruct(result any, m []map[string]any) error {
-	// Проверяем, что result - это срез указателей на структуры
 	val := reflect.ValueOf(result)
 	if val.Kind() != reflect.Ptr || val.Elem().Kind() != reflect.Slice {
 		return fmt.Errorf("expected a pointer to a slice, got %T", result)
 	}
-
-	// Получаем срез, на который указывает result
 	slice := val.Elem()
 	if slice.Kind() != reflect.Slice {
 		return fmt.Errorf("expected a slice, got %T", slice)
 	}
-
-	// Проверка на соответствие длины
 	if slice.Len() != len(m) {
 		return fmt.Errorf("length of result slice and map slice must match")
 	}
-
-	// Для каждого элемента списка маппим данные
 	for i := 0; i < slice.Len(); i++ {
 		elem := slice.Index(i)
 		if elem.Kind() != reflect.Ptr || elem.Elem().Kind() != reflect.Struct {
 			return fmt.Errorf("expected a pointer to a struct at index %d, got %T", i, elem)
 		}
-
-		// Преобразуем map в структуру
 		err := mapToStruct(elem.Interface(), m[i])
 		if err != nil {
 			return fmt.Errorf("error mapping item at index %d: %v", i, err)
 		}
 	}
-
 	return nil
+}
+
+type APIStatus struct {
+	StatusCode int    `json:"status_code"`
+	Message    string `json:"message"`
 }

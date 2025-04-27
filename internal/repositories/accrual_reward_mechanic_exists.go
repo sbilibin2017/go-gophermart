@@ -2,31 +2,31 @@ package repositories
 
 import (
 	"context"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type AccrualRewardMechanicExistsRepository struct {
-	db *sqlx.DB
+	q Querier
 }
 
-func NewAccrualRewardMechanicExistsRepository(db *sqlx.DB) *AccrualRewardMechanicExistsRepository {
-	return &AccrualRewardMechanicExistsRepository{db: db}
+func NewAccrualRewardMechanicExistsRepository(
+	q Querier,
+) *AccrualRewardMechanicExistsRepository {
+	return &AccrualRewardMechanicExistsRepository{q: q}
 }
 
 func (repo *AccrualRewardMechanicExistsRepository) Exists(
 	ctx context.Context,
-	match string,
+	filter map[string]any,
 ) (bool, error) {
 	var exists bool
-	err := query(ctx, repo.db, checkAccrualRewardMechanicExistsQuery, &exists, match)
+	err := repo.q.Query(ctx, accrualRewardMechanicExistsQuery, &exists, filter["match"])
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-const checkAccrualRewardMechanicExistsQuery = `
+const accrualRewardMechanicExistsQuery = `
 	SELECT EXISTS (
 		SELECT 1
 		FROM accrual_reward_mechanic

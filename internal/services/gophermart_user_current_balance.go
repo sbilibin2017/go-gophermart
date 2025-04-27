@@ -5,19 +5,14 @@ import (
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type GophermartUserCurrentBalanceRepository interface {
-	GetBalanceByLogin(ctx context.Context, login string, fields []string) (map[string]any, error)
-}
-
 type GophermartUserCurrentBalanceService struct {
-	ro GophermartUserCurrentBalanceRepository
+	ro FilterRepository
 }
 
 func NewGophermartUserCurrentBalanceService(
-	ro GophermartUserCurrentBalanceRepository,
+	ro FilterRepository,
 ) *GophermartUserCurrentBalanceService {
 	return &GophermartUserCurrentBalanceService{
 		ro: ro,
@@ -26,25 +21,31 @@ func NewGophermartUserCurrentBalanceService(
 
 func (svc *GophermartUserCurrentBalanceService) Get(
 	ctx context.Context, login string,
-) (*types.GophermartUserCurrentBalanceResponse, *types.APIStatus, *types.APIStatus) {
-	balance, err := svc.ro.GetBalanceByLogin(ctx, login, []string{"current", "withdrawn"})
+) (*GophermartUserCurrentBalanceResponse, *APIStatus, *APIStatus) {
+	filter := map[string]any{"login": login}
+	balance, err := svc.ro.Filter(ctx, filter, []string{"current", "withdrawn"})
 	if err != nil {
 		logger.Logger.Errorf("Error getting balance for user %v: %v", login, err)
-		return nil, nil, &types.APIStatus{
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Error retrieving balance",
 		}
 	}
-	var response *types.GophermartUserCurrentBalanceResponse
+	var response *GophermartUserCurrentBalanceResponse
 	err = mapToStruct(response, balance)
 	if err != nil {
-		return nil, nil, &types.APIStatus{
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Error mapping balance data",
 		}
 	}
-	return response, &types.APIStatus{
+	return response, &APIStatus{
 		StatusCode: http.StatusOK,
 		Message:    "Successfully retrieved balance",
 	}, nil
+}
+
+type GophermartUserCurrentBalanceResponse struct {
+	Current   float64 `json:"current"`
+	Withdrawn int64   `json:"withdrawn"`
 }

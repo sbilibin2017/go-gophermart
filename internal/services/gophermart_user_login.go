@@ -3,89 +3,92 @@ package services
 import (
 	"context"
 	"net/http"
-	"time"
 
-	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
-	"github.com/sbilibin2017/go-gophermart/internal/password"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type GophermartUserLoginExistsRepository interface {
-	ExistsByLogin(ctx context.Context, login string) (bool, error)
-}
-
-type GophermartUserLoginPasswordRepository interface {
-	GetPasswordByLogin(ctx context.Context, login string) (string, error)
-}
-
-type GophermartUserLoginService interface {
-	Login(ctx context.Context, req *types.GophermartUserLoginRequest) (*types.GophermartUserLoginResponse, *types.APIStatus, *types.APIStatus)
-}
-
-type GophermartUserLoginServiceImpl struct {
-	roExists   GophermartUserLoginExistsRepository
-	roPassword GophermartUserLoginPasswordRepository
-	jwtSecret  string
-	jwtExp     time.Duration
+type GophermartUserLoginService struct {
+	v          StructValidator
+	roExists   ExistsRepository
+	roPassword FilterRepository
+	pc         PasswordComparer
+	jwtGen     JWTGenerator
 }
 
 func NewGophermartUserLoginService(
-	roExists GophermartUserLoginExistsRepository,
-	roPassword GophermartUserLoginPasswordRepository,
-	jwtSecret string,
-	jwtExp time.Duration,
-) *GophermartUserLoginServiceImpl {
-	return &GophermartUserLoginServiceImpl{
+	v StructValidator,
+	roExists ExistsRepository,
+	roPassword FilterRepository,
+	pc PasswordComparer,
+	jwtGen JWTGenerator,
+) *GophermartUserLoginService {
+	return &GophermartUserLoginService{
+		v:          v,
 		roExists:   roExists,
 		roPassword: roPassword,
-		jwtSecret:  jwtSecret,
-		jwtExp:     jwtExp,
+		pc:         pc,
+		jwtGen:     jwtGen,
 	}
 }
 
-func (svc *GophermartUserLoginServiceImpl) Login(
-	ctx context.Context, req *types.GophermartUserLoginRequest,
-) (*types.GophermartUserLoginResponse, *types.APIStatus, *types.APIStatus) {
-	exists, err := svc.roExists.ExistsByLogin(ctx, req.Login)
+func (svc *GophermartUserLoginService) Login(
+	ctx context.Context, req *GophermartUserLoginRequest,
+) (*GophermartUserLoginResponse, *APIStatus, *APIStatus) {
+	if err := svc.v.Struct(req); err != nil {
+		return nil, nil, &APIStatus{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid user login data",
+		}
+	}
+	exists, err := svc.roExists.Exists(ctx, map[string]any{"login": req.Login})
 	if err != nil {
 		logger.Logger.Errorf("Error checking if user exists: %v", err)
-		return nil, nil, &types.APIStatus{
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Internal server error",
 		}
 	}
 	if !exists {
-		return nil, nil, &types.APIStatus{
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusUnauthorized,
 			Message:    "Invalid login or password",
 		}
 	}
-	storedPasswordHash, err := svc.roPassword.GetPasswordByLogin(ctx, req.Login)
+	userData, err := svc.roPassword.Filter(ctx, map[string]any{"login": req.Login}, []string{"password"})
 	if err != nil {
 		logger.Logger.Errorf("Error retrieving password hash: %v", err)
-		return nil, nil, &types.APIStatus{
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Internal server error",
 		}
 	}
-	if err := password.Compare(req.Password, storedPasswordHash); err != nil {
-		return nil, nil, &types.APIStatus{
+	storedPasswordHash := userData["password"].(string)
+	if err := svc.pc.Compare(req.Password, storedPasswordHash); err != nil {
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusUnauthorized,
 			Message:    "Invalid login or password",
 		}
 	}
-	token, err := jwt.GenerateToken(req.Login, svc.jwtSecret, svc.jwtExp)
-	if err != nil {
-		return nil, nil, &types.APIStatus{
+	token := svc.jwtGen.Generate(map[string]any{"login": req.Login})
+	if token == nil {
+		return nil, nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Error generating authentication token",
 		}
 	}
-	return &types.GophermartUserLoginResponse{
-			Token: token,
-		}, &types.APIStatus{
+	return &GophermartUserLoginResponse{
+			Token: *token,
+		}, &APIStatus{
 			StatusCode: http.StatusOK,
 			Message:    "User successfully authenticated",
 		}, nil
+}
+
+type GophermartUserLoginRequest struct {
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type GophermartUserLoginResponse struct {
+	Token string `json:"token"`
 }

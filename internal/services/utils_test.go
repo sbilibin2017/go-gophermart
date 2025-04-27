@@ -3,7 +3,6 @@ package services
 import (
 	"testing"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +15,7 @@ func TestMapToStruct(t *testing.T) {
 	}
 
 	// Инициализация структуры
-	var orderResponse types.AccrualOrderGetResponse
+	var orderResponse AccrualOrderGetResponse
 
 	// Маппинг данных из карты в структуру
 	err := mapToStruct(&orderResponse, orderData)

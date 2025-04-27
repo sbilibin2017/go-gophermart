@@ -3,26 +3,26 @@ package repositories
 import (
 	"context"
 	"fmt"
-
-	"github.com/jmoiron/sqlx"
 )
 
-type RewardMechanicFilterILikeRepository struct {
-	db *sqlx.DB
+type AccrualRewardMechanicFilterILikeRepository struct {
+	q Querier
 }
 
-func NewRewardMechanicFilterILikeRepository(db *sqlx.DB) *RewardMechanicFilterILikeRepository {
-	return &RewardMechanicFilterILikeRepository{db: db}
+func NewAccrualRewardMechanicFilterILikeRepository(
+	q Querier,
+) *AccrualRewardMechanicFilterILikeRepository {
+	return &AccrualRewardMechanicFilterILikeRepository{q: q}
 }
 
-func (repo *RewardMechanicFilterILikeRepository) FilterILikeByDescription(
+func (repo *AccrualRewardMechanicFilterILikeRepository) FilterILike(
 	ctx context.Context,
-	description string,
+	s string,
 	fields []string,
 ) (map[string]any, error) {
-	q, args := buildILikeQuery(fields, description)
+	q, args := buildILikeQuery(fields, s)
 	var result map[string]any
-	err := query(ctx, repo.db, q, &result, args)
+	err := repo.q.Query(ctx, q, &result, args)
 	if err != nil {
 		return nil, err
 	}

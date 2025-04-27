@@ -2,24 +2,24 @@ package repositories
 
 import (
 	"context"
-
-	"github.com/jmoiron/sqlx"
 )
 
-type AccrualOrderExistsRepository struct {
-	db *sqlx.DB
+type OrderExistsRepository struct {
+	q Querier
 }
 
-func NewAccrualOrderExistsRepository(db *sqlx.DB) *AccrualOrderExistsRepository {
-	return &AccrualOrderExistsRepository{db: db}
+func NewOrderExistsRepository(
+	q Querier,
+) *OrderExistsRepository {
+	return &OrderExistsRepository{q: q}
 }
 
-func (repo *AccrualOrderExistsRepository) Exists(
+func (repo *OrderExistsRepository) Exists(
 	ctx context.Context,
-	number string,
+	filter map[string]any,
 ) (bool, error) {
 	var exists bool
-	err := query(ctx, repo.db, accrualOrderRegisterExistsQuery, &exists, number)
+	err := repo.q.Query(ctx, accrualOrderRegisterExistsQuery, &exists, filter["number"])
 	if err != nil {
 		return false, err
 	}

@@ -5,31 +5,18 @@ import (
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type GophermartUserOrderExistsRepository interface {
-	ExistsByLoginAndNumber(ctx context.Context, login *string, number string) (bool, error)
-}
-
-type GophermartUserOrderSaveRepository interface {
-	Save(ctx context.Context, login, number string) error
-}
-
-type GophermartUserOrderUploadValidator interface {
-	Struct(v any) error
-}
-
 type GophermartUserOrderUploadService struct {
-	v  GophermartUserOrderUploadValidator
-	ro GophermartUserOrderExistsRepository
-	rs GophermartUserOrderSaveRepository
+	v  StructValidator
+	ro ExistsRepository
+	rs SaveRepository
 }
 
 func NewGophermartUserOrderUploadService(
-	v GophermartUserOrderUploadValidator,
-	ro GophermartUserOrderExistsRepository,
-	rs GophermartUserOrderSaveRepository,
+	v StructValidator,
+	ro ExistsRepository,
+	rs SaveRepository,
 ) *GophermartUserOrderUploadService {
 	return &GophermartUserOrderUploadService{
 		v:  v,
@@ -39,51 +26,55 @@ func NewGophermartUserOrderUploadService(
 }
 
 func (svc *GophermartUserOrderUploadService) Upload(
-	ctx context.Context, req *types.GophermartUserOrderUploadRequest, login string,
-) (*types.APIStatus, *types.APIStatus) {
+	ctx context.Context, req *GophermartUserOrderUploadRequest, login string,
+) (*APIStatus, *APIStatus) {
 	if err := svc.v.Struct(req); err != nil {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusBadRequest,
 			Message:    "Invalid order number",
 		}
 	}
-	exists, err := svc.ro.ExistsByLoginAndNumber(ctx, &login, req.Number)
+	exists, err := svc.ro.Exists(ctx, map[string]any{"login": login, "order": req.Number})
 	if err != nil {
 		logger.Logger.Errorf("Error checking if order number exists: %v", err)
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "User order number is not accepted for processing",
 		}
 	}
 	if exists {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusOK,
 			Message:    "Order number already uploaded by this user",
 		}
 	}
-	otherExists, err := svc.ro.ExistsByLoginAndNumber(ctx, nil, req.Number)
+	otherExists, err := svc.ro.Exists(ctx, map[string]any{"order": req.Number})
 	if err != nil {
 		logger.Logger.Errorf("Error checking if order number exists for other users: %v", err)
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "User order number is not accepted for processing",
 		}
 	}
 	if otherExists {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusConflict,
 			Message:    "Order number already uploaded by another user",
 		}
 	}
-	if err := svc.rs.Save(ctx, login, req.Number); err != nil {
+	if err := svc.rs.Save(ctx, map[string]any{"login": login, "order": req.Number}); err != nil {
 		logger.Logger.Errorf("Error saving order number: %v", err)
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "User order number is not accepted for processing",
 		}
 	}
-	return &types.APIStatus{
+	return &APIStatus{
 		StatusCode: http.StatusAccepted,
 		Message:    "Order number accepted for processing",
 	}, nil
+}
+
+type GophermartUserOrderUploadRequest struct {
+	Number string `json:"number" validate:"required,luhn"`
 }

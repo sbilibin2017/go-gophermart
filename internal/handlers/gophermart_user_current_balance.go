@@ -4,16 +4,17 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 type GophermartUserCurrentBalanceService interface {
-	Get(ctx context.Context, login string) (*types.GophermartUserCurrentBalanceResponse, *types.APIStatus, *types.APIStatus)
+	Get(ctx context.Context, login string) (*services.GophermartUserCurrentBalanceResponse, *services.APIStatus, *services.APIStatus)
 }
 
 func GophermartUserCurrentBalanceHandler(svc GophermartUserCurrentBalanceService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		login := getUserLoginFromContext(w, r)
+		login := getUserLoginFromContext(w, r, jwt.GetJWTPayload)
 		if login == nil {
 			return
 		}

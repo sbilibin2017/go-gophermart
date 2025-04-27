@@ -2,31 +2,23 @@ package repositories
 
 import (
 	"context"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
 )
 
 type AccrualRewardMechanicSaveRepository struct {
-	db *sqlx.DB
+	e Executor
 }
 
-func NewAccrualRewardMechanicSaveRepository(db *sqlx.DB) *AccrualRewardMechanicSaveRepository {
-	return &AccrualRewardMechanicSaveRepository{db: db}
+func NewAccrualRewardMechanicSaveRepository(
+	e Executor,
+) *AccrualRewardMechanicSaveRepository {
+	return &AccrualRewardMechanicSaveRepository{e: e}
 }
 
 func (repo *AccrualRewardMechanicSaveRepository) Save(
 	ctx context.Context,
-	match string,
-	reward int64,
-	rewardType string,
+	data map[string]any,
 ) error {
-	args := map[string]any{
-		"match":       match,
-		"reward":      reward,
-		"reward_type": rewardType,
-	}
-	return exec(ctx, repo.db, saveAccrualRewardMechanicQuery, args)
+	return repo.e.Exec(ctx, saveAccrualRewardMechanicQuery, data)
 }
 
 const saveAccrualRewardMechanicQuery = `

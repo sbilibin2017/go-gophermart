@@ -4,16 +4,16 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 type GophermartUserLoginService interface {
-	Login(ctx context.Context, req *types.GophermartUserRegisterRequest) (*types.GophermartUserRegisterResponse, *types.APIStatus, *types.APIStatus)
+	Login(ctx context.Context, req *services.GophermartUserRegisterRequest) (*services.GophermartUserRegisterResponse, *services.APIStatus, *services.APIStatus)
 }
 
 func GophermartUserLoginHandler(svc GophermartUserLoginService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GophermartUserRegisterRequest
+		var req services.GophermartUserRegisterRequest
 		if err := decodeJSONRequest(w, r, &req); err != nil {
 			return
 		}

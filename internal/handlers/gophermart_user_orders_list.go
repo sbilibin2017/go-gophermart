@@ -4,16 +4,17 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 type GophermartUserOrderService interface {
-	List(ctx context.Context, login string) ([]*types.GophermartUserOrdersResponse, *types.APIStatus, *types.APIStatus)
+	List(ctx context.Context, login string) ([]*services.GophermartUserOrdersResponse, *services.APIStatus, *services.APIStatus)
 }
 
 func GophermartUserOrdersListHandler(svc GophermartUserOrderService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		login := getUserLoginFromContext(w, r)
+		login := getUserLoginFromContext(w, r, jwt.GetJWTPayload)
 		if login == nil {
 			return
 		}

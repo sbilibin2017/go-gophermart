@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 func decodeJSONRequest(w http.ResponseWriter, r *http.Request, v any) error {
@@ -17,7 +17,7 @@ func decodeJSONRequest(w http.ResponseWriter, r *http.Request, v any) error {
 	return nil
 }
 
-func encodeJSONResponse(w http.ResponseWriter, v any, status *types.APIStatus) {
+func encodeJSONResponse(w http.ResponseWriter, v any, status *services.APIStatus) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status.StatusCode)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -25,13 +25,13 @@ func encodeJSONResponse(w http.ResponseWriter, v any, status *types.APIStatus) {
 	}
 }
 
-func handleError(w http.ResponseWriter, errStatus *types.APIStatus) {
+func handleError(w http.ResponseWriter, errStatus *services.APIStatus) {
 	if errStatus != nil {
 		http.Error(w, errStatus.Message, errStatus.StatusCode)
 	}
 }
 
-func sendTextPlainResponse(w http.ResponseWriter, status *types.APIStatus) {
+func sendTextPlainResponse(w http.ResponseWriter, status *services.APIStatus) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status.StatusCode)
 	w.Write([]byte(status.Message))
@@ -45,14 +45,19 @@ func setAuthorizationHeader(w http.ResponseWriter, token string) {
 	w.Header().Set("Authorization", "Bearer "+token)
 }
 
-func getUserLoginFromContext(w http.ResponseWriter, r *http.Request) *string {
-	login := middlewares.GetLogin(r.Context())
-	if login == nil {
-		handleError(w, &types.APIStatus{
+func getUserLoginFromContext(
+	w http.ResponseWriter,
+	r *http.Request,
+	jwtPayloadGetter func(ctx context.Context) (map[string]any, error),
+) *string {
+	payload, err := jwtPayloadGetter(r.Context())
+	if err != nil {
+		handleError(w, &services.APIStatus{
 			StatusCode: http.StatusUnauthorized,
 			Message:    "Unauthorized",
 		})
 		return nil
 	}
-	return login
+	login := payload["login"].(string)
+	return &login
 }

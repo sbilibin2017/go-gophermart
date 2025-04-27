@@ -4,16 +4,16 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/types"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 )
 
 type AccrualRewardMechanicRegisterService interface {
-	Register(ctx context.Context, req *types.AccrualRewardMechanicRegisterRequest) (*types.APIStatus, *types.APIStatus)
+	Register(ctx context.Context, req *services.AccrualRewardMechanicRegisterRequest) (*services.APIStatus, *services.APIStatus)
 }
 
 func AccrualRewardMechanicRegisterHandler(svc AccrualRewardMechanicRegisterService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.AccrualRewardMechanicRegisterRequest
+		var req services.AccrualRewardMechanicRegisterRequest
 		if err := decodeJSONRequest(w, r, &req); err != nil {
 			return
 		}

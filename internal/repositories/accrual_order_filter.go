@@ -3,33 +3,34 @@ package repositories
 import (
 	"context"
 	"fmt"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type AccrualOrderFilterByNumberRepository struct {
-	db *sqlx.DB
+	q Querier
 }
 
-func NewAccrualOrderFilterByNumberRepository(db *sqlx.DB) *AccrualOrderFilterByNumberRepository {
-	return &AccrualOrderFilterByNumberRepository{db: db}
+func NewAccrualOrderFilterByNumberRepository(
+	q Querier,
+) *AccrualOrderFilterByNumberRepository {
+	return &AccrualOrderFilterByNumberRepository{q: q}
 }
 
-func (repo *AccrualOrderFilterByNumberRepository) FilterByNumber(
+// Implementing the Filter method to match the FilterRepository interface
+func (repo *AccrualOrderFilterByNumberRepository) Filter(
 	ctx context.Context,
-	number string,
+	filter map[string]any,
 	fields []string,
 ) (map[string]any, error) {
-	q, args := buildFilterByNumberQuery(fields, number)
+	q, args := buildFilterByNumberQuery(fields, filter["number"])
 	var result map[string]any
-	err := query(ctx, repo.db, q, &result, args)
+	err := repo.q.Query(ctx, q, &result, args)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func buildFilterByNumberQuery(fields []string, number string) (string, map[string]any) {
+func buildFilterByNumberQuery(fields []string, number any) (string, map[string]any) {
 	columns := buildColumnsString(fields)
 	query := fmt.Sprintf(
 		accrualOrderFilterByNumberQuery,

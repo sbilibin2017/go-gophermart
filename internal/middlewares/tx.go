@@ -5,54 +5,51 @@ import (
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/logger"
 )
 
-// TxMiddleware - middleware для работы с транзакцией
-func TxMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
+func TxMiddleware(
+	db *sqlx.DB,
+	txSetter func(ctx context.Context, tx *sqlx.Tx) context.Context,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Начинаем новую транзакцию
-			tx, err := db.Beginx()
+			err := withTx(db, func(tx *sqlx.Tx) error {
+				ctx := txSetter(r.Context(), tx)
+				r = r.WithContext(ctx)
+				next.ServeHTTP(w, r)
+				return nil
+			})
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
-			}
-
-			// Передаем транзакцию через контекст запроса, используя custom contextKey type
-			ctx := context.WithValue(r.Context(), txKey, tx)
-			r = r.WithContext(ctx)
-
-			// Используем defer для отката транзакции, если произойдет ошибка
-			defer func() {
-				if err != nil {
-					// Если произошла ошибка, откатываем транзакцию
-					if rollbackErr := tx.Rollback(); rollbackErr != nil {
-						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-					}
-				}
-			}()
-
-			// Завершаем выполнение запроса
-			next.ServeHTTP(w, r)
-
-			// Если код завершился без ошибок, коммитим транзакцию
-			if err := tx.Commit(); err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		})
 	}
 }
 
-func GetTxFromContext(ctx context.Context) *sqlx.Tx {
-	tx, ok := ctx.Value(txKey).(*sqlx.Tx)
-	if !ok {
-		return nil
+func withTx(db *sqlx.DB, op func(tx *sqlx.Tx) error) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		logger.Logger.Error("Error starting transaction: ", err)
+		return err
 	}
-	return tx
+	logger.Logger.Info("Executing transaction operation")
+	err = op(tx)
+	if err != nil {
+		logger.Logger.Error("Error during transaction operation: ", err)
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			logger.Logger.Error("Error rolling back transaction: ", rollbackErr)
+			return rollbackErr
+		}
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		logger.Logger.Error("Error committing transaction: ", err)
+		return err
+	}
+	logger.Logger.Info("Transaction successfully committed")
+	return nil
 }
-
-// Define a custom type for the context key to avoid using the built-in string type.
-type contextKey string
-
-// Define a constant for the context key.
-const txKey contextKey = "tx"

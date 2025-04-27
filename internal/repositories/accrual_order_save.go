@@ -2,30 +2,23 @@ package repositories
 
 import (
 	"context"
-
-	"github.com/jmoiron/sqlx"
 )
 
-type AccrualOrderSaveRepository struct {
-	db *sqlx.DB
+type OrderSaveRepository struct {
+	e Executor
 }
 
-func NewAccrualOrderSaveRepository(db *sqlx.DB) *AccrualOrderSaveRepository {
-	return &AccrualOrderSaveRepository{db: db}
+func NewOrderSaveRepository(
+	e Executor,
+) *OrderSaveRepository {
+	return &OrderSaveRepository{e: e}
 }
 
-func (repo *AccrualOrderSaveRepository) Save(
+func (repo *OrderSaveRepository) Save(
 	ctx context.Context,
-	number string,
-	accrual int64,
-	status string,
+	data map[string]any,
 ) error {
-	args := map[string]any{
-		"number":  number,
-		"accrual": accrual,
-		"status":  status,
-	}
-	return exec(ctx, repo.db, saveAccrualOrderQuery, args)
+	return repo.e.Exec(ctx, saveAccrualOrderQuery, data)
 }
 
 const saveAccrualOrderQuery = `

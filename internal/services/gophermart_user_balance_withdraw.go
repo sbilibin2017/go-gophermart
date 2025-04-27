@@ -5,31 +5,18 @@ import (
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type GophermartUserBalanceGetBalanceRepository interface {
-	GetBalance(ctx context.Context, login string) (float64, error)
-}
-
-type GophermartUserBalanceGetBalanceWithdrawalSaveRepository interface {
-	Save(ctx context.Context, login, order string, sum int64) error
-}
-
-type GophermartUserBalanceWithdrawValidator interface {
-	Struct(v any) error
-}
-
 type GophermartUserBalanceWithdrawService struct {
-	v   GophermartUserBalanceWithdrawValidator
-	gbr GophermartUserBalanceGetBalanceRepository
-	sbr GophermartUserBalanceGetBalanceWithdrawalSaveRepository
+	v   StructValidator
+	gbr FilterRepository
+	sbr SaveRepository
 }
 
 func NewGophermartUserBalanceWithdrawService(
-	v GophermartUserBalanceWithdrawValidator,
-	gbr GophermartUserBalanceGetBalanceRepository,
-	sbr GophermartUserBalanceGetBalanceWithdrawalSaveRepository,
+	v StructValidator,
+	gbr FilterRepository,
+	sbr SaveRepository,
 ) *GophermartUserBalanceWithdrawService {
 	return &GophermartUserBalanceWithdrawService{
 		v:   v,
@@ -39,38 +26,56 @@ func NewGophermartUserBalanceWithdrawService(
 }
 
 func (svc *GophermartUserBalanceWithdrawService) Withdraw(
-	ctx context.Context, req *types.GophermartUserBalanceWithdrawRequest, login string,
-) (*types.APIStatus, *types.APIStatus) {
+	ctx context.Context, req *GophermartUserBalanceWithdrawRequest, login string,
+) (*APIStatus, *APIStatus) {
 	if err := svc.v.Struct(req); err != nil {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusUnprocessableEntity,
 			Message:    "Invalid order number format or invalid sum",
 		}
 	}
-	currentBalance, err := svc.gbr.GetBalance(ctx, login)
+	balanceFilter := map[string]any{"login": login}
+	balance, err := svc.gbr.Filter(ctx, balanceFilter, []string{"balance"})
 	if err != nil {
 		logger.Logger.Errorf("Error getting balance for user %v: %v", login, err)
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Error retrieving balance",
 		}
 	}
+	currentBalance, ok := balance["balance"].(float64)
+	if !ok {
+		return nil, &APIStatus{
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Error retrieving balance data",
+		}
+	}
 	if currentBalance < float64(req.Sum) {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusPaymentRequired,
 			Message:    "Insufficient balance",
 		}
 	}
-	err = svc.sbr.Save(ctx, login, req.Order, req.Sum)
+	withdrawData := map[string]any{
+		"login": login,
+		"order": req.Order,
+		"sum":   req.Sum,
+	}
+	err = svc.sbr.Save(ctx, withdrawData)
 	if err != nil {
 		logger.Logger.Errorf("Error saving withdrawal request for user %v: %v", login, err)
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Error saving withdrawal request",
 		}
 	}
-	return &types.APIStatus{
+	return &APIStatus{
 		StatusCode: http.StatusOK,
 		Message:    "Withdrawal request successfully registered",
 	}, nil
+}
+
+type GophermartUserBalanceWithdrawRequest struct {
+	Order string `json:"order" validate:"required,luhn"`
+	Sum   int64  `json:"sum" validate:"required,gt=0"`
 }

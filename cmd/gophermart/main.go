@@ -1,10 +1,10 @@
 package main
 
-import "os"
+// import "os"
 
-func main() {
-	config := flags()
-	err := run(config)
-	code := exit(err)
-	os.Exit(code)
-}
+// func main() {
+// 	config := flags()
+// 	err := run(config)
+// 	code := exit(err)
+// 	os.Exit(code)
+// }

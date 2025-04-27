@@ -5,37 +5,20 @@ import (
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/constants"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type AccrualOrderRegisterExistsRepository interface {
-	ExistsByNumber(ctx context.Context, number string) (bool, error)
-}
-
-type AccrualOrderRegisterSaveRepository interface {
-	Save(ctx context.Context, number string, accrual int64, status string) error
-}
-
-type AccrualOrderRegisterRewardMechanicFindRepository interface {
-	FilterILikeByDescription(ctx context.Context, description string, fields []string) (map[string]any, error)
-}
-
-type AccrualOrderRegisterValidator interface {
-	Struct(v any) error
-}
-
 type AccrualOrderRegisterService struct {
-	v  AccrualOrderRegisterValidator
-	ro AccrualOrderRegisterExistsRepository
-	rs AccrualOrderRegisterSaveRepository
-	rm AccrualOrderRegisterRewardMechanicFindRepository
+	v  StructValidator
+	ro ExistsRepository
+	rs SaveRepository
+	rm FilterILikeRepository
 }
 
 func NewAccrualOrderRegisterService(
-	v AccrualOrderRegisterValidator,
-	ro AccrualOrderRegisterExistsRepository,
-	rs AccrualOrderRegisterSaveRepository,
-	rm AccrualOrderRegisterRewardMechanicFindRepository,
+	v StructValidator,
+	ro ExistsRepository,
+	rs SaveRepository,
+	rm FilterILikeRepository,
 ) *AccrualOrderRegisterService {
 	return &AccrualOrderRegisterService{
 		v:  v,
@@ -46,51 +29,47 @@ func NewAccrualOrderRegisterService(
 }
 
 func (svc *AccrualOrderRegisterService) Register(
-	ctx context.Context, req *types.AccrualOrderRegisterRequest,
-) (*types.APIStatus, *types.APIStatus) {
+	ctx context.Context, req *AccrualOrderRegisterRequest,
+) (*APIStatus, *APIStatus) {
 	if err := svc.v.Struct(req); err != nil {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusBadRequest,
 			Message:    "Invalid order data",
 		}
 	}
-
-	exists, err := svc.ro.ExistsByNumber(ctx, req.Order)
+	exists, err := svc.ro.Exists(ctx, map[string]any{"number": req.Order})
 	if err != nil {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
-			Message:    "Order is not registered",
+			Message:    "Error checking if order exists",
 		}
 	}
 	if exists {
-		return nil, &types.APIStatus{
+		return nil, &APIStatus{
 			StatusCode: http.StatusConflict,
 			Message:    "Order already registered",
 		}
 	}
-
 	var accrual int64
 	for _, good := range req.Goods {
-		mechanic, err := svc.rm.FilterILikeByDescription(
-			ctx, good.Description, []string{"reward", "reward_type"},
-		)
+		mechanic, err := svc.rm.FilterILike(ctx, good.Description, []string{"reward", "reward_type"})
 		if err != nil {
-			return nil, &types.APIStatus{
+			return nil, &APIStatus{
 				StatusCode: http.StatusInternalServerError,
-				Message:    "Order is not registered",
+				Message:    "Error retrieving reward mechanic data",
 			}
 		}
 		if a := calcAccrual(good.Price, mechanic); a != nil {
 			accrual += *a
 		}
 	}
-	if err := svc.rs.Save(ctx, req.Order, accrual, constants.ORDER_STATUS_REGISTERED); err != nil {
-		return nil, &types.APIStatus{
+	if err := svc.rs.Save(ctx, map[string]any{"number": req.Order, "accrual": accrual, "status": constants.ORDER_STATUS_REGISTERED}); err != nil {
+		return nil, &APIStatus{
 			StatusCode: http.StatusInternalServerError,
-			Message:    "Order is not registered",
+			Message:    "Error saving order",
 		}
 	}
-	return &types.APIStatus{
+	return &APIStatus{
 		StatusCode: http.StatusAccepted,
 		Message:    "Order successfully registered",
 	}, nil
@@ -107,4 +86,12 @@ func calcAccrual(price int64, mechanic map[string]any) *int64 {
 	default:
 		return nil
 	}
+}
+
+type AccrualOrderRegisterRequest struct {
+	Order string `json:"order" validate:"required,luhn"`
+	Goods []struct {
+		Description string `json:"description" validate:"required"`
+		Price       int64  `json:"price" validate:"required,gt=0"`
+	} `json:"goods" validate:"required,min=1"`
 }

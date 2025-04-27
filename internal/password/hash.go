@@ -5,11 +5,25 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Hash(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+type Hasher struct {
+	cost int
+}
+
+func NewHasher(cost int) *Hasher {
+	if cost == 0 {
+		cost = bcrypt.DefaultCost
+	}
+	return &Hasher{
+		cost: cost,
+	}
+}
+
+func (h *Hasher) Hash(password string) *string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), h.cost)
 	if err != nil {
 		logger.Logger.Errorf("Error hashing password: %v", err)
-		return "", err
+		return nil
 	}
-	return string(hash), nil
+	s := string(hash)
+	return &s
 }
