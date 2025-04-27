@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-type GophermartUserBalanceResponse struct {
+type GophermartUserCurrentBalanceResponse struct {
 	Current   float64 `json:"current"`
 	Withdrawn int64   `json:"withdrawn"`
 }

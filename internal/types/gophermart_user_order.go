@@ -3,7 +3,7 @@ package types
 import "time"
 
 type GophermartUserOrderUploadRequest struct {
-	Number string `json:"number"`
+	Number string `json:"number" validate:"required,luhn"`
 }
 
 type GophermartUserOrdersResponse struct {

@@ -3,7 +3,7 @@ package types
 import "time"
 
 type AccrualOrderGetRequest struct {
-	Order string `json:"order"`
+	Order string `json:"order" validate:"required,luhn"`
 }
 
 type AccrualOrderGetResponse struct {
@@ -13,11 +13,11 @@ type AccrualOrderGetResponse struct {
 }
 
 type AccrualOrderRegisterRequest struct {
-	Order string `json:"order"`
+	Order string `json:"order" validate:"required,luhn"`
 	Goods []struct {
-		Description string `json:"description"`
-		Price       int64  `json:"price"`
-	} `json:"goods"`
+		Description string `json:"description" validate:"required"`
+		Price       int64  `json:"price" validate:"required,gt=0"`
+	} `json:"goods" validate:"required,min=1"`
 }
 
 type AccrualOrderDB struct {

@@ -3,8 +3,8 @@ package types
 import "time"
 
 type GophermartUserUserRegisterRequest struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type GophermartUserUserRegisterResponse struct {
@@ -12,8 +12,8 @@ type GophermartUserUserRegisterResponse struct {
 }
 
 type GophermartUserUserLoginRequest struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type GophermartUserUserLoginResponse struct {

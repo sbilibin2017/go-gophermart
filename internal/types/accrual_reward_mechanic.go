@@ -3,9 +3,9 @@ package types
 import "time"
 
 type AccrualRewardMechanicRegisterRequest struct {
-	Match      string `json:"match"`
-	Reward     int64  `json:"reward"`
-	RewardType string `json:"reward_type"`
+	Match      string `json:"match" validate:"required"`
+	Reward     int64  `json:"reward" validate:"required,gt=0"`
+	RewardType string `json:"reward_type" validate:"required,reward_type"`
 }
 
 type AccrualRewardMechanicDB struct {
