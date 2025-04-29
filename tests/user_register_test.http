@@ -1,0 +1,36 @@
+### Test 1: Successful Registration
+POST http://localhost:8080/api/user/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "ne1wu1er123",
+  "password": "securePassword123"
+}
+
+### Test 2: Registration with Invalid Data (Empty Login)
+POST http://localhost:8080/api/user/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "",
+  "password": "securePassword123"
+}
+
+### Test 3: Registration with Invalid Data (Empty Password)
+POST http://localhost:8080/api/user/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "newuser",
+  "password": ""
+}
+
+### Test 4: Registration with an Already Taken Login
+POST http://localhost:8080/api/user/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "existinguser",
+  "password": "securePassword123"
+}
+
