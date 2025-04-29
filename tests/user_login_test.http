@@ -1,0 +1,93 @@
+### Test 1: Successful Authentication
+POST http://localhost:8080/api/user/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "existinguser",
+  "password": "securePassword123"
+}
+
+**Ожидаемый результат:**
+- Код ответа: `200 OK`
+- Тело ответа: `{ "message": "User successfully authenticated" }`
+- Пользователь успешно аутентифицирован, и, возможно, будет возвращен токен в заголовке или cookies.
+
+---
+
+### Test 2: Authentication with Invalid Data (Empty Login)
+POST http://localhost:8080/api/user/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "",
+  "password": "securePassword123"
+}
+
+**Ожидаемый результат:**
+- Код ответа: `400 Bad Request`
+- Тело ответа: `{ "error": "Invalid request format" }`
+- Параметр `login` пустой, что вызывает ошибку формата запроса.
+
+---
+
+### Test 3: Authentication with Invalid Data (Empty Password)
+POST http://localhost:8080/api/user/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "existinguser",
+  "password": ""
+}
+
+**Ожидаемый результат:**
+- Код ответа: `400 Bad Request`
+- Тело ответа: `{ "error": "Invalid request format" }`
+- Параметр `password` пустой, что вызывает ошибку формата запроса.
+
+---
+
+### Test 4: Authentication with Invalid Credentials (Wrong Login)
+POST http://localhost:8080/api/user/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "nonexistentuser",
+  "password": "wrongPassword123"
+}
+
+**Ожидаемый результат:**
+- Код ответа: `401 Unauthorized`
+- Тело ответа: `{ "error": "Invalid login/password combination" }`
+- Логин или пароль неверный, аутентификация не удалась.
+
+---
+
+### Test 5: Authentication with Invalid Credentials (Wrong Password)
+POST http://localhost:8080/api/user/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "existinguser",
+  "password": "wrongPassword123"
+}
+
+**Ожидаемый результат:**
+- Код ответа: `401 Unauthorized`
+- Тело ответа: `{ "error": "Invalid login/password combination" }`
+- Пароль неверный, аутентификация не удалась.
+
+---
+
+### Test 6: Internal Server Error (Database Issue)
+POST http://localhost:8080/api/user/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "login": "existinguser",
+  "password": "securePassword123"
+}
+
+**Ожидаемый результат:**
+- Код ответа: `500 Internal Server Error`
+- Тело ответа: `{ "error": "Internal server error" }`
+- Проблемы с сервером или базой данных, запрос не может быть обработан.

@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,37 +18,59 @@ type UserRegisterUserSaveRepository interface {
 }
 
 type UserRegisterService struct {
-	ueRepo UserRegisterUserExistsByLoginRepository
-	usRepo UserRegisterUserSaveRepository
+	ueRepo       UserRegisterUserExistsByLoginRepository
+	usRepo       UserRegisterUserSaveRepository
+	jwtSecretKey string
+	jwtExp       time.Duration
 }
 
-func NewUserRegisterService(ueRepo UserRegisterUserExistsByLoginRepository, usRepo UserRegisterUserSaveRepository) *UserRegisterService {
+func NewUserRegisterService(
+	jwtSecretKey string,
+	jwtExp time.Duration,
+	ueRepo UserRegisterUserExistsByLoginRepository,
+	usRepo UserRegisterUserSaveRepository,
+) *UserRegisterService {
 	return &UserRegisterService{
-		ueRepo: ueRepo,
-		usRepo: usRepo,
+		ueRepo:       ueRepo,
+		usRepo:       usRepo,
+		jwtSecretKey: jwtSecretKey,
+		jwtExp:       jwtExp,
 	}
 }
 
-func (s *UserRegisterService) Register(
-	ctx context.Context, user *domain.User,
-) error {
-	exists, err := s.ueRepo.ExistsByLogin(ctx, user.Login)
+func (svc *UserRegisterService) Register(
+	ctx context.Context,
+	user *domain.User,
+
+) (*string, error) {
+	exists, err := svc.ueRepo.ExistsByLogin(ctx, user.Login)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exists {
-		return domain.ErrLoginAlreadyTaken
+		return nil, domain.ErrLoginAlreadyTaken
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password), bcrypt.DefaultCost,
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = s.usRepo.Save(ctx, user.Login, string(hashedPassword))
+	err = svc.usRepo.Save(ctx, user.Login, string(hashedPassword))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	token, err := jwt.GenerateTokenString(
+		user.Login,
+		svc.jwtSecretKey,
+		svc.jwtExp,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
 }

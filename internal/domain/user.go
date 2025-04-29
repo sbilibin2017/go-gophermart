@@ -8,6 +8,6 @@ type User struct {
 }
 
 var (
-	ErrLoginAlreadyTaken  = errors.New("login is already taken")
-	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrLoginAlreadyTaken      = errors.New("login is already taken")
+	ErrInvalidUserCredentials = errors.New("invalid user credentials")
 )

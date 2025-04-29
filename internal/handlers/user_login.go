@@ -7,17 +7,17 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
-type UserAuthService interface {
-	Authenticate(ctx context.Context, user *domain.User) (string, error)
+type UserLoginService interface {
+	Login(ctx context.Context, user *domain.User) (*string, error)
 }
 
-type UserAuthValidator interface {
+type UserLoginValidator interface {
 	Struct(v any) error
 }
 
-func UserAuthHandler(
-	svc UserAuthService,
-	val UserAuthValidator,
+func UserLoginHandler(
+	val UserLoginValidator,
+	svc UserLoginService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var requestData struct {
@@ -42,11 +42,10 @@ func UserAuthHandler(
 			Password: requestData.Password,
 		}
 
-		token, err := svc.Authenticate(r.Context(), user)
-
+		token, err := svc.Login(r.Context(), user)
 		if err != nil {
 			switch err {
-			case domain.ErrInvalidCredentials:
+			case domain.ErrInvalidUserCredentials:
 				handleErrorResponse(w, err, http.StatusUnauthorized)
 				return
 			default:
@@ -55,7 +54,7 @@ func UserAuthHandler(
 			}
 		}
 
-		setTokenHeader(w, token)
+		setTokenHeader(w, *token)
 		sendTextResponse(w, "User successfully authenticated", http.StatusOK)
 	}
 }

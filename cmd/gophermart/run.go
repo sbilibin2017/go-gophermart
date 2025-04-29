@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -28,12 +27,20 @@ func run(config *configs.GophermartConfig) error {
 
 	userExistsByLoginRepo := repositories.NewUserExistsByLoginRepository(db)
 	userSaveRepository := repositories.NewUserSaveRepository(db)
+	userGetByLoginRepository := repositories.NewUserGetByLoginRepository(db)
 
 	val := validator.New()
 
 	userRegisterService := services.NewUserRegisterService(
+		config.JWTSecretKey,
+		config.JWTExp,
 		userExistsByLoginRepo,
 		userSaveRepository,
+	)
+	userLoginService := services.NewUserLoginService(
+		config.JWTSecretKey,
+		config.JWTExp,
+		userGetByLoginRepository,
 	)
 
 	router := chi.NewRouter()
@@ -41,10 +48,9 @@ func run(config *configs.GophermartConfig) error {
 		router,
 		db,
 		"/api/user",
-		config.JWTSecretKey,
-		config.JWTExp,
 		val,
 		userRegisterService,
+		userLoginService,
 	)
 
 	ctx, cancel := contextutils.NewRunContext()
@@ -59,10 +65,9 @@ func registerGophermartRouter(
 	router *chi.Mux,
 	db *sqlx.DB,
 	prefix string,
-	jwtSecretKey string,
-	jwtExp time.Duration,
 	val *validator.Validate,
 	userRegisterService *services.UserRegisterService,
+	userLoginService *services.UserLoginService,
 ) {
 	r := chi.NewRouter()
 	r.Use(middlewares.TxMiddleware(db))
@@ -70,10 +75,11 @@ func registerGophermartRouter(
 	r.Post("/register", handlers.UserRegisterHandler(
 		val,
 		userRegisterService,
-		jwtSecretKey,
-		jwtExp,
 	))
-	// r.Post("/login", handlers.LoginUserHandler(loginUserService))
+	r.Post("/login", handlers.UserLoginHandler(
+		val,
+		userLoginService,
+	))
 
 	// r.Route("/api/user", func(r chi.Router) {
 	// 	r.Use(middlewares.AuthMiddleware(jwtSecretKey))
