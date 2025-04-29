@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
@@ -25,15 +27,14 @@ func UserLoginHandler(
 			Password string `json:"password" validate:"required"`
 		}
 
-		err := decodeRequestBody(r, &requestData)
-		if err != nil {
-			handleBadRequestErrorResponse(w)
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&requestData); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		err = val.Struct(requestData)
-		if err != nil {
-			handleValidationErrorResponse(w, err)
+		if err := val.Struct(requestData); err != nil {
+			http.Error(w, "validation failed", http.StatusBadRequest)
 			return
 		}
 
@@ -44,17 +45,16 @@ func UserLoginHandler(
 
 		token, err := svc.Login(r.Context(), user)
 		if err != nil {
-			switch err {
-			case domain.ErrInvalidUserCredentials:
-				handleErrorResponse(w, err, http.StatusUnauthorized)
-				return
-			default:
-				handleInternalErrorResponse(w)
+			if errors.Is(err, domain.ErrInvalidUserCredentials) {
+				http.Error(w, "invalid login or password", http.StatusUnauthorized)
 				return
 			}
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
 		}
 
-		setTokenHeader(w, *token)
-		sendTextResponse(w, "User successfully authenticated", http.StatusOK)
+		w.Header().Set("Authorization", "Bearer "+*token)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("User successfully authenticated"))
 	}
 }

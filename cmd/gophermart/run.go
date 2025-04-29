@@ -15,6 +15,7 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/repositories"
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
+	"github.com/sbilibin2017/go-gophermart/internal/validation"
 )
 
 func run(config *configs.GophermartConfig) error {
@@ -28,8 +29,11 @@ func run(config *configs.GophermartConfig) error {
 	userExistsByLoginRepo := repositories.NewUserExistsByLoginRepository(db)
 	userSaveRepository := repositories.NewUserSaveRepository(db)
 	userGetByLoginRepository := repositories.NewUserGetByLoginRepository(db)
+	orderExistsRepository := repositories.NewOrderExistsByNumberRepository(db)
+	orderSaveRepository := repositories.NewOrderSaveRepository(db)
 
 	val := validator.New()
+	validation.RegisterLuhnValidation(val)
 
 	userRegisterService := services.NewUserRegisterService(
 		config.JWTSecretKey,
@@ -42,6 +46,10 @@ func run(config *configs.GophermartConfig) error {
 		config.JWTExp,
 		userGetByLoginRepository,
 	)
+	orderUploadService := services.NewOrderUploadService(
+		orderExistsRepository,
+		orderSaveRepository,
+	)
 
 	router := chi.NewRouter()
 	registerGophermartRouter(
@@ -51,6 +59,8 @@ func run(config *configs.GophermartConfig) error {
 		val,
 		userRegisterService,
 		userLoginService,
+		config.JWTSecretKey,
+		orderUploadService,
 	)
 
 	ctx, cancel := contextutils.NewRunContext()
@@ -68,6 +78,8 @@ func registerGophermartRouter(
 	val *validator.Validate,
 	userRegisterService *services.UserRegisterService,
 	userLoginService *services.UserLoginService,
+	jwtSecretKey string,
+	orderUploadService *services.OrderUploadService,
 ) {
 	r := chi.NewRouter()
 	r.Use(middlewares.TxMiddleware(db))
@@ -81,14 +93,17 @@ func registerGophermartRouter(
 		userLoginService,
 	))
 
-	// r.Route("/api/user", func(r chi.Router) {
-	// 	r.Use(middlewares.AuthMiddleware(jwtSecretKey))
-	// 	r.Post("/orders", handlers.UploadOrderHandler(uploadOrderService))
-	// 	r.Get("/orders", handlers.GetOrdersHandler(getOrdersService))
-	// 	r.Get("/balance", handlers.GetBalanceHandler(getBalanceService))
-	// 	r.Post("/balance/withdraw", handlers.WithdrawBalanceHandler(withdrawBalanceService))
-	// 	r.Get("/withdrawals", handlers.GetWithdrawalsHandler(getWithdrawalsService))
-	// })
+	r.Route("/", func(r chi.Router) {
+		r.Use(middlewares.AuthMiddleware(jwtSecretKey))
+		r.Post("/orders/{number}", handlers.OrderUploadHandler(
+			val,
+			orderUploadService,
+		))
+		// r.Get("/orders", handlers.GetOrdersHandler(getOrdersService))
+		// r.Get("/balance", handlers.GetBalanceHandler(getBalanceService))
+		// r.Post("/balance/withdraw", handlers.WithdrawBalanceHandler(withdrawBalanceService))
+		// r.Get("/withdrawals", handlers.GetWithdrawalsHandler(getWithdrawalsService))
+	})
 
 	router.Mount(prefix, r)
 }

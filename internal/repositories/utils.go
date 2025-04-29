@@ -101,32 +101,36 @@ func exec(
 	args any,
 ) error {
 	tx, ok := contextutils.GetTx(ctx)
-
 	logQuery(query, args, ok)
-
-	var queryArgs []any
-	switch v := args.(type) {
-	case map[string]any:
-		for _, value := range v {
-			queryArgs = append(queryArgs, value)
-		}
-	case []any:
-		queryArgs = v
-	default:
-		queryArgs = []any{v}
-	}
 
 	var err error
 
-	if tx != nil {
-		_, err = tx.ExecContext(ctx, query, queryArgs...)
-	} else {
-		_, err = db.ExecContext(ctx, query, queryArgs...)
+	switch v := args.(type) {
+	case map[string]any:
+		if tx != nil {
+			_, err = tx.NamedExec(query, v)
+		} else {
+			_, err = db.NamedExecContext(ctx, query, v)
+		}
+	case []any:
+		query = db.Rebind(query)
+		if tx != nil {
+			_, err = tx.ExecContext(ctx, query, v...)
+		} else {
+			_, err = db.ExecContext(ctx, query, v...)
+		}
+	default:
+		query = db.Rebind(query)
+		if tx != nil {
+			_, err = tx.ExecContext(ctx, query, v)
+		} else {
+			_, err = db.ExecContext(ctx, query, v)
+		}
 	}
 
 	if err != nil {
 		logger.Logger.Errorf("Error executing exec: query=%s, args=%v, error=%v", query, args, err)
-		return err
+		return fmt.Errorf("failed to execute query: %w", err)
 	}
 
 	return nil

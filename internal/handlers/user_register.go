@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
@@ -25,17 +27,17 @@ func UserRegisterHandler(
 			Password string `json:"password" validate:"required"`
 		}
 
-		err := decodeRequestBody(r, &requestData)
-		if err != nil {
-			handleBadRequestErrorResponse(w)
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&requestData); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		err = val.Struct(requestData)
-		if err != nil {
-			handleValidationErrorResponse(w, err)
+		if err := val.Struct(requestData); err != nil {
+			http.Error(w, "validation failed", http.StatusBadRequest)
 			return
 		}
+
 		user := &domain.User{
 			Login:    requestData.Login,
 			Password: requestData.Password,
@@ -43,17 +45,16 @@ func UserRegisterHandler(
 
 		token, err := svc.Register(r.Context(), user)
 		if err != nil {
-			switch err {
-			case domain.ErrLoginAlreadyTaken:
-				handleErrorResponse(w, err, http.StatusConflict)
-				return
-			default:
-				handleInternalErrorResponse(w)
+			if errors.Is(err, domain.ErrLoginAlreadyTaken) {
+				http.Error(w, "login already taken", http.StatusConflict)
 				return
 			}
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
 		}
 
-		setTokenHeader(w, *token)
-		sendTextResponse(w, "User successfully registered", http.StatusOK)
+		w.Header().Set("Authorization", "Bearer "+*token)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("User successfully registered"))
 	}
 }

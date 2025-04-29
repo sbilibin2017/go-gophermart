@@ -1,0 +1,80 @@
+### Test 1: Successful Order Upload (Valid Order Number)
+POST http://localhost:8080/api/user/orders/1234567812345670 HTTP/1.1
+Content-Type: text/plain
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnb3BoZXJtYXJ0IiwiZXhwIjoxNzc3NDQ0MTYyLCJpYXQiOjE3NDU5MDgxNjIsImxvZ2luIjoiZXhpc3Rpbmd1c2VyIn0.KanDBWStBsCLI9JnxQfpz-1QYplI7Qht02TtKRmgQ9E
+
+
+
+**Ожидаемый результат**:  
+Ответ с кодом **202** (новый номер заказа принят в обработку).
+
+---
+
+### Test 2: Invalid Order Number Format (Not Numeric)
+POST http://localhost:8080/api/user/orders HTTP/1.1
+Content-Type: text/plain
+Authorization: Bearer <valid_token>
+
+abcdefg123
+
+**Ожидаемый результат**:  
+Ответ с кодом **400** (неверный формат запроса).
+
+---
+
+### Test 3: Invalid Order Number Format (Incorrect Length)
+POST http://localhost:8080/api/user/orders HTTP/1.1
+Content-Type: text/plain
+Authorization: Bearer <valid_token>
+
+12345
+
+**Ожидаемый результат**:  
+Ответ с кодом **422** (неверный формат номера заказа), так как номер заказа должен быть валидным согласно алгоритму Луна.
+
+---
+
+### Test 4: Order Number Already Uploaded by This User
+POST http://localhost:8080/api/user/orders HTTP/1.1
+Content-Type: text/plain
+Authorization: Bearer <valid_token>
+
+12345678903
+
+**Ожидаемый результат**:  
+Ответ с кодом **200** (номер заказа уже был загружен этим пользователем), если данный номер заказа уже был загружен этим пользователем.
+
+---
+
+### Test 5: Order Number Already Uploaded by Another User
+POST http://localhost:8080/api/user/orders HTTP/1.1
+Content-Type: text/plain
+Authorization: Bearer <valid_token>
+
+98765432101
+
+**Ожидаемый результат**:  
+Ответ с кодом **409** (номер заказа уже был загружен другим пользователем), если этот номер заказа уже был загружен другим пользователем.
+
+---
+
+### Test 6: User Not Authenticated
+POST http://localhost:8080/api/user/orders HTTP/1.1
+Content-Type: text/plain
+
+12345678903
+
+**Ожидаемый результат**:  
+Ответ с кодом **401** (пользователь не аутентифицирован), если запрос сделан без действующего токена аутентификации.
+
+---
+
+### Test 7: Internal Server Error (Simulated)
+POST http://localhost:8080/api/user/orders HTTP/1.1
+Content-Type: text/plain
+Authorization: Bearer <valid_token>
+
+12345678903
+
+**Ожидаемый результат**:  
+Ответ с кодом **500** (внутренняя ошибка сервера), если произошла внутренняя ошибка при обработке запроса (например, ошибка базы данных).
