@@ -1,14 +1,15 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
@@ -16,9 +17,10 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/validation"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func run(config *configs.GophermartConfig) error {
+func run(config *config) error {
 	logger.InitWithInfoLevel()
 
 	db, err := sqlx.Connect("pgx", config.DatabaseURI)
@@ -26,12 +28,12 @@ func run(config *configs.GophermartConfig) error {
 		return err
 	}
 
-	userExistsByLoginRepo := repositories.NewUserExistsByLoginRepository(db)
-	userSaveRepository := repositories.NewUserSaveRepository(db)
-	userGetByLoginRepository := repositories.NewUserGetByLoginRepository(db)
-	orderExistsRepository := repositories.NewOrderExistsByNumberRepository(db)
-	orderSaveRepository := repositories.NewOrderSaveRepository(db)
-	orderListRepository := repositories.NewOrderListRepository(db)
+	userExistsByLoginRepo := repositories.NewUserExistsByLoginRepository(db, middlewares.GetTxFromContext)
+	userSaveRepository := repositories.NewUserSaveRepository(db, middlewares.GetTxFromContext)
+	userGetByLoginRepository := repositories.NewUserGetByLoginRepository(db, middlewares.GetTxFromContext)
+	orderExistsRepository := repositories.NewOrderExistsByNumberRepository(db, middlewares.GetTxFromContext)
+	orderSaveRepository := repositories.NewOrderSaveRepository(db, middlewares.GetTxFromContext)
+	orderListRepository := repositories.NewOrderListRepository(db, middlewares.GetTxFromContext)
 
 	val := validator.New()
 	validation.RegisterLuhnValidation(val)
@@ -39,12 +41,16 @@ func run(config *configs.GophermartConfig) error {
 	userRegisterService := services.NewUserRegisterService(
 		config.JWTSecretKey,
 		config.JWTExp,
+		middlewares.GenerateTokenString,
+		bcrypt.GenerateFromPassword,
 		userExistsByLoginRepo,
 		userSaveRepository,
 	)
 	userLoginService := services.NewUserLoginService(
 		config.JWTSecretKey,
 		config.JWTExp,
+		middlewares.GenerateTokenString,
+		bcrypt.CompareHashAndPassword,
 		userGetByLoginRepository,
 	)
 	orderUploadService := services.NewOrderUploadService(
@@ -66,7 +72,11 @@ func run(config *configs.GophermartConfig) error {
 		orderListService,
 	)
 
-	ctx, cancel := contextutils.NewRunContext()
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 	defer cancel()
 
 	srv := &http.Server{Addr: config.RunAddress, Handler: router}

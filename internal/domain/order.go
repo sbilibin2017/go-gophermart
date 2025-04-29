@@ -17,3 +17,10 @@ var (
 	ErrUserOrderExists = errors.New("user has already placed this order")
 	ErrOrderExists     = errors.New("order with this number already exists")
 )
+
+const (
+	GOPHERMART_ORDER_STATUS_NEW        = "NEW"
+	GOPHERMART_ORDER_STATUS_PROCESSING = "PROCESSING"
+	GOPHERMART_ORDER_STATUS_INVALID    = "INVALID"
+	GOPHERMART_ORDER_STATUS_PROCESSED  = "PROCESSED"
+)

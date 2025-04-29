@@ -11,10 +11,6 @@ func InitWithInfoLevel() {
 	initLogger(zapcore.InfoLevel)
 }
 
-func init() {
-	initLogger(zapcore.DebugLevel)
-}
-
 func initLogger(level zapcore.Level) {
 	zapConfig := zap.NewProductionConfig()
 	zapConfig.Level = zap.NewAtomicLevelAt(level)

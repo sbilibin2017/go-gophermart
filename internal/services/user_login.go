@@ -4,10 +4,7 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
-	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 )
 
 type UserLoginUserGetByLoginRepository interface {
@@ -15,20 +12,26 @@ type UserLoginUserGetByLoginRepository interface {
 }
 
 type UserLoginService struct {
-	gblRepo      UserLoginUserGetByLoginRepository
-	jwtSecretKey string
-	jwtExp       time.Duration
+	gblRepo          UserLoginUserGetByLoginRepository
+	jwtSecretKey     string
+	jwtExp           time.Duration
+	jwtGenerator     func(login string, secretKey string, exp time.Duration) (string, error)
+	passwordComparer func(hashedPassword []byte, password []byte) error
 }
 
 func NewUserLoginService(
 	jwtSecretKey string,
 	jwtExp time.Duration,
+	jwtGenerator func(login string, secretKey string, exp time.Duration) (string, error),
+	passwordComparer func(hashedPassword []byte, password []byte) error,
 	gblRepo UserLoginUserGetByLoginRepository,
 ) *UserLoginService {
 	return &UserLoginService{
-		gblRepo:      gblRepo,
-		jwtSecretKey: jwtSecretKey,
-		jwtExp:       jwtExp,
+		gblRepo:          gblRepo,
+		jwtSecretKey:     jwtSecretKey,
+		jwtExp:           jwtExp,
+		jwtGenerator:     jwtGenerator,
+		passwordComparer: passwordComparer,
 	}
 }
 
@@ -39,14 +42,14 @@ func (svc *UserLoginService) Login(
 	if err != nil {
 		return nil, err
 	}
-	err = bcrypt.CompareHashAndPassword(
+	err = svc.passwordComparer(
 		[]byte(u.Password),
 		[]byte(user.Password),
 	)
 	if err != nil {
 		return nil, domain.ErrInvalidUserCredentials
 	}
-	token, err := jwt.GenerateTokenString(
+	token, err := svc.jwtGenerator(
 		user.Login,
 		svc.jwtSecretKey,
 		svc.jwtExp,

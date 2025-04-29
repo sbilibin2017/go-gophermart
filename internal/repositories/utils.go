@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 )
 
@@ -15,22 +14,36 @@ func logQuery(query string, args any, err error) {
 	query = strings.Join(strings.Fields(query), " ")
 	argsStr := fmt.Sprintf("%v", args)
 	argsStr = strings.Join(strings.Fields(argsStr), " ")
-	logger.Logger.Infof("query: %s", query)
-	logger.Logger.Infof("args: %s", argsStr)
+	if logger.Logger != nil {
+		logger.Logger.Infof("query: %s", query)
+		logger.Logger.Infof("args: %s", argsStr)
+	}
 	if err != nil {
-		logger.Logger.Errorf("error: %v", err)
+		if logger.Logger != nil {
+			logger.Logger.Errorf("error: %v", err)
+		}
 	}
 }
 
-func getExecutor(ctx context.Context, fallback *sqlx.DB) sqlx.ExtContext {
-	if tx, ok := contextutils.GetTx(ctx); ok && tx != nil {
+func getExecutor(
+	ctx context.Context,
+	fallback *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) sqlx.ExtContext {
+	if tx, ok := txProvider(ctx); ok && tx != nil {
 		return tx
 	}
 	return fallback
 }
 
-func queryRows(ctx context.Context, db *sqlx.DB, query string, params map[string]interface{}) (*sqlx.Rows, error) {
-	e := getExecutor(ctx, db)
+func queryRows(
+	ctx context.Context,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+	query string,
+	params map[string]any,
+) (*sqlx.Rows, error) {
+	e := getExecutor(ctx, db, txProvider)
 	rows, err := sqlx.NamedQueryContext(ctx, e, query, params)
 	logQuery(query, params, err)
 	if err != nil {
@@ -39,24 +52,45 @@ func queryRows(ctx context.Context, db *sqlx.DB, query string, params map[string
 	return rows, nil
 }
 
-func queryValue[T any](ctx context.Context, repoDB *sqlx.DB, query string, params map[string]interface{}, dest *T) error {
-	rows, err := queryRows(ctx, repoDB, query, params)
+func queryValue[T any](
+	ctx context.Context,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+	query string,
+	params map[string]any,
+	dest *T,
+) error {
+	rows, err := queryRows(ctx, db, txProvider, query, params)
 	if err != nil {
 		return err
 	}
 	return scanValue(rows, dest)
 }
 
-func queryStruct[T any](ctx context.Context, repoDB *sqlx.DB, query string, params map[string]interface{}, dest *T) error {
-	rows, err := queryRows(ctx, repoDB, query, params)
+func queryStruct[T any](
+	ctx context.Context,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+	query string,
+	params map[string]interface{},
+	dest *T,
+) error {
+	rows, err := queryRows(ctx, db, txProvider, query, params)
 	if err != nil {
 		return err
 	}
 	return scanStruct(rows, dest)
 }
 
-func queryStructs[T any](ctx context.Context, repoDB *sqlx.DB, query string, params map[string]interface{}, dest *[]*T) error {
-	rows, err := queryRows(ctx, repoDB, query, params)
+func queryStructs[T any](
+	ctx context.Context,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+	query string,
+	params map[string]any,
+	dest *[]*T,
+) error {
+	rows, err := queryRows(ctx, db, txProvider, query, params)
 	if err != nil {
 		return err
 	}
@@ -104,8 +138,14 @@ func scanStructs[T any](rows *sqlx.Rows, dest *[]*T) error {
 	return nil
 }
 
-func exec(ctx context.Context, db *sqlx.DB, query string, arg any) error {
-	e := getExecutor(ctx, db)
+func exec(
+	ctx context.Context,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+	query string,
+	arg any,
+) error {
+	e := getExecutor(ctx, db, txProvider)
 	_, err := sqlx.NamedExecContext(ctx, e, query, arg)
 	logQuery(query, arg, err)
 	return err

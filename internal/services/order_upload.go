@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 
-	"github.com/sbilibin2017/go-gophermart/internal/constants"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
@@ -49,7 +48,7 @@ func (svc *OrderUploadService) Upload(
 		return domain.ErrOrderExists
 	}
 
-	order.Status = constants.GOPHERMART_ORDER_STATUS_NEW
+	order.Status = domain.GOPHERMART_ORDER_STATUS_NEW
 	order.Login = login
 
 	err = svc.osRepo.Save(ctx, order)

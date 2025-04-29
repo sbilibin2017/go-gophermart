@@ -8,11 +8,15 @@ import (
 )
 
 type UserGetByLoginRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewUserGetByLoginRepository(db *sqlx.DB) *UserGetByLoginRepository {
-	return &UserGetByLoginRepository{db: db}
+func NewUserGetByLoginRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *UserGetByLoginRepository {
+	return &UserGetByLoginRepository{db: db, txProvider: txProvider}
 }
 
 func (repo *UserGetByLoginRepository) GetByLogin(
@@ -20,7 +24,7 @@ func (repo *UserGetByLoginRepository) GetByLogin(
 ) (*domain.User, error) {
 	params := map[string]any{"login": login}
 	var user domain.User
-	err := queryStruct(ctx, repo.db, getUserByLoginQuery, params, &user)
+	err := queryStruct(ctx, repo.db, repo.txProvider, getUserByLoginQuery, params, &user)
 	if err != nil {
 		return nil, err
 	}

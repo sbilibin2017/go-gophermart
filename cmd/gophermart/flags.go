@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"os"
-
-	"github.com/sbilibin2017/go-gophermart/internal/configs"
 )
 
 const (
@@ -29,7 +27,7 @@ var (
 	flagAccrualSystemAddr string
 )
 
-func flags() *configs.GophermartConfig {
+func flags() *config {
 	flag.StringVar(&flagRunAddr, flagRunAddrName, defaultString, flagRunAddrDesc)
 	flag.StringVar(&flagDatabaseURI, flagDatabaseURIName, defaultString, flagDatabaseURIDesc)
 	flag.StringVar(&flagAccrualSystemAddr, flagAccrualSystemAddrName, defaultString, flagAccrualSystemAddrDesc)
@@ -46,7 +44,7 @@ func flags() *configs.GophermartConfig {
 		flagAccrualSystemAddr = envAccrualSystemAddr
 	}
 
-	return configs.NewGophermartConfig(
+	return newConfig(
 		flagRunAddr,
 		flagDatabaseURI,
 		flagAccrualSystemAddr,

@@ -27,7 +27,7 @@ func TestHandleValidationError(t *testing.T) {
 				Login:    "",
 				Password: "",
 			},
-			expectedOutput: "Field 'Login' failed validation: required",
+			expectedOutput: "field 'Login' failed validation: required",
 		},
 		{
 			name: "Only Login is missing",
@@ -35,7 +35,7 @@ func TestHandleValidationError(t *testing.T) {
 				Login:    "",
 				Password: "validPassword",
 			},
-			expectedOutput: "Field 'Login' failed validation: required",
+			expectedOutput: "field 'Login' failed validation: required",
 		},
 		{
 			name: "Only Password is missing",
@@ -43,7 +43,7 @@ func TestHandleValidationError(t *testing.T) {
 				Login:    "validLogin",
 				Password: "",
 			},
-			expectedOutput: "Field 'Password' failed validation: required",
+			expectedOutput: "field 'Password' failed validation: required",
 		},
 		{
 			name: "Both fields are valid",
@@ -59,7 +59,7 @@ func TestHandleValidationError(t *testing.T) {
 				Login:    "validLogin",
 				Password: "validPassword",
 			},
-			expectedOutput: "Validation failed", // Для других ошибок возвращаем "Validation failed"
+			expectedOutput: "validation failed", // Для других ошибок возвращаем "Validation failed"
 		},
 	}
 

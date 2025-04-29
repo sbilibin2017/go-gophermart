@@ -8,12 +8,17 @@ import (
 )
 
 type OrderListRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewOrderListRepository(db *sqlx.DB) *OrderListRepository {
+func NewOrderListRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *OrderListRepository {
 	return &OrderListRepository{
-		db: db,
+		db:         db,
+		txProvider: txProvider,
 	}
 }
 
@@ -22,7 +27,9 @@ func (r *OrderListRepository) ListByLoginOrderedDesc(
 ) ([]*domain.Order, error) {
 	params := map[string]any{"login": login}
 	var orders []*domain.Order
-	err := queryStructs(ctx, r.db, orderListQuery, params, &orders)
+
+	// Передаем txProvider в queryStructs для обработки транзакции
+	err := queryStructs(ctx, r.db, r.txProvider, orderListQuery, params, &orders)
 	if err != nil {
 		return nil, err
 	}

@@ -1,8 +1,8 @@
-package configs
+package main
 
 import "time"
 
-type GophermartConfig struct {
+type config struct {
 	RunAddress           string
 	DatabaseURI          string
 	AccrualSystemAddress string
@@ -10,12 +10,12 @@ type GophermartConfig struct {
 	JWTExp               time.Duration
 }
 
-func NewGophermartConfig(
+func newConfig(
 	runAddress string,
 	databaseURI string,
 	accrualSystemAddress string,
-) *GophermartConfig {
-	return &GophermartConfig{
+) *config {
+	return &config{
 		RunAddress:           runAddress,
 		DatabaseURI:          databaseURI,
 		AccrualSystemAddress: accrualSystemAddress,

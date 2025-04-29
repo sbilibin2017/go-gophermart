@@ -8,17 +8,22 @@ import (
 )
 
 type OrderSaveRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewOrderSaveRepository(db *sqlx.DB) *OrderSaveRepository {
-	return &OrderSaveRepository{db: db}
+func NewOrderSaveRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *OrderSaveRepository {
+	return &OrderSaveRepository{db: db, txProvider: txProvider}
 }
 
 func (repo *OrderSaveRepository) Save(
 	ctx context.Context, order *domain.Order,
 ) error {
-	return exec(ctx, repo.db, orderSaveQuery, order)
+	// Передаем txProvider в exec для обработки транзакции
+	return exec(ctx, repo.db, repo.txProvider, orderSaveQuery, order)
 }
 
 const orderSaveQuery = `

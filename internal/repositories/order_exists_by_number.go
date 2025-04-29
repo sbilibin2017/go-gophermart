@@ -7,11 +7,15 @@ import (
 )
 
 type OrderExistsByNumberRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewOrderExistsByNumberRepository(db *sqlx.DB) *OrderExistsByNumberRepository {
-	return &OrderExistsByNumberRepository{db: db}
+func NewOrderExistsByNumberRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *OrderExistsByNumberRepository {
+	return &OrderExistsByNumberRepository{db: db, txProvider: txProvider}
 }
 
 func (repo *OrderExistsByNumberRepository) ExistByNumber(
@@ -19,7 +23,7 @@ func (repo *OrderExistsByNumberRepository) ExistByNumber(
 ) (bool, error) {
 	query, params := buildOrderExistsQuery(number, login)
 	var exists bool
-	err := queryValue(ctx, repo.db, query, params, &exists)
+	err := queryValue(ctx, repo.db, repo.txProvider, query, params, &exists)
 	if err != nil {
 		return false, err
 	}

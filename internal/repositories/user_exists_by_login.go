@@ -7,11 +7,15 @@ import (
 )
 
 type UserExistsByLoginRepository struct {
-	db *sqlx.DB
+	db         *sqlx.DB
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool)
 }
 
-func NewUserExistsByLoginRepository(db *sqlx.DB) *UserExistsByLoginRepository {
-	return &UserExistsByLoginRepository{db: db}
+func NewUserExistsByLoginRepository(
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, bool),
+) *UserExistsByLoginRepository {
+	return &UserExistsByLoginRepository{db: db, txProvider: txProvider}
 }
 
 func (repo *UserExistsByLoginRepository) ExistsByLogin(
@@ -19,7 +23,9 @@ func (repo *UserExistsByLoginRepository) ExistsByLogin(
 ) (bool, error) {
 	params := map[string]any{"login": login}
 	var exists bool
-	err := queryValue(ctx, repo.db, userExistsByLoginQuery, params, &exists)
+
+	// Передаем txProvider в queryValue для обработки транзакции
+	err := queryValue(ctx, repo.db, repo.txProvider, userExistsByLoginQuery, params, &exists)
 	if err != nil {
 		return false, err
 	}

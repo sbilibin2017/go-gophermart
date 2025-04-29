@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
+	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/validation"
 )
 
@@ -24,7 +24,7 @@ func OrderUploadHandler(
 	svc OrderUploadService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		login, ok := contextutils.GetLogin(r.Context())
+		login, ok := middlewares.GetLoginFromContext(r.Context())
 		if !ok {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized) // 401
 			return

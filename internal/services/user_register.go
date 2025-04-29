@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
-	"github.com/sbilibin2017/go-gophermart/internal/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,23 +17,29 @@ type UserRegisterUserSaveRepository interface {
 }
 
 type UserRegisterService struct {
-	ueRepo       UserRegisterUserExistsByLoginRepository
-	usRepo       UserRegisterUserSaveRepository
-	jwtSecretKey string
-	jwtExp       time.Duration
+	ueRepo         UserRegisterUserExistsByLoginRepository
+	usRepo         UserRegisterUserSaveRepository
+	jwtSecretKey   string
+	jwtExp         time.Duration
+	jwtGenerator   func(login string, secretKey string, exp time.Duration) (string, error)
+	passwordHasher func(password []byte, cost int) ([]byte, error)
 }
 
 func NewUserRegisterService(
 	jwtSecretKey string,
 	jwtExp time.Duration,
+	jwtGenerator func(login string, secretKey string, exp time.Duration) (string, error),
+	passwordHasher func(password []byte, cost int) ([]byte, error),
 	ueRepo UserRegisterUserExistsByLoginRepository,
 	usRepo UserRegisterUserSaveRepository,
 ) *UserRegisterService {
 	return &UserRegisterService{
-		ueRepo:       ueRepo,
-		usRepo:       usRepo,
-		jwtSecretKey: jwtSecretKey,
-		jwtExp:       jwtExp,
+		ueRepo:         ueRepo,
+		usRepo:         usRepo,
+		jwtSecretKey:   jwtSecretKey,
+		jwtExp:         jwtExp,
+		jwtGenerator:   jwtGenerator,
+		passwordHasher: passwordHasher,
 	}
 }
 
@@ -49,7 +54,7 @@ func (svc *UserRegisterService) Register(
 		return nil, domain.ErrLoginAlreadyTaken
 	}
 
-	password, err := bcrypt.GenerateFromPassword(
+	password, err := svc.passwordHasher(
 		[]byte(user.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
@@ -62,7 +67,7 @@ func (svc *UserRegisterService) Register(
 		return nil, err
 	}
 
-	token, err := jwt.GenerateTokenString(
+	token, err := svc.jwtGenerator(
 		user.Login,
 		svc.jwtSecretKey,
 		svc.jwtExp,
