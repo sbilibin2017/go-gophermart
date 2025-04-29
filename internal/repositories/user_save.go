@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
 type UserSaveRepository struct {
@@ -15,13 +16,9 @@ func NewUserSaveRepository(db *sqlx.DB) *UserSaveRepository {
 }
 
 func (repo *UserSaveRepository) Save(
-	ctx context.Context, login string, password string,
+	ctx context.Context, user *domain.User,
 ) error {
-	args := map[string]any{
-		"login":    login,
-		"password": password,
-	}
-	return exec(ctx, repo.db, userSaveQuery, args)
+	return exec(ctx, repo.db, userSaveQuery, user)
 }
 
 const userSaveQuery = `

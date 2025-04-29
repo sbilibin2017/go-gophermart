@@ -14,7 +14,7 @@ type UserRegisterUserExistsByLoginRepository interface {
 }
 
 type UserRegisterUserSaveRepository interface {
-	Save(ctx context.Context, login string, password string) error
+	Save(ctx context.Context, user *domain.User) error
 }
 
 type UserRegisterService struct {
@@ -39,9 +39,7 @@ func NewUserRegisterService(
 }
 
 func (svc *UserRegisterService) Register(
-	ctx context.Context,
-	user *domain.User,
-
+	ctx context.Context, user *domain.User,
 ) (*string, error) {
 	exists, err := svc.ueRepo.ExistsByLogin(ctx, user.Login)
 	if err != nil {
@@ -51,14 +49,15 @@ func (svc *UserRegisterService) Register(
 		return nil, domain.ErrLoginAlreadyTaken
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword(
+	password, err := bcrypt.GenerateFromPassword(
 		[]byte(user.Password), bcrypt.DefaultCost,
 	)
 	if err != nil {
 		return nil, err
 	}
+	user.Password = string(password)
 
-	err = svc.usRepo.Save(ctx, user.Login, string(hashedPassword))
+	err = svc.usRepo.Save(ctx, user)
 	if err != nil {
 		return nil, err
 	}

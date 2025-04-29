@@ -11,7 +11,7 @@ import (
 )
 
 type UserLoginUserGetByLoginRepository interface {
-	GetByLogin(ctx context.Context, login string) (map[string]any, error)
+	GetByLogin(ctx context.Context, login string) (*domain.User, error)
 }
 
 type UserLoginService struct {
@@ -40,7 +40,7 @@ func (svc *UserLoginService) Login(
 		return nil, err
 	}
 	err = bcrypt.CompareHashAndPassword(
-		[]byte(u["password"].(string)),
+		[]byte(u.Password),
 		[]byte(user.Password),
 	)
 	if err != nil {

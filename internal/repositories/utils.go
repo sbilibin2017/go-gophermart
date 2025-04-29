@@ -2,9 +2,7 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -12,126 +10,103 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
 )
 
-func logQuery(query string, args any, isTx bool) {
+func logQuery(query string, args any, err error) {
 	query = strings.ReplaceAll(query, "\n", " ")
 	query = strings.Join(strings.Fields(query), " ")
 	argsStr := fmt.Sprintf("%v", args)
 	argsStr = strings.Join(strings.Fields(argsStr), " ")
-	if isTx {
-		logger.Logger.Infof("Executing SQL query within transaction:")
-	} else {
-		logger.Logger.Infof("Executing SQL query without transaction:")
-	}
 	logger.Logger.Infof("query: %s", query)
 	logger.Logger.Infof("args: %s", argsStr)
+	if err != nil {
+		logger.Logger.Errorf("error: %v", err)
+	}
 }
 
-func queryRow(
-	ctx context.Context,
-	db *sqlx.DB,
-	query string,
-	dest any,
-	args any,
-) error {
-	tx, ok := contextutils.GetTx(ctx)
-	logQuery(query, args, ok)
-
-	var rows *sqlx.Rows
-	var err error
-
-	switch v := args.(type) {
-	case map[string]any:
-		if tx != nil {
-			rows, err = tx.NamedQuery(query, v)
-		} else {
-			rows, err = db.NamedQueryContext(ctx, query, v)
-		}
-	case []any:
-		if tx != nil {
-			query = tx.Rebind(query)
-			rows, err = tx.QueryxContext(ctx, query, v...)
-		} else {
-			query = db.Rebind(query)
-			rows, err = db.QueryxContext(ctx, query, v...)
-		}
-	default:
-		if tx != nil {
-			query = tx.Rebind(query)
-			rows, err = tx.QueryxContext(ctx, query, v)
-		} else {
-			query = db.Rebind(query)
-			rows, err = db.QueryxContext(ctx, query, v)
-		}
+func getExecutor(ctx context.Context, fallback *sqlx.DB) sqlx.ExtContext {
+	if tx, ok := contextutils.GetTx(ctx); ok && tx != nil {
+		return tx
 	}
+	return fallback
+}
 
+func queryRows(ctx context.Context, db *sqlx.DB, query string, params map[string]interface{}) (*sqlx.Rows, error) {
+	e := getExecutor(ctx, db)
+	rows, err := sqlx.NamedQueryContext(ctx, e, query, params)
+	logQuery(query, params, err)
 	if err != nil {
-		logger.Logger.Errorf("Error executing queryRow: query=%s, args=%v, error=%v", query, args, err)
+		return nil, err
+	}
+	return rows, nil
+}
+
+func queryValue[T any](ctx context.Context, repoDB *sqlx.DB, query string, params map[string]interface{}, dest *T) error {
+	rows, err := queryRows(ctx, repoDB, query, params)
+	if err != nil {
 		return err
 	}
+	return scanValue(rows, dest)
+}
+
+func queryStruct[T any](ctx context.Context, repoDB *sqlx.DB, query string, params map[string]interface{}, dest *T) error {
+	rows, err := queryRows(ctx, repoDB, query, params)
+	if err != nil {
+		return err
+	}
+	return scanStruct(rows, dest)
+}
+
+func queryStructs[T any](ctx context.Context, repoDB *sqlx.DB, query string, params map[string]interface{}, dest *[]*T) error {
+	rows, err := queryRows(ctx, repoDB, query, params)
+	if err != nil {
+		return err
+	}
+	return scanStructs(rows, dest)
+}
+
+func scanValue(rows *sqlx.Rows, dest any) error {
 	defer rows.Close()
-
-	if !rows.Next() {
-		return sql.ErrNoRows
-	}
-
-	switch dest := dest.(type) {
-	case *map[string]any:
-		err = rows.MapScan(*dest)
-	default:
-		destVal := reflect.ValueOf(dest)
-		if destVal.Kind() == reflect.Ptr && destVal.Elem().Kind() == reflect.Struct {
-			err = rows.StructScan(dest)
-		} else {
-			err = rows.Scan(dest)
+	if rows.Next() {
+		if err := rows.Scan(dest); err != nil {
+			return err
 		}
 	}
-
-	if err != nil {
-		logger.Logger.Errorf("Error scanning row: query=%s, args=%v, error=%v", query, args, err)
+	if err := rows.Err(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func exec(
-	ctx context.Context,
-	db *sqlx.DB,
-	query string,
-	args any,
-) error {
-	tx, ok := contextutils.GetTx(ctx)
-	logQuery(query, args, ok)
-
-	var err error
-
-	switch v := args.(type) {
-	case map[string]any:
-		if tx != nil {
-			_, err = tx.NamedExec(query, v)
-		} else {
-			_, err = db.NamedExecContext(ctx, query, v)
-		}
-	case []any:
-		query = db.Rebind(query)
-		if tx != nil {
-			_, err = tx.ExecContext(ctx, query, v...)
-		} else {
-			_, err = db.ExecContext(ctx, query, v...)
-		}
-	default:
-		query = db.Rebind(query)
-		if tx != nil {
-			_, err = tx.ExecContext(ctx, query, v)
-		} else {
-			_, err = db.ExecContext(ctx, query, v)
+func scanStruct[T any](rows *sqlx.Rows, dest *T) error {
+	defer rows.Close()
+	if rows.Next() {
+		if err := rows.StructScan(dest); err != nil {
+			return err
 		}
 	}
-
-	if err != nil {
-		logger.Logger.Errorf("Error executing exec: query=%s, args=%v, error=%v", query, args, err)
-		return fmt.Errorf("failed to execute query: %w", err)
+	if err := rows.Err(); err != nil {
+		return err
 	}
-
 	return nil
+}
+
+func scanStructs[T any](rows *sqlx.Rows, dest *[]*T) error {
+	defer rows.Close()
+	for rows.Next() {
+		var elem T
+		if err := rows.StructScan(&elem); err != nil {
+			return err
+		}
+		*dest = append(*dest, &elem)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func exec(ctx context.Context, db *sqlx.DB, query string, arg any) error {
+	e := getExecutor(ctx, db)
+	_, err := sqlx.NamedExecContext(ctx, e, query, arg)
+	logQuery(query, arg, err)
+	return err
 }

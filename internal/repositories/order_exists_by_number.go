@@ -17,30 +17,25 @@ func NewOrderExistsByNumberRepository(db *sqlx.DB) *OrderExistsByNumberRepositor
 func (repo *OrderExistsByNumberRepository) ExistByNumber(
 	ctx context.Context, number string, login *string,
 ) (bool, error) {
+	query, params := buildOrderExistsQuery(number, login)
 	var exists bool
-	query, args := buildOrderExistsByNumberQuery(number, login)
-	if err := queryRow(ctx, repo.db, query, &exists, args); err != nil {
+	err := queryValue(ctx, repo.db, query, params, &exists)
+	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-func buildOrderExistsByNumberQuery(number string, login *string) (string, map[string]any) {
-	var query string
-	var args map[string]any
+func buildOrderExistsQuery(number string, login *string) (string, map[string]any) {
 	if login != nil {
-		query = orderExistsByNumberWithLoginQuery
-		args = map[string]any{
+		return orderExistsByNumberWithLoginQuery, map[string]any{
 			"number": number,
 			"login":  *login,
 		}
-	} else {
-		query = orderExistsByNumberQuery
-		args = map[string]any{
-			"number": number,
-		}
 	}
-	return query, args
+	return orderExistsByNumberQuery, map[string]any{
+		"number": number,
+	}
 }
 
 const orderExistsByNumberWithLoginQuery = `

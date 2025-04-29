@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
 type UserGetByLoginRepository struct {
@@ -16,16 +17,14 @@ func NewUserGetByLoginRepository(db *sqlx.DB) *UserGetByLoginRepository {
 
 func (repo *UserGetByLoginRepository) GetByLogin(
 	ctx context.Context, login string,
-) (map[string]any, error) {
-	args := map[string]any{
-		"login": login,
-	}
-	result := make(map[string]any)
-	err := queryRow(ctx, repo.db, getUserByLoginQuery, &result, args)
+) (*domain.User, error) {
+	params := map[string]any{"login": login}
+	var user domain.User
+	err := queryStruct(ctx, repo.db, getUserByLoginQuery, params, &user)
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	return &user, nil
 }
 
 const getUserByLoginQuery = `

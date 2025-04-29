@@ -31,6 +31,7 @@ func run(config *configs.GophermartConfig) error {
 	userGetByLoginRepository := repositories.NewUserGetByLoginRepository(db)
 	orderExistsRepository := repositories.NewOrderExistsByNumberRepository(db)
 	orderSaveRepository := repositories.NewOrderSaveRepository(db)
+	orderListRepository := repositories.NewOrderListRepository(db)
 
 	val := validator.New()
 	validation.RegisterLuhnValidation(val)
@@ -50,6 +51,7 @@ func run(config *configs.GophermartConfig) error {
 		orderExistsRepository,
 		orderSaveRepository,
 	)
+	orderListService := services.NewOrderListService(orderListRepository)
 
 	router := chi.NewRouter()
 	registerGophermartRouter(
@@ -61,6 +63,7 @@ func run(config *configs.GophermartConfig) error {
 		userLoginService,
 		config.JWTSecretKey,
 		orderUploadService,
+		orderListService,
 	)
 
 	ctx, cancel := contextutils.NewRunContext()
@@ -80,6 +83,7 @@ func registerGophermartRouter(
 	userLoginService *services.UserLoginService,
 	jwtSecretKey string,
 	orderUploadService *services.OrderUploadService,
+	orderListService *services.OrderListService,
 ) {
 	r := chi.NewRouter()
 	r.Use(middlewares.TxMiddleware(db))
@@ -99,7 +103,7 @@ func registerGophermartRouter(
 			val,
 			orderUploadService,
 		))
-		// r.Get("/orders", handlers.GetOrdersHandler(getOrdersService))
+		r.Get("/orders", handlers.OrderListHandler(orderListService))
 		// r.Get("/balance", handlers.GetBalanceHandler(getBalanceService))
 		// r.Post("/balance/withdraw", handlers.WithdrawBalanceHandler(withdrawBalanceService))
 		// r.Get("/withdrawals", handlers.GetWithdrawalsHandler(getWithdrawalsService))

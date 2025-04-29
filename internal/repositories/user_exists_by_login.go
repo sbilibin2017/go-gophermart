@@ -17,9 +17,10 @@ func NewUserExistsByLoginRepository(db *sqlx.DB) *UserExistsByLoginRepository {
 func (repo *UserExistsByLoginRepository) ExistsByLogin(
 	ctx context.Context, login string,
 ) (bool, error) {
+	params := map[string]any{"login": login}
 	var exists bool
-	args := map[string]any{"login": login}
-	if err := queryRow(ctx, repo.db, userExistsByLoginQuery, &exists, args); err != nil {
+	err := queryValue(ctx, repo.db, userExistsByLoginQuery, params, &exists)
+	if err != nil {
 		return false, err
 	}
 	return exists, nil

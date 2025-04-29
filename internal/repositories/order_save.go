@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
 type OrderSaveRepository struct {
@@ -15,18 +16,15 @@ func NewOrderSaveRepository(db *sqlx.DB) *OrderSaveRepository {
 }
 
 func (repo *OrderSaveRepository) Save(
-	ctx context.Context, number string, login string,
+	ctx context.Context, order *domain.Order,
 ) error {
-	args := map[string]any{
-		"number": number,
-		"login":  login,
-	}
-	return exec(ctx, repo.db, orderSaveQuery, args)
+	return exec(ctx, repo.db, orderSaveQuery, order)
 }
 
 const orderSaveQuery = `
-INSERT INTO orders (number, login)
-	VALUES (:number, :login)
+INSERT INTO orders (number, login, status)
+	VALUES (:number, :login, :status)
 ON CONFLICT (number) DO UPDATE
-	SET login = EXCLUDED.login
+	SET login = EXCLUDED.login,
+	    status = EXCLUDED.status
 `

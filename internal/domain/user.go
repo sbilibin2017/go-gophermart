@@ -3,8 +3,8 @@ package domain
 import "errors"
 
 type User struct {
-	Login    string
-	Password string
+	Login    string `json:"login" db:"login"`
+	Password string `json:"password" db:"password"`
 }
 
 var (

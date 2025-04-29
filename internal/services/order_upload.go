@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 
+	"github.com/sbilibin2017/go-gophermart/internal/constants"
 	"github.com/sbilibin2017/go-gophermart/internal/domain"
 )
 
@@ -11,7 +12,7 @@ type OrderUploadOrderExistsByNumberRepository interface {
 }
 
 type OrderUploadOrderSaveRepository interface {
-	Save(ctx context.Context, number string, login string) error
+	Save(ctx context.Context, order *domain.Order) error
 }
 
 type OrderUploadService struct {
@@ -48,7 +49,10 @@ func (svc *OrderUploadService) Upload(
 		return domain.ErrOrderExists
 	}
 
-	err = svc.osRepo.Save(ctx, order.Number, login)
+	order.Status = constants.GOPHERMART_ORDER_STATUS_NEW
+	order.Login = login
+
+	err = svc.osRepo.Save(ctx, order)
 	if err != nil {
 		return err
 	}

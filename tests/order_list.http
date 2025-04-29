@@ -1,0 +1,3 @@
+GET http://localhost:8080/api/user/orders HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnb3BoZXJtYXJ0IiwiZXhwIjoxNzc3NDY1NDM4LCJpYXQiOjE3NDU5Mjk0MzgsImxvZ2luIjoibmUxd3UxZXIxMjQifQ.7qKHIRkSAUizHJL_h0ieZ5T-O1TWP-OuBIIYrUHZCts
+Content-Length: 0
