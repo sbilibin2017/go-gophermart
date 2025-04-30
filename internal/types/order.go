@@ -1,5 +1,7 @@
 package types
 
+import "errors"
+
 type Order struct {
 	Number     string `json:"number" db:"number"`
 	Login      string `json:"login" db:"login"`
@@ -7,3 +9,8 @@ type Order struct {
 	Accrual    *int64 `json:"accrual,omitempty" db:"accrual"`
 	UploadedAt string `json:"uploaded_at" db:"uploaded_at"`
 }
+
+var (
+	ErrOrderAlreadyUploadedByUser      = errors.New("order number already uploaded by this user")
+	ErrOrderAlreadyUploadedByOtherUser = errors.New("order number already uploaded by another user")
+)
