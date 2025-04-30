@@ -16,14 +16,14 @@ func RegisterAccrualRouter(
 	goodRewardHandler http.Handler,
 	loggingMiddleware func(next http.Handler) http.Handler,
 	gzipMiddleware func(next http.Handler) http.Handler,
-	txMiddleware func(db *sqlx.DB) func(http.Handler) http.Handler,
+	txMiddleware func(http.Handler) http.Handler,
 ) {
 	r := chi.NewRouter()
 
 	r.Use(
 		loggingMiddleware,
 		gzipMiddleware,
-		txMiddleware(db),
+		txMiddleware,
 	)
 
 	r.Get("/orders/{number}", toHandlerFunc(orderAccrualInfoHandler))

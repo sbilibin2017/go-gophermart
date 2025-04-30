@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,12 +10,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func TestRegisterAccrualRouter(t *testing.T) {
-	db, err := sqlx.Open("sqlite3", ":memory:")
+	db, err := sqlx.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -33,6 +33,23 @@ func TestRegisterAccrualRouter(t *testing.T) {
 		})
 	}
 
+	txMiddleware := func(db *sqlx.DB) func(http.Handler) http.Handler {
+		return func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				tx, err := db.Beginx()
+				if err != nil {
+					http.Error(w, "Unable to begin transaction: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				defer tx.Rollback()
+
+				ctx := context.WithValue(r.Context(), "tx", tx)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				tx.Commit()
+			})
+		}
+	}
+
 	RegisterAccrualRouter(
 		mainRouter,
 		db,
@@ -42,9 +59,7 @@ func TestRegisterAccrualRouter(t *testing.T) {
 		dummyHandler("good reward"),
 		mockMiddleware,
 		mockMiddleware,
-		func(db *sqlx.DB) func(http.Handler) http.Handler {
-			return mockMiddleware
-		},
+		txMiddleware(db),
 	)
 
 	t.Run("GET /api/orders/{number}", func(t *testing.T) {
