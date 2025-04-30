@@ -20,14 +20,3 @@ func GetTx(ctx context.Context) (*sqlx.Tx, error) {
 	}
 	return tx, nil
 }
-
-func GetDBExecutor(
-	ctx context.Context,
-	fallback *sqlx.DB,
-) sqlx.ExtContext {
-	tx, err := GetTx(ctx)
-	if err != nil {
-		return fallback
-	}
-	return tx
-}

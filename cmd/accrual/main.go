@@ -1,3 +1,7 @@
 package main
 
-func main() {}
+func main() {
+	config := flags()
+	err := run(config)
+	exit(err)
+}
