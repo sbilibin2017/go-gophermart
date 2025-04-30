@@ -54,6 +54,5 @@ func capitalize(s string) string {
 }
 
 var (
-	errInternalServerError = "Internal server error"
-	errInvalidJSONFormat   = "Invalid JSON format"
+	errInvalidJSONFormat = "Invalid JSON format"
 )

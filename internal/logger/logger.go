@@ -5,14 +5,19 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var Logger *zap.Logger
+var Logger *zap.SugaredLogger
 
 func InitLoggerWithInfoLevel() {
 	initWithLevel(zapcore.InfoLevel)
 }
 
-func initWithLevel(level zapcore.Level) {
-	zapConfig := zap.NewProductionConfig()
+func initWithLevel(level zapcore.Level) error {
+	zapConfig := zap.NewDevelopmentConfig()
 	zapConfig.Level = zap.NewAtomicLevelAt(level)
-	Logger, _ = zapConfig.Build()
+	logger, err := zapConfig.Build()
+	if err != nil {
+		return err
+	}
+	Logger = logger.Sugar()
+	return nil
 }

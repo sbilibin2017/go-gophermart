@@ -3,7 +3,7 @@ POST http://localhost:8081/api/goods HTTP/1.1
 Content-Type: application/json
 
 {
-  "match": "Bork2",
+  "match": "Bork",
   "reward": 10,
   "reward_type": "%"
 }
@@ -27,7 +27,7 @@ Content-Type: application/json
 
 ---
 
-### ❌ Test 3: Отсутствует поле reward
+
 POST http://localhost:8081/api/goods HTTP/1.1
 Content-Type: application/json
 
@@ -36,12 +36,9 @@ Content-Type: application/json
   "reward_type": "%"
 }
 
-> 400 Bad Request
-> reward is required
 
----
 
-### ❌ Test 4: reward = 0
+-
 POST http://localhost:8081/api/goods HTTP/1.1
 Content-Type: application/json
 

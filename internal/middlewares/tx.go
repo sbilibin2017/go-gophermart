@@ -15,7 +15,6 @@ func TxMiddleware(
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tx, err := db.BeginTxx(r.Context(), nil)
 			if err != nil {
-				http.Error(w, "failed to start transaction: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 
@@ -26,7 +25,6 @@ func TxMiddleware(
 				} else {
 					if err := tx.Commit(); err != nil {
 						tx.Rollback()
-						http.Error(w, "Internal server error", http.StatusInternalServerError)
 					}
 				}
 			}()

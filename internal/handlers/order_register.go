@@ -9,20 +9,20 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type GoodRewardRegisterService interface {
-	Register(ctx context.Context, goodReward *types.GoodReward) error
+type OrderRegisterService interface {
+	Register(ctx context.Context, order *types.OrderRequest) error
 }
 
-type GoodRewardRegisterValidator interface {
+type OrderRegisterValidator interface {
 	Struct(v any) error
 }
 
-func GoodRewardRegisterHandler(
-	val GoodRewardRegisterValidator,
-	svc GoodRewardRegisterService,
+func OrderRegisterHandler(
+	val OrderRegisterValidator,
+	svc OrderRegisterService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GoodReward
+		var req types.OrderRequest
 
 		decoder := json.NewDecoder(r.Body)
 		if err := decoder.Decode(&req); err != nil {
@@ -39,7 +39,7 @@ func GoodRewardRegisterHandler(
 		err := svc.Register(r.Context(), &req)
 		if err != nil {
 			switch {
-			case errors.Is(err, types.ErrGoodRewardAlreadyExists):
+			case errors.Is(err, types.ErrOrderAlreadyExists):
 				http.Error(w, capitalize(err.Error()), http.StatusConflict)
 			default:
 				http.Error(w, capitalize(types.ErrInternal.Error()), http.StatusInternalServerError)
@@ -47,7 +47,7 @@ func GoodRewardRegisterHandler(
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Good reward successfully registered"))
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte("Order successfully received"))
 	}
 }

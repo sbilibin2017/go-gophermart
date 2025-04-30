@@ -1,0 +1,13 @@
+POST http://localhost:8081/api/orders HTTP/1.1
+Content-Type: application/json
+
+
+{
+  "order": "50628212345178921",
+  "goods": [
+    {
+      "description": "Bork",
+      "price": 7000
+    }
+  ]
+}

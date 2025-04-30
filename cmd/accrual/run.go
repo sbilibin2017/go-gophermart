@@ -40,10 +40,35 @@ func run(config *configs.AccrualConfig) error {
 		db,
 		contextutils.GetTx,
 	)
+	goodRewardFindILikeRepository := repositories.NewGoodRewardFindILikeRepository(
+		db,
+		contextutils.GetTx,
+	)
+
+	orderExistsRepository := repositories.NewOrderExistsRepository(
+		db,
+		contextutils.GetTx,
+	)
+	orderSaveRepository := repositories.NewOrderSaveRepository(
+		db,
+		contextutils.GetTx,
+	)
+	orderFindRepository := repositories.NewOrderFindRepository(
+		db,
+		contextutils.GetTx,
+	)
 
 	goodRewardRegisterService := services.NewGoodRewardRegisterService(
 		goodRewardExistsRepository,
 		goodRewardSaveRepository,
+	)
+	orderRegisterService := services.NewOrderRegisterService(
+		orderExistsRepository,
+		orderSaveRepository,
+		goodRewardFindILikeRepository,
+	)
+	orderGetService := services.NewOrderGetService(
+		orderFindRepository,
 	)
 
 	val := validator.New()
@@ -53,6 +78,14 @@ func run(config *configs.AccrualConfig) error {
 		val,
 		goodRewardRegisterService,
 	)
+	orderRegisterHandler := handlers.OrderRegisterHandler(
+		val,
+		orderRegisterService,
+	)
+	orderGetHandler := handlers.OrderGetHandler(
+		val,
+		orderGetService,
+	)
 
 	router := chi.NewRouter()
 
@@ -60,8 +93,8 @@ func run(config *configs.AccrualConfig) error {
 		router,
 		db,
 		"/api",
-		nil,
-		nil,
+		orderGetHandler,
+		orderRegisterHandler,
 		goodRewardRegisterHandler,
 	)
 
