@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/sbilibin2017/go-gophermart/internal/configs"
@@ -40,40 +39,30 @@ func (h *UserLoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password" validate:"required"`
 	}
 
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&req); err != nil {
-		sendPlainTextResponse(w, http.StatusBadRequest, capitalize(types.ErrJSONDecode.Error()))
+	if err := decodeJSONRequest(r, &req); err != nil {
+		sendTextPlainResponse(w, http.StatusBadRequest, capitalize(types.ErrJSONDecode.Error()))
 		return
 	}
 
-	if err := h.val.Struct(req); err != nil {
-		valErr := h.valErrRegistry.Get(err)
-		if valErr != nil {
-			sendPlainTextResponse(w, valErr.StatusCode, capitalize(valErr.Error.Error()))
-			return
-		}
+	if handled := handleValidationError(w, req, h.val, h.valErrRegistry); handled {
+		return
 	}
 
-	var user = &types.User{
+	user := &types.User{
 		Login:    req.Login,
 		Password: req.Password,
 	}
 
-	err := h.svc.Authenticate(r.Context(), user)
-	if err != nil {
-		errHTTP := h.httpErrRegistry.Get(err)
-		if errHTTP != nil {
-			sendPlainTextResponse(w, errHTTP.StatusCode, capitalize(errHTTP.Error.Error()))
-			return
-		}
+	if handled := handleServiceError(w, h.svc.Authenticate(r.Context(), user), h.httpErrRegistry); handled {
+		return
 	}
 
 	tokenString, err := jwt.GenerateTokenString(h.jwtConfig, user)
 	if err != nil {
-		sendPlainTextResponse(w, http.StatusInternalServerError, capitalize(types.ErrTokenEncode.Error()))
+		sendTextPlainResponse(w, http.StatusInternalServerError, types.ErrTokenEncode.Error())
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer "+tokenString)
-	sendPlainTextResponse(w, http.StatusOK, "User successfully authenticated")
+	setAuthorizationHeader(w, tokenString)
+	sendTextPlainResponse(w, http.StatusOK, "User successfully authenticated")
 }
