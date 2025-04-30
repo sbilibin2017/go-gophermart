@@ -42,7 +42,7 @@ func GoodRewardRegisterHandler(
 			case errors.Is(err, types.ErrGoodRewardAlreadyExists):
 				http.Error(w, capitalize(err.Error()), http.StatusConflict)
 			default:
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				http.Error(w, errInternalServerError, http.StatusInternalServerError)
 			}
 			return
 		}
