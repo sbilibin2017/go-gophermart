@@ -13,7 +13,7 @@ type OrderRegisterOrderFilterOneRepository interface {
 }
 
 type OrderRegisterOrderSaveRepository interface {
-	Save(ctx context.Context, reward *types.OrderDB) error
+	Save(ctx context.Context, number string, status string, accrual int64) error
 }
 
 type OrderRegisterRewardFilterOneILikeRepository interface {
@@ -98,13 +98,7 @@ func (svc *OrderRegisterService) Register(
 		accrual += goodAccrual
 	}
 
-	order := &types.OrderDB{
-		Number:  req.Order,
-		Status:  types.ORDER_ACCRUAL_STATUS_REGISTERED,
-		Accrual: accrual,
-	}
-
-	if err := svc.os.Save(ctx, order); err != nil {
+	if err := svc.os.Save(ctx, req.Order, types.ORDER_ACCRUAL_STATUS_REGISTERED, accrual); err != nil {
 		return nil, &types.APIErrorStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Failed to save order with reward",

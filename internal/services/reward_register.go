@@ -12,7 +12,7 @@ type RewardRegisterRewardFilterOneRepository interface {
 }
 
 type RewardRegisterRewardSaveRepository interface {
-	Save(ctx context.Context, reward *types.RewardDB) error
+	Save(ctx context.Context, match string, reward int64, rewardType string) error
 }
 
 type RewardRegisterValidator interface {
@@ -62,12 +62,7 @@ func (svc *RewardRegisterService) Register(
 		}
 	}
 
-	reward := &types.RewardDB{
-		Match:      req.Match,
-		Reward:     req.Reward,
-		RewardType: req.RewardType,
-	}
-	if err := svc.rs.Save(ctx, reward); err != nil {
+	if err := svc.rs.Save(ctx, req.Match, req.Reward, req.RewardType); err != nil {
 		return nil, &types.APIErrorStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Failed to save reward",
