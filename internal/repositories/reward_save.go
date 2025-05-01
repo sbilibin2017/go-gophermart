@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 type RewardSaveRepository struct {
@@ -23,14 +22,14 @@ func NewRewardSaveRepository(
 }
 
 func (r *RewardSaveRepository) Save(
-	ctx context.Context, reward *types.RewardDB,
+	ctx context.Context, match string, reward int64, rewardType string,
 ) error {
 	return execContext(
 		ctx,
 		r.db,
 		r.txProvider,
 		rewardSaveQuery,
-		reward.Match, reward.Reward, reward.RewardType,
+		match, reward, rewardType,
 	)
 }
 

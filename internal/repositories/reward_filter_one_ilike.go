@@ -46,7 +46,7 @@ func buildRewardFilterOneILikeQuery(description string) (string, []any) {
 }
 
 const rewardFilterOneILikeQuery = `
-	SELECT match, reward, reward_type 
+	SELECT *
 	FROM reward 
 	WHERE match ILIKE $1
 `

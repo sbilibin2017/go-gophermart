@@ -7,41 +7,41 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type OrderFilterOneRepository struct {
+type UserFilterOneRepository struct {
 	db         *sqlx.DB
 	txProvider func(ctx context.Context) (*sqlx.Tx, error)
 }
 
-func NewOrderFilterOneRepository(
+func NewUserFilterOneRepository(
 	db *sqlx.DB,
 	txProvider func(ctx context.Context) (*sqlx.Tx, error),
-) *OrderFilterOneRepository {
-	return &OrderFilterOneRepository{
+) *UserFilterOneRepository {
+	return &UserFilterOneRepository{
 		db:         db,
 		txProvider: txProvider,
 	}
 }
 
-func (r *OrderFilterOneRepository) FilterOne(
-	ctx context.Context, number string,
-) (*types.OrderDB, error) {
-	var order types.OrderDB
+func (r *UserFilterOneRepository) FilterOne(
+	ctx context.Context, login string,
+) (*types.UserDB, error) {
+	var user types.UserDB
 	err := getContext(
 		ctx,
 		r.db,
 		r.txProvider,
-		orderFilterOneQuery,
-		&order,
-		number,
+		userFilterOneQuery,
+		&user,
+		login,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return &order, nil
+	return &user, nil
 }
 
-const orderFilterOneQuery = `
-	SELECT *
-	FROM orders 
-	WHERE number = $1
+const userFilterOneQuery = `
+	SELECT * 
+	FROM users 
+	WHERE login = $1
 `

@@ -37,6 +37,21 @@ func getContext(
 	return err
 }
 
+func selectContext(
+	ctx context.Context,
+	db *sqlx.DB,
+	txProvider func(ctx context.Context) (*sqlx.Tx, error),
+	query string,
+	dest any,
+	args ...any,
+) error {
+	e := getExecutor(ctx, db, txProvider)
+	err := sqlx.SelectContext(ctx, e, dest, query, args...)
+	err = handleExecutorError(err)
+	logQuery(query, args, err)
+	return err
+}
+
 func getExecutor(
 	ctx context.Context,
 	db *sqlx.DB,

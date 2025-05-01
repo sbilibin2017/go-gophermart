@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
 type OrderSaveRepository struct {
@@ -23,14 +22,14 @@ func NewOrderSaveRepository(
 }
 
 func (r *OrderSaveRepository) Save(
-	ctx context.Context, order *types.OrderDB,
+	ctx context.Context, number string, status string, accrual int64,
 ) error {
 	return execContext(
 		ctx,
 		r.db,
 		r.txProvider,
 		orderSaveQuery,
-		order.Number, order.Status, order.Accrual,
+		number, status, accrual,
 	)
 }
 
