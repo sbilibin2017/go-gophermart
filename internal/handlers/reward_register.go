@@ -14,9 +14,8 @@ type RewardRegisterService interface {
 func RewardRegisterHandler(svc RewardRegisterService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.RewardRequest
-		err := decodeRequestBody(r, &req)
+		err := decodeRequestBody(w, r, &req)
 		if err != nil {
-			sendTextPlainResponse(w, types.ErrInvalidRequestBody.Error(), http.StatusBadRequest)
 			return
 		}
 

@@ -1,6 +1,16 @@
 package types
 
-type User struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
+type UserRegisterRequest struct {
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type UserAuthRequest struct {
+	Login    string `json:"login" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type UserDB struct {
+	Login    string `db:"login"`
+	Password string `db:"password"`
 }

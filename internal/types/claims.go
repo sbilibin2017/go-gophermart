@@ -11,7 +11,7 @@ type Claims struct {
 	Login string `json:"login"`
 }
 
-func NewClaims(user *User, issuer string, exp time.Duration) *Claims {
+func NewClaims(user *UserDB, issuer string, exp time.Duration) *Claims {
 	return &Claims{
 		Login: user.Login,
 		RegisteredClaims: jwt.RegisteredClaims{

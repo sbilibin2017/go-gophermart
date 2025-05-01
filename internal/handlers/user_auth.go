@@ -7,25 +7,25 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
-type OrderRegisterService interface {
-	Register(ctx context.Context, req *types.OrderRequest) (*types.APISuccessStatus, *types.APIErrorStatus)
+type UserAuthService interface {
+	Authenticate(ctx context.Context, req *types.UserAuthRequest) (string, *types.APISuccessStatus, *types.APIErrorStatus)
 }
 
-func OrderRegisterHandler(svc OrderRegisterService) http.HandlerFunc {
+func UserAuthHandler(svc UserAuthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.OrderRequest
-
+		var req types.UserAuthRequest
 		err := decodeRequestBody(w, r, &req)
 		if err != nil {
 			return
 		}
 
-		successStatus, errorStatus := svc.Register(r.Context(), &req)
+		tokenString, successStatus, errorStatus := svc.Authenticate(r.Context(), &req)
 		if errorStatus != nil {
 			sendTextPlainResponse(w, errorStatus.Message, errorStatus.StatusCode)
 			return
 		}
 
+		setTokenHeader(w, tokenString)
 		sendTextPlainResponse(w, successStatus.Message, successStatus.StatusCode)
 	}
 }
