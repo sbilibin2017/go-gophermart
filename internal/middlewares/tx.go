@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -9,7 +10,6 @@ import (
 
 func TxMiddleware(
 	db *sqlx.DB,
-	txSetter func(ctx context.Context, tx *sqlx.Tx) context.Context,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,10 +29,24 @@ func TxMiddleware(
 				}
 			}()
 
-			ctx := txSetter(r.Context(), tx)
+			ctx := setTx(r.Context(), tx)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+type txContextKey struct{}
+
+func GetTxFromContext(ctx context.Context) (*sqlx.Tx, error) {
+	tx, ok := ctx.Value(txContextKey{}).(*sqlx.Tx)
+	if !ok {
+		return nil, errors.New("transaction not found in context")
+	}
+	return tx, nil
+}
+
+func setTx(ctx context.Context, tx *sqlx.Tx) context.Context {
+	return context.WithValue(ctx, txContextKey{}, tx)
 }

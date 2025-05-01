@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
@@ -14,14 +13,12 @@ type UserBalanceCurrentService interface {
 
 func UserBalanceCurrentHandler(svc UserBalanceCurrentService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, err := contextutils.GetClaims(r.Context())
+		login, err := getLoginFromContext(w, r)
 		if err != nil {
-			sendTextPlainResponse(w, types.ErrUnauthorized.Error(), http.StatusUnauthorized)
 			return
-
 		}
 
-		req := types.UserBalanceCurrentRequest(claims.Login)
+		req := types.UserBalanceCurrentRequest(login)
 
 		currentBalance, successStatus, errorStatus := svc.Get(r.Context(), &req)
 		if errorStatus != nil {

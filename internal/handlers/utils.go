@@ -6,9 +6,19 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sbilibin2017/go-gophermart/internal/middlewares"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
+func getLoginFromContext(w http.ResponseWriter, r *http.Request) (string, error) {
+	login, err := middlewares.GetLoginFromContext(r.Context())
+	if err != nil {
+		sendTextPlainResponse(w, types.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return "", err
+
+	}
+	return login, nil
+}
 func sendTextPlainResponse(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(statusCode)
@@ -32,7 +42,7 @@ func decodeRequestBody(w http.ResponseWriter, r *http.Request, req interface{}) 
 	if err != nil {
 		sendTextPlainResponse(w, types.ErrInvalidRequestBody.Error(), http.StatusBadRequest)
 		return err
-	}	
+	}
 	return nil
 }
 

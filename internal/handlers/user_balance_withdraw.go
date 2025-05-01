@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
@@ -14,11 +13,9 @@ type UserBalanceWithdrawService interface {
 
 func UserBalanceWithdrawHandler(svc UserBalanceWithdrawService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, err := contextutils.GetClaims(r.Context())
+		login, err := getLoginFromContext(w, r)
 		if err != nil {
-			sendTextPlainResponse(w, types.ErrUnauthorized.Error(), http.StatusUnauthorized)
 			return
-
 		}
 
 		var req types.UserBalanceWithdrawRequest
@@ -27,7 +24,7 @@ func UserBalanceWithdrawHandler(svc UserBalanceWithdrawService) http.HandlerFunc
 			return
 		}
 
-		req.Login = claims.Login
+		req.Login = login
 
 		successStatus, errorStatus := svc.Withdraw(r.Context(), &req)
 		if errorStatus != nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/sbilibin2017/go-gophermart/internal/contextutils"
 	"github.com/sbilibin2017/go-gophermart/internal/types"
 )
 
@@ -14,15 +13,13 @@ type UserOrderUpdloadService interface {
 
 func UserOrderUpdloadHandler(svc UserOrderUpdloadService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, err := contextutils.GetClaims(r.Context())
+		login, err := getLoginFromContext(w, r)
 		if err != nil {
-			sendTextPlainResponse(w, types.ErrUnauthorized.Error(), http.StatusUnauthorized)
 			return
-
 		}
 
 		req := types.UserOrderUploadRequest{
-			Login:  claims.Login,
+			Login:  login,
 			Number: getURLParam(r, "number"),
 		}
 
