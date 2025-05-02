@@ -109,7 +109,7 @@ func registerAccrualRouter(
 
 	r.Post("/goods", handlers.RewardRegisterHandler(rewardRegisterService))
 	r.Post("/orders", handlers.OrderRegisterHandler(orderRegisterService))
-	r.Get("/orders/{number}", handlers.OrderGetHandler(orderGetService))
+	r.With(middlewares.RateLimitMiddleware).Get("/orders/{number}", handlers.OrderGetHandler(orderGetService))
 
 	router.Mount(prefix, r)
 }

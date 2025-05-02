@@ -13,6 +13,6 @@ type RewardDB struct {
 }
 
 const (
-	REWARD_TYPE_PERCENT = "%"
-	REWARD_TYPE_POINT   = "pt"
+	RewardTypePercent = "%"
+	RewardTypePoint   = "pt"
 )

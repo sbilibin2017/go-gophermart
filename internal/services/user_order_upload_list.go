@@ -8,7 +8,7 @@ import (
 )
 
 type UserOrderUploadListUserOrderListRepository interface {
-	ListOrdered(ctx context.Context, login string) (*[]types.UserOrderDB, error)
+	ListOrdered(ctx context.Context, login *string) ([]*types.UserOrderDB, error)
 }
 
 type UserOrderListService struct {
@@ -26,7 +26,7 @@ func NewUserOrderListService(
 func (svc *UserOrderListService) List(
 	ctx context.Context, login string,
 ) ([]*types.UserOrderUploadedListResponse, *types.APIStatus) {
-	orders, err := svc.uol.ListOrdered(ctx, login)
+	orders, err := svc.uol.ListOrdered(ctx, &login)
 	if err != nil {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusInternalServerError,
@@ -34,7 +34,7 @@ func (svc *UserOrderListService) List(
 		}
 	}
 
-	if len(*orders) == 0 {
+	if len(orders) == 0 {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusNoContent,
 			Message:    "No orders found",
@@ -42,7 +42,7 @@ func (svc *UserOrderListService) List(
 	}
 
 	var response []*types.UserOrderUploadedListResponse
-	for _, order := range *orders {
+	for _, order := range orders {
 		response = append(response, &types.UserOrderUploadedListResponse{
 			Number:     order.Number,
 			Status:     order.Status,

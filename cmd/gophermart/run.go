@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/go-resty/resty/v2"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/sbilibin2017/go-gophermart/internal/handlers"
@@ -17,6 +20,7 @@ import (
 	"github.com/sbilibin2017/go-gophermart/internal/server"
 	"github.com/sbilibin2017/go-gophermart/internal/services"
 	"github.com/sbilibin2017/go-gophermart/internal/services/validation"
+	"github.com/sbilibin2017/go-gophermart/internal/workers"
 )
 
 func run() error {
@@ -136,6 +140,28 @@ func run() error {
 		syscall.SIGTERM,
 	)
 	defer cancel()
+
+	client := resty.New()
+	client.SetRetryCount(3)
+	client.SetRetryWaitTime(2 * time.Second)
+	client.SetRetryMaxWaitTime(10 * time.Second)
+
+	go func() {
+		err := workers.StartOrderWorkerDaemon(
+			ctx,
+			userOrderListRepository,
+			userOrderSaveRepository,
+			userBalanceWithdrawSaveRepository,
+			client,
+			accrualSystemAddress,
+			semaPool,
+			numWorkers,
+			tickerInterval,
+		)
+		if err != nil {
+			log.Printf("Error in order worker daemon: %v", err)
+		}
+	}()
 
 	return server.Run(
 		ctx,

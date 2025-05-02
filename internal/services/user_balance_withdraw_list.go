@@ -8,7 +8,7 @@ import (
 )
 
 type UserBalanceWithdrawListRepository interface {
-	ListOrdered(ctx context.Context, login string) (*[]types.UserBalanceWithdrawDB, error)
+	ListOrdered(ctx context.Context, login string) ([]*types.UserBalanceWithdrawDB, error)
 }
 
 type UserBalanceWithdrawListService struct {
@@ -34,7 +34,7 @@ func (svc *UserBalanceWithdrawListService) List(
 		}
 	}
 
-	if len(*withdrawals) == 0 {
+	if len(withdrawals) == 0 {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusNoContent,
 			Message:    "No withdrawals found",
@@ -42,7 +42,7 @@ func (svc *UserBalanceWithdrawListService) List(
 	}
 
 	var response []*types.UserBalanceWithdrawResponse
-	for _, withdrawal := range *withdrawals {
+	for _, withdrawal := range withdrawals {
 		response = append(response, &types.UserBalanceWithdrawResponse{
 			Order:       withdrawal.Number,
 			Sum:         withdrawal.Sum,

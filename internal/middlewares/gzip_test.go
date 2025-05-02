@@ -3,7 +3,7 @@ package middlewares
 import (
 	"bytes"
 	"compress/gzip"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,7 +14,7 @@ import (
 
 func TestGzipMiddleware_DecompressRequest(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body) // Replaced ioutil.ReadAll with io.ReadAll
 		assert.NoError(t, err)
 		assert.Equal(t, "Hello, World!", string(body))
 		w.WriteHeader(http.StatusOK)
@@ -49,7 +49,7 @@ func TestGzipMiddleware_CompressResponse(t *testing.T) {
 	gzipReader, err := gzip.NewReader(rr.Body)
 	assert.NoError(t, err)
 	defer gzipReader.Close()
-	decompressedBody, err := ioutil.ReadAll(gzipReader)
+	decompressedBody, err := io.ReadAll(gzipReader) // Replaced ioutil.ReadAll with io.ReadAll
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello, World!", string(decompressedBody))
 }

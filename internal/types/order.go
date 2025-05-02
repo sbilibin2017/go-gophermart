@@ -27,8 +27,8 @@ type OrderDB struct {
 }
 
 const (
-	ORDER_ACCRUAL_STATUS_REGISTERED = "REGISTERED"
-	ORDER_ACCRUAL_STATUS_INVALID    = "INVALID"
-	ORDER_ACCRUAL_STATUS_PROCESSING = "PROCESSING"
-	ORDER_ACCRUAL_STATUS_PROCESSED  = "PROCESSED"
+	OrderAccrualStatusRegistered = "REGISTERED"
+	OrderAccrualStatusInvalid    = "INVALID"
+	OrderAccrualStatusProcessing = "PROCESSING"
+	OrderAccrualStatusProcessed  = "PROCESSED"
 )

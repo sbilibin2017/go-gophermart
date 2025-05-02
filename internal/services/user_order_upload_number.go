@@ -13,7 +13,7 @@ type UserOrderUploadNumberUserOrderFilterOneRepository interface {
 }
 
 type UserOrderUploadNumberUserOrderSaveRepository interface {
-	Save(ctx context.Context, number string, login string, status string) error
+	Save(ctx context.Context, number string, login string, status string, accrual *int64) error
 }
 
 type UserOrderUploadNumberValidator interface {
@@ -89,7 +89,7 @@ func (svc *UserOrderUploadNumberService) Upload(
 		}
 	}
 
-	err = svc.uos.Save(ctx, req.Number, req.Login, types.GOPHERMART_USER_ORDER_STATUS_NEW)
+	err = svc.uos.Save(ctx, req.Number, req.Login, types.GophermartUserOrderStatusNew, nil)
 	if err != nil {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusInternalServerError,

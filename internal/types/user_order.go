@@ -23,8 +23,8 @@ type UserOrderDB struct {
 }
 
 const (
-	GOPHERMART_USER_ORDER_STATUS_NEW        = "NEW"
-	GOPHERMART_USER_ORDER_STATUS_PROCESSING = "PROCESSING"
-	GOPHERMART_USER_ORDER_STATUS_INVALID    = "INVALID"
-	GOPHERMART_USER_ORDER_STATUS_PROCESSED  = "PROCESSED"
+	GophermartUserOrderStatusNew        = "NEW"
+	GophermartUserOrderStatusProcessing = "PROCESSING"
+	GophermartUserOrderStatusInvalid    = "INVALID"
+	GophermartUserOrderStatusProcessed  = "PROCESSED"
 )

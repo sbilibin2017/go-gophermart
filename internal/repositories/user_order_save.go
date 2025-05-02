@@ -22,19 +22,21 @@ func NewUserOrderSaveRepository(
 }
 
 func (r *UserOrderSaveRepository) Save(
-	ctx context.Context, number string, login string, status string,
+	ctx context.Context, number string, login string, status string, accrual *int64,
 ) error {
 	return execContext(
 		ctx,
 		r.db,
 		r.txProvider,
 		userOrderSaveQuery,
-		number, login, status,
+		number, login, status, accrual,
 	)
 }
 
 const userOrderSaveQuery = `
-	INSERT INTO user_orders (number, login, status)
-	VALUES ($1, $2, $3)
-	ON CONFLICT (number) DO NOTHING
+	INSERT INTO user_orders (number, login, status, accrual)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT (number) DO UPDATE
+	SET status = EXCLUDED.status,
+	    accrual = COALESCE(EXCLUDED.accrual, user_orders.accrual)
 `

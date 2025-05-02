@@ -13,10 +13,13 @@ var (
 )
 
 const (
-	emptyString  = ""
-	jwtSecretKey = "test"
-	jwtExp       = time.Hour * 24 * 365
-	issuer       = "gophermart"
+	emptyString    = ""
+	jwtSecretKey   = "test"
+	jwtExp         = time.Hour * 24 * 365
+	issuer         = "gophermart"
+	tickerInterval = 1 * time.Minute
+	semaPool       = 10
+	numWorkers     = 50
 )
 
 func flags() {

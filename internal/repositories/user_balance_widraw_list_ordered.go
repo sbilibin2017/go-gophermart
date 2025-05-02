@@ -24,8 +24,8 @@ func NewUserBalanceWithdrawListRepository(
 
 func (r *UserBalanceWithdrawListRepository) ListOrdered(
 	ctx context.Context, login string,
-) (*[]types.UserBalanceWithdrawDB, error) {
-	var withdrawals []types.UserBalanceWithdrawDB
+) ([]*types.UserBalanceWithdrawDB, error) {
+	var withdrawals []*types.UserBalanceWithdrawDB
 	err := getContext(
 		ctx,
 		r.db,
@@ -37,7 +37,7 @@ func (r *UserBalanceWithdrawListRepository) ListOrdered(
 	if err != nil {
 		return nil, err
 	}
-	return &withdrawals, nil
+	return withdrawals, nil
 }
 
 const userBalanceWithdrawListQuery = `

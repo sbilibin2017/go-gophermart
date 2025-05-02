@@ -98,7 +98,7 @@ func (svc *OrderRegisterService) Register(
 		accrual += goodAccrual
 	}
 
-	if err := svc.os.Save(ctx, req.Order, types.ORDER_ACCRUAL_STATUS_REGISTERED, accrual); err != nil {
+	if err := svc.os.Save(ctx, req.Order, types.OrderAccrualStatusRegistered, accrual); err != nil {
 		return nil, &types.APIStatus{
 			StatusCode: http.StatusInternalServerError,
 			Message:    "Failed to save order with reward",
@@ -113,9 +113,9 @@ func (svc *OrderRegisterService) Register(
 
 func calculateAccrual(reward *types.RewardDB, good types.Good) (int64, error) {
 	switch reward.RewardType {
-	case types.REWARD_TYPE_PERCENT:
+	case types.RewardTypePercent:
 		return int64(float64(good.Price) * (float64(reward.Reward) / 100)), nil
-	case types.REWARD_TYPE_POINT:
+	case types.RewardTypePoint:
 		return reward.Reward, nil
 	default:
 		return 0, errors.New("invalid reward type")
