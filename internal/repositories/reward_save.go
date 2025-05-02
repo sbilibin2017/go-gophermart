@@ -34,7 +34,7 @@ func (r *RewardSaveRepository) Save(
 }
 
 const rewardSaveQuery = `
-	INSERT INTO reward (match, reward, reward_type)
+	INSERT INTO rewards (match, reward, reward_type)
 	VALUES ($1, $2, $3)
 	ON CONFLICT (match)
 	DO UPDATE SET

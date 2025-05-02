@@ -1,0 +1,9 @@
+POST http://localhost:8081/api/goods
+Content-Type: application/json
+Accept: application/json
+
+{
+    "match": "kU7wKFS9egH1zWDeOV",
+    "reward": 5,
+    "reward_type": "%"
+}

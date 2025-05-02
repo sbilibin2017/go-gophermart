@@ -42,6 +42,6 @@ func (r *RewardFilterOneRepository) FilterOne(
 
 const rewardFilterOneQuery = `
 	SELECT *
-	FROM reward 
-	WHERE match = &1
+	FROM rewards 
+	WHERE match = $1
 `
