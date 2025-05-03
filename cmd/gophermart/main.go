@@ -1,3 +1,7 @@
 package main
 
-func main() {}
+func main() {
+	flags()
+	err := run()
+	exit(err)
+}
