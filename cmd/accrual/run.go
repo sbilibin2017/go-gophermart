@@ -6,8 +6,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v2"
+	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
+	"github.com/sbilibin2017/go-gophermart/internal/handlers"
 	"github.com/sbilibin2017/go-gophermart/internal/logger"
+	"github.com/sbilibin2017/go-gophermart/internal/repositories"
+	"github.com/sbilibin2017/go-gophermart/internal/services"
 
 	"net/http"
 
@@ -29,7 +34,26 @@ func run() error {
 	)
 	defer cancel()
 
-	srv := &http.Server{Addr: options.runAddress}
+	rewardMechanicFilterOneRepository := repositories.NewRewardMechanicFilterOneRepository(db)
+	rewardMechanicSaveRepository := repositories.NewRewardMechanicSaveRepository(db)
+
+	val := validator.New()
+
+	rewardMechanicRegisterService := services.NewRewardRegisterMechanicService(
+		val,
+		rewardMechanicFilterOneRepository,
+		rewardMechanicSaveRepository,
+	)
+
+	router := chi.NewRouter()
+
+	registerAccrualRouter(
+		router,		
+		"/api",
+		rewardMechanicRegisterService,
+	)
+
+	srv := &http.Server{Addr: options.runAddress, Handler: router}
 
 	go func() {
 		logger.Info("Starting server on " + options.runAddress)
@@ -51,4 +75,16 @@ func run() error {
 	}
 
 	return nil
+}
+
+func registerAccrualRouter(
+	router *chi.Mux,
+	prefix string,
+	rewardRegisterService *services.RewardRegisterMechanicService,
+) {
+	r := chi.NewRouter()
+
+	r.Post("/goods", handlers.RewardRegisterHandler(rewardRegisterService))
+
+	router.Mount(prefix, r)
 }
